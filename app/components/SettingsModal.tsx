@@ -94,6 +94,11 @@ interface SettingsModalProps {
     setAutoWallpaper: (v: boolean) => void;
     resetOnClose: boolean;
     setResetOnClose: (v: boolean) => void;
+    volumeMode: string;
+    setVolumeMode: (v: string) => void;
+    volumeLimit: number;
+    setVolumeLimit: (v: number) => void;
+    volume: number;
     defaultWallpaper: string | null;
     onPickWallpaper: () => void;
     onClearWallpaper: () => void;
@@ -132,6 +137,11 @@ export default function SettingsModal({
     setAutoWallpaper,
     resetOnClose,
     setResetOnClose,
+    volumeMode,
+    setVolumeMode,
+    volumeLimit,
+    setVolumeLimit,
+    volume,
     defaultWallpaper,
     onPickWallpaper,
     onClearWallpaper,
@@ -245,6 +255,11 @@ export default function SettingsModal({
                                     setAutoWallpaper={setAutoWallpaper}
                                     resetOnClose={resetOnClose}
                                     setResetOnClose={setResetOnClose}
+                                    volumeMode={volumeMode}
+                                    setVolumeMode={setVolumeMode}
+                                    volumeLimit={volumeLimit}
+                                    setVolumeLimit={setVolumeLimit}
+                                    volume={volume}
                                     defaultWallpaper={defaultWallpaper}
                                     onPickWallpaper={onPickWallpaper}
                                     onClearWallpaper={onClearWallpaper}
@@ -304,6 +319,11 @@ function GeneralSection({
     setAutoWallpaper,
     resetOnClose,
     setResetOnClose,
+    volumeMode,
+    setVolumeMode,
+    volumeLimit,
+    setVolumeLimit,
+    volume,
     defaultWallpaper,
     onPickWallpaper,
     onClearWallpaper,
@@ -320,6 +340,11 @@ function GeneralSection({
     setAutoWallpaper: (v: boolean) => void;
     resetOnClose: boolean;
     setResetOnClose: (v: boolean) => void;
+    volumeMode: string;
+    setVolumeMode: (v: string) => void;
+    volumeLimit: number;
+    setVolumeLimit: (v: number) => void;
+    volume: number;
     defaultWallpaper: string | null;
     onPickWallpaper: () => void;
     onClearWallpaper: () => void;
@@ -398,6 +423,28 @@ function GeneralSection({
                     )}
                 </div>
             </SettingRow>
+            <SettingRow
+                title="Mode Volume"
+                description="Volume App: kontrol sendiri. Volume Sistem: ikuti volume Windows."
+            >
+                <SelectStub
+                    options={[['app', 'App Volume'], ['system', 'System Volume']]}
+                    value={volumeMode}
+                    onChange={setVolumeMode}
+                />
+            </SettingRow>
+            {volumeMode === 'system' && (
+                <SettingRow
+                    title="Batas Volume Sistem"
+                    description="Beri peringatan jika volume sistem melebihi batas ini (0 = tidak ada batas)"
+                >
+                    <VolumeLimitInput
+                        volumeLimit={volumeLimit}
+                        setVolumeLimit={setVolumeLimit}
+                        currentVolume={volume}
+                    />
+                </SettingRow>
+            )}
             <SettingRow
                 title="Update"
                 description="Periksa versi terbaru Symvonia"
@@ -1013,6 +1060,62 @@ function ShortcutRow({
                     </motion.button>
                 )}
             </div>
+        </div>
+    );
+}
+
+function VolumeLimitInput({
+    volumeLimit,
+    setVolumeLimit,
+    currentVolume,
+}: {
+    volumeLimit: number;
+    setVolumeLimit: (v: number) => void;
+    currentVolume: number;
+}) {
+    const [draft, setDraft] = useState(volumeLimit.toString());
+    const [saved, setSaved] = useState(volumeLimit);
+
+    useEffect(() => {
+        setDraft(volumeLimit.toString());
+        setSaved(volumeLimit);
+    }, [volumeLimit]);
+
+    const handleSave = () => {
+        let n = parseInt(draft, 10);
+        if (isNaN(n) || n < 1) n = 0;
+        if (n > 100) n = 100;
+        setSaved(n);
+        setVolumeLimit(n);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') handleSave();
+    };
+
+    return (
+        <div className="flex items-center gap-2">
+            <input
+                type="number"
+                min={0}
+                max={100}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="w-16 px-2 py-1.5 rounded-lg bg-zinc-800/60 border border-zinc-700/50 text-xs text-zinc-300 outline-none focus:border-zinc-500 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                placeholder="0"
+            />
+            <button
+                onClick={handleSave}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 bg-zinc-800/60 hover:bg-zinc-700/70 border border-zinc-700/50 transition-colors cursor-pointer"
+            >
+                Save
+            </button>
+            {saved > 0 && (
+                <span className="text-[10px] text-zinc-500">
+                    {Math.round(currentVolume * 100) > saved ? '⚠ Volume saat ini melebihi batas' : `Batas: ${saved}`}
+                </span>
+            )}
         </div>
     );
 }

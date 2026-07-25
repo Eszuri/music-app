@@ -345,6 +345,117 @@ fn clear_wallpaper() -> Result<(), String> {
     clear_wallpaper_internal()
 }
 
+#[cfg(windows)]
+unsafe fn with_endpoint_volume<F, T>(f: F) -> Result<T, String>
+where
+    F: FnOnce(&windows::Win32::Media::Audio::Endpoints::IAudioEndpointVolume) -> Result<T, String>,
+{
+    let _ = windows::Win32::System::Com::CoInitializeEx(
+        None,
+        windows::Win32::System::Com::COINIT_APARTMENTTHREADED,
+    );
+
+    let enumerator: windows::Win32::Media::Audio::IMMDeviceEnumerator =
+        windows::Win32::System::Com::CoCreateInstance(
+            &windows::Win32::Media::Audio::MMDeviceEnumerator,
+            None,
+            windows::Win32::System::Com::CLSCTX_INPROC_SERVER,
+        )
+        .map_err(|e| format!("CoCreateInstance IMMDeviceEnumerator failed: {}", e))?;
+
+    let device = enumerator
+        .GetDefaultAudioEndpoint(
+            windows::Win32::Media::Audio::eRender,
+            windows::Win32::Media::Audio::eMultimedia,
+        )
+        .map_err(|e| format!("GetDefaultAudioEndpoint failed: {}", e))?;
+
+    let endpoint: windows::Win32::Media::Audio::Endpoints::IAudioEndpointVolume = device
+        .Activate(
+            windows::Win32::System::Com::CLSCTX_INPROC_SERVER,
+            None,
+        )
+        .map_err(|e| format!("Activate IAudioEndpointVolume failed: {}", e))?;
+
+    f(&endpoint)
+}
+
+#[tauri::command]
+fn get_system_volume() -> Result<u32, String> {
+    #[cfg(windows)]
+    {
+        unsafe {
+            with_endpoint_volume(|endpoint| {
+                let level = endpoint
+                    .GetMasterVolumeLevelScalar()
+                    .map_err(|e| format!("GetMasterVolumeLevelScalar failed: {}", e))?;
+                let pct = (level as f64 * 100.0).round() as u32;
+                Ok(pct.clamp(0, 100))
+            })
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        Err("System volume hanya tersedia di Windows".to_string())
+    }
+}
+
+#[tauri::command]
+fn set_system_volume(value: u32) -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        unsafe {
+            with_endpoint_volume(|endpoint| {
+                let pct = value.clamp(0, 100) as f32 / 100.0;
+                endpoint
+                    .SetMasterVolumeLevelScalar(pct, std::ptr::null())
+                    .map_err(|e| format!("SetMasterVolumeLevelScalar failed: {}", e))
+            })
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        Err("System volume hanya tersedia di Windows".to_string())
+    }
+}
+
+#[tauri::command]
+fn get_system_mute() -> Result<bool, String> {
+    #[cfg(windows)]
+    {
+        unsafe {
+            with_endpoint_volume(|endpoint| {
+                let muted = endpoint
+                    .GetMute()
+                    .map_err(|e| format!("GetMute failed: {}", e))?;
+                Ok(muted.as_bool())
+            })
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        Err("System mute hanya tersedia di Windows".to_string())
+    }
+}
+
+#[tauri::command]
+fn set_system_mute(mute: bool) -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        unsafe {
+            with_endpoint_volume(|endpoint| {
+                endpoint
+                    .SetMute(windows::Win32::Foundation::BOOL::from(mute), std::ptr::null())
+                    .map_err(|e| format!("SetMute failed: {}", e))
+            })
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        Err("System mute hanya tersedia di Windows".to_string())
+    }
+}
+
 #[tauri::command]
 fn set_wallpaper(cover_b64: String) -> Result<(), String> {
     let engine = base64::engine::general_purpose::STANDARD;
@@ -492,6 +603,10 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             list_files,
             get_metadata,
+            get_system_volume,
+            set_system_volume,
+            get_system_mute,
+            set_system_mute,
             set_wallpaper,
             clear_wallpaper,
             pick_folder,

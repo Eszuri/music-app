@@ -1,9 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import FolderExplorer, { FileEntry } from './components/FolderExplorer';
-import PlayerPanel, { SongMetadata } from './components/PlayerPanel';
+import {useCallback, useEffect, useRef, useState} from 'react';
+import {AnimatePresence, motion} from 'framer-motion';
+import FolderExplorer, {FileEntry} from './components/FolderExplorer';
+import PlayerPanel, {SongMetadata} from './components/PlayerPanel';
 import SeekBar from './components/SeekBar';
 import PlaybackControls from './components/PlaybackControls';
 import VolumeControl from './components/VolumeControl';
@@ -11,7 +11,7 @@ import ConfirmDialog from './components/ConfirmDialog';
 import SettingsModal from './components/SettingsModal';
 import MetadataPanel from './components/MetadataPanel';
 import StreamingModal from './components/StreamingModal';
-import { getAccent, setCustomAccentVars, removeCustomAccentVars } from './lib/colors';
+import {getAccent, setCustomAccentVars, removeCustomAccentVars} from './lib/colors';
 
 const isBrowserTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 const FOLDER_STORAGE_KEY = 'music-app-folder';
@@ -37,33 +37,11 @@ const DEFAULT_SHORTCUTS: Record<ShortcutAction, string> = {
     volumeDown: 'ArrowLeft',
 };
 
-const SHORTCUT_LABELS: Record<ShortcutAction, { label: string; description: string }> = {
-    playPause: { label: 'Play / Pause', description: 'Putar atau jeda lagu yang sedang diputar' },
-    next: { label: 'Next Track', description: 'Lanjut ke lagu berikutnya' },
-    prev: { label: 'Previous Track', description: 'Kembali ke lagu sebelumnya' },
-    volumeUp: { label: 'Volume Up', description: 'Naikkan volume (+5%)' },
-    volumeDown: { label: 'Volume Down', description: 'Turunkan volume (-5%)' },
-};
-
-// Normalise a KeyboardEvent.key to the form we store (handles case: 'n' vs 'N').
-function normaliseKey(key: string): string {
-    if (key === ' ') return ' ';
-    if (key.length === 1) return key.toLowerCase();
-    return key; // ArrowRight, ArrowLeft, Escape, F12, etc. — keep as-is
-}
-
-function formatKeyLabel(key: string): string {
-    if (key === ' ') return 'Space';
-    if (key === 'ArrowRight') return '→';
-    if (key === 'ArrowLeft') return '←';
-    if (key === 'ArrowUp') return '↑';
-    if (key === 'ArrowDown') return '↓';
-    if (key.length === 1) return key.toUpperCase();
-    return key;
-}
 const CUSTOM_ACCENT_KEY = 'music-app-custom-accent';
 const WALLPAPER_KEY = 'music-app-wallpaper';
 const FORMATS_KEY = 'music-app-formats';
+const VOLUME_MODE_KEY = 'music-app-volume-mode';
+const VOLUME_LIMIT_KEY = 'music-app-volume-limit';
 const DEFAULT_FORMATS = ['mp3', 'flac', 'ogg', 'wav', 'm4a', 'wma'];
 
 interface LogEntry {
@@ -80,7 +58,7 @@ interface TauriCore {
 
 let tauriMod: TauriCore | null = null;
 
-function getTauri(): Promise<TauriCore> {
+async function getTauri(): Promise<TauriCore> {
     if (tauriMod) return Promise.resolve(tauriMod);
     return import('@tauri-apps/api/core').then((mod) => {
         tauriMod = mod as unknown as TauriCore;
@@ -119,17 +97,16 @@ export default function Home() {
     const [volume, setVolume] = useState(1);
     const [debugError, setDebugError] = useState('');
     const [logs, setLogs] = useState<LogEntry[]>([]);
-    const [toastMsg, setToastMsg] = useState('');
     const [toastVisible, setToastVisible] = useState(false);
     const logIdRef = useRef(0);
     const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const origConsoleRef = useRef({ error: console.error.bind(console), warn: console.warn.bind(console) });
+    const origConsoleRef = useRef({error: console.error.bind(console), warn: console.warn.bind(console)});
 
     const addLog = useCallback((level: string, message: string) => {
         const id = ++logIdRef.current;
         const now = new Date();
-        const time = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        const entry: LogEntry = { id, time, level, message };
+        const time = now.toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit', second: '2-digit'});
+        const entry: LogEntry = {id, time, level, message};
         setLogs(prev => [...prev.slice(-499), entry]);
         if (level === 'error') {
             origConsoleRef.current.error(message);
@@ -141,7 +118,6 @@ export default function Home() {
     const showError = useCallback((msg: string) => {
         setDebugError(msg);
         addLog('error', msg);
-        setToastMsg(msg);
         setToastVisible(true);
         if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
         toastTimerRef.current = setTimeout(() => setToastVisible(false), 4000);
@@ -186,6 +162,11 @@ export default function Home() {
     const [fileSort, setFileSortState] = useState('name');
     const [sortDir, setSortDirState] = useState('asc');
     const [nameSource, setNameSourceState] = useState('filename');
+    const [volumeMode, setVolumeModeState] = useState<'app' | 'system'>('app');
+    const [systemVolumeSynced, setSystemVolumeSynced] = useState(false);
+    const [systemMuted, setSystemMuted] = useState(false);
+    const [volumeLimit, setVolumeLimitState] = useState(0); // 0 = no limit
+    const [volumeLimitExceeded, setVolumeLimitExceeded] = useState(false);
     const [formats, setFormatsState] = useState<string[]>(DEFAULT_FORMATS);
     const [shuffle, setShuffleState] = useState(false);
     const [repeat, setRepeatState] = useState<'off' | 'all' | 'one'>('off');
@@ -205,6 +186,8 @@ export default function Home() {
     const selectedSongRef = useRef<FileEntry | null>(null);
     const playlistRef = useRef<FileEntry[]>([]);
     const volumeRef = useRef<number>(volume);
+    const volumeModeRef = useRef<'app' | 'system'>('app');
+    const volumeLimitRef = useRef<number>(0);
     const autoWallpaperRef = useRef<boolean>(autoWallpaper);
     const folderSortRef = useRef<string>('name');
     const fileSortRef = useRef<string>('name');
@@ -221,12 +204,15 @@ export default function Home() {
     const pendingFolderChangeRef = useRef(false);
     const [shortcuts, setShortcutsState] = useState<Record<ShortcutAction, string>>(DEFAULT_SHORTCUTS);
     const shortcutsRef = useRef<Record<ShortcutAction, string>>(DEFAULT_SHORTCUTS);
+    const lastLocalVolumeSetRef = useRef(0);
 
     filesRef.current = files;
     selectedSongRef.current = selectedSong;
     volumeRef.current = volume;
     autoWallpaperRef.current = autoWallpaper;
     formatsRef.current = formats;
+    volumeModeRef.current = volumeMode;
+    volumeLimitRef.current = volumeLimit;
 
     const setMusicFolder = useCallback((folder: string | null) => {
         setMusicFolderState(folder);
@@ -294,7 +280,7 @@ export default function Home() {
                 if (Array.isArray(parsed) && parsed.every((x) => typeof x === 'string' && x.length > 0)) {
                     setFormatsState(parsed);
                 }
-            } catch { /* ignore */ }
+            } catch { /* ignore */}
         }
         const ac = window.localStorage.getItem(ACCENT_KEY);
         if (ac) setAccentColorState(ac);
@@ -308,15 +294,19 @@ export default function Home() {
         if (rp === 'all' || rp === 'one') setRepeatState(rp);
         const ns = window.localStorage.getItem(NAME_SOURCE_KEY);
         if (ns === 'filename' || ns === 'title') setNameSourceState(ns);
+        const vm = window.localStorage.getItem(VOLUME_MODE_KEY);
+        if (vm === 'system') setVolumeModeState('system');
+        const vl = window.localStorage.getItem(VOLUME_LIMIT_KEY);
+        if (vl) {const n = parseInt(vl, 10); if (!isNaN(n) && n >= 0 && n <= 100) setVolumeLimitState(n);}
         const sc = window.localStorage.getItem(SHORTCUTS_KEY);
         if (sc) {
             try {
                 const parsed = JSON.parse(sc);
                 if (parsed && typeof parsed === 'object') {
                     // Merge with defaults so newly added actions still have a key
-                    setShortcutsState({ ...DEFAULT_SHORTCUTS, ...parsed });
+                    setShortcutsState({...DEFAULT_SHORTCUTS, ...parsed});
                 }
-            } catch { /* ignore */ }
+            } catch { /* ignore */}
         }
         // Mark as ready after all persisted preferences are restored. This
         // prevents a flash of the welcome screen followed by the folder
@@ -334,7 +324,7 @@ export default function Home() {
         if (typeof window === 'undefined') return;
         safeSetLocalStorage(RESET_ON_CLOSE_KEY, String(resetOnClose));
         if (isBrowserTauri) {
-            getTauri().then(mod => mod.invoke('set_reset_on_close', { enabled: resetOnClose })).catch(() => {});
+            getTauri().then(mod => mod.invoke('set_reset_on_close', {enabled: resetOnClose})).catch(() => {});
         }
     }, [resetOnClose]);
 
@@ -365,6 +355,68 @@ export default function Home() {
         nameSourceRef.current = nameSource;
         if (currentPath) loadFiles(currentPath);
     }, [nameSource, currentPath]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        safeSetLocalStorage(VOLUME_MODE_KEY, volumeMode);
+        volumeModeRef.current = volumeMode;
+    }, [volumeMode]);
+
+    // Bidirectional real-time sync with system volume.
+    // When in 'system' mode the slider pushes to Windows AND a periodic
+    // poll pulls from Windows so the slider stays in sync even when the
+    // user changes volume outside the app (taskbar, keyboard, mixer etc.)
+
+    useEffect(() => {
+        if (!isBrowserTauri || volumeMode !== 'system') {
+            setSystemVolumeSynced(false);
+            return;
+        }
+        // Pull OS volume + mute once so the slider jumps to the real position
+        getTauri()
+            .then(async m => {
+                const osPct = await m.invoke<number>('get_system_volume');
+                const v = (osPct as number) / 100;
+                setVolume(v);
+                if (audioRef.current) audioRef.current.volume = v;
+                // Also fetch mute state
+                try {
+                    const muted = await m.invoke<boolean>('get_system_mute');
+                    setSystemMuted(muted);
+                } catch { /* ignore */}
+                setSystemVolumeSynced(true);
+            })
+            .catch(() => {
+                setSystemVolumeSynced(true);
+            });
+        const id = setInterval(() => {
+            getTauri()
+                .then(async m => {
+                    const osPct = await m.invoke<number>('get_system_volume');
+                    const v = (osPct as number) / 100;
+                    // Poll mute
+                    try {
+                        const muted = await m.invoke<boolean>('get_system_mute');
+                        setSystemMuted(muted);
+                    } catch { /* ignore */}
+                    // Volume limit check
+                    const limit = volumeLimitRef.current;
+                    if (limit > 0 && v > 0) {
+                        const limitVal = limit / 100;
+                        setVolumeLimitExceeded(v > limitVal);
+                    } else if (limit === 0) {
+                        setVolumeLimitExceeded(false);
+                    }
+                    if (Date.now() - lastLocalVolumeSetRef.current < 700) return;
+                    if (Math.abs(v - volumeRef.current) > 0.005) {
+                        setVolume(v);
+                        if (audioRef.current) audioRef.current.volume = v;
+                    }
+                })
+                .catch(() => {});
+        }, 500);
+        return () => clearInterval(id);
+    }, [volumeMode, volumeLimit]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -404,7 +456,7 @@ export default function Home() {
     useEffect(() => {
         if (!isBrowserTauri) return;
         getTauri().then(mod => {
-            mod.invoke('set_default_wallpaper_path', { path: defaultWallpaper });
+            mod.invoke('set_default_wallpaper_path', {path: defaultWallpaper});
         }).catch(() => {});
     }, [defaultWallpaper]);
 
@@ -418,14 +470,14 @@ export default function Home() {
         if (!isBrowserTauri) return;
         let cancelled = false;
         let unlisten: (() => void) | null = null;
-        import('@tauri-apps/api/event').then(({ listen }) => {
+        import('@tauri-apps/api/event').then(({listen}) => {
             listen<string>('stream-url-changed', (event) => {
                 try {
                     const url = event.payload;
                     const domain = new URL(url).hostname.replace(/^www\./, '');
                     const raw = localStorage.getItem('music-app-stream-history');
-                    const entries: Array<{ url: string; timestamp: number; domain: string }> = raw ? JSON.parse(raw) : [];
-                    entries.unshift({ url, timestamp: Date.now(), domain });
+                    const entries: Array<{url: string; timestamp: number; domain: string}> = raw ? JSON.parse(raw) : [];
+                    entries.unshift({url, timestamp: Date.now(), domain});
                     const unique = entries.filter((e, i, a) => a.findIndex(x => x.url === e.url) === i).slice(0, 200);
                     try {
                         localStorage.setItem('music-app-stream-history', JSON.stringify(unique));
@@ -496,17 +548,30 @@ export default function Home() {
                 case 'prev':
                     playPrevRef.current();
                     break;
-                case 'volumeUp':
-                    setVolume(prev => {
-                        const v = Math.min(1, Math.round((prev + 0.05) * 20) / 20);
-                        if (audioRef.current) audioRef.current.volume = v;
-                        return v;
-                    });
+                case 'volumeUp': {
+                    const cur = volumeRef.current;
+                    let raw = Math.round((cur + 0.05) * 20) / 20;
+                    if (raw > 1) raw = 1;
+                    const limit = volumeLimitRef.current;
+                    if (volumeModeRef.current === 'system' && limit > 0) {
+                        if (Math.round(cur * 100) >= limit) break; // already at limit
+                        if (Math.round(raw * 100) > limit) raw = limit / 100;
+                    }
+                    setVolume(raw);
+                    if (audioRef.current) audioRef.current.volume = raw;
+                    if (volumeModeRef.current === 'system' && isBrowserTauri) {
+                        lastLocalVolumeSetRef.current = Date.now();
+                        getTauri().then(m => m.invoke('set_system_volume', {value: Math.round(raw * 100)})).catch(() => {});
+                    }
                     break;
+                }
                 case 'volumeDown':
                     setVolume(prev => {
                         const v = Math.max(0, Math.round((prev - 0.05) * 20) / 20);
                         if (audioRef.current) audioRef.current.volume = v;
+                        if (volumeModeRef.current === 'system' && isBrowserTauri) {
+                            getTauri().then(m => m.invoke('set_system_volume', {value: Math.round(v * 100)})).catch(() => {});
+                        }
                         return v;
                     });
                     break;
@@ -519,7 +584,7 @@ export default function Home() {
 
     const updateShortcut = useCallback((action: string, newKey: string) => {
         setShortcutsState(prev => {
-            const next = { ...prev, [action]: newKey };
+            const next = {...prev, [action]: newKey};
             shortcutsRef.current = next as Record<ShortcutAction, string>;
             safeSetLocalStorage(SHORTCUTS_KEY, JSON.stringify(next));
             return next as Record<ShortcutAction, string>;
@@ -567,7 +632,7 @@ export default function Home() {
         const token = ++playTokenRef.current;
         try {
             const mod = await getTauri();
-            const result = await mod.invoke<SongMetadata>('get_metadata', { filePath });
+            const result = await mod.invoke<SongMetadata>('get_metadata', {filePath});
             if (token !== playTokenRef.current || !isMountedRef.current) return;
             setMetadata(result);
             if (result.duration) setDuration(result.duration);
@@ -670,7 +735,7 @@ export default function Home() {
             showError(`Gagal memutar: ${(e as Error).message || String(e)}`);
         }
     }, [loadMetadata, addLog, showError]);
- 
+
     const togglePlayPause = useCallback(() => {
         const audio = audioRef.current;
         if (!audio || !audio.src) return;
@@ -768,11 +833,28 @@ export default function Home() {
 
     const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const v = parseFloat(e.target.value);
+        // Block if volume limit is set and new value would exceed it
+        if (volumeLimit > 0 && volumeModeRef.current === 'system') {
+            if (Math.round(v * 100) > volumeLimit) return;
+        }
         setVolume(v);
         if (audioRef.current) {
             audioRef.current.volume = v;
         }
-    }, []);
+        if (volumeModeRef.current === 'system' && isBrowserTauri) {
+            const sysVal = Math.round(v * 100);
+            getTauri().then(async m => {
+                await m.invoke('set_system_volume', {value: sysVal});
+                if (sysVal === 0) {
+                    await m.invoke('set_system_mute', {mute: true});
+                    setSystemMuted(true);
+                } else {
+                    await m.invoke('set_system_mute', {mute: false});
+                    setSystemMuted(false);
+                }
+            }).catch(() => {});
+        }
+    }, [volumeLimit]);
 
     const handleSeek = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const t = parseFloat(e.target.value);
@@ -867,7 +949,7 @@ export default function Home() {
         setUpdateTotal(0);
         updateTotalRef.current = 0;
         try {
-            const { check } = await import('@tauri-apps/plugin-updater');
+            const {check} = await import('@tauri-apps/plugin-updater');
             const update = await check();
             if (update) {
                 setUpdateStatus(`v${update.version} tersedia. Mendownload...`);
@@ -920,9 +1002,9 @@ export default function Home() {
                 <div className="absolute left-5 flex items-center gap-1.5">
                     <motion.button
                         onClick={() => setStreamingOpen(true)}
-                        whileHover={{ scale: 1.04 }}
-                        whileTap={{ scale: 0.96 }}
-                        transition={{ duration: 0.15 }}
+                        whileHover={{scale: 1.04}}
+                        whileTap={{scale: 0.96}}
+                        transition={{duration: 0.15}}
                         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-800/50 hover:bg-zinc-700/60 text-zinc-300 hover:text-zinc-100 text-xs font-medium cursor-pointer"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -934,9 +1016,9 @@ export default function Home() {
                     </motion.button>
                     <motion.button
                         onClick={() => setSettingsOpen(true)}
-                        whileHover={{ scale: 1.04 }}
-                        whileTap={{ scale: 0.96 }}
-                        transition={{ duration: 0.15 }}
+                        whileHover={{scale: 1.04}}
+                        whileTap={{scale: 0.96}}
+                        transition={{duration: 0.15}}
                         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-800/50 hover:bg-zinc-700/60 text-zinc-300 hover:text-zinc-100 text-xs font-medium cursor-pointer"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -947,11 +1029,11 @@ export default function Home() {
                     </motion.button>
                 </div>
                 {isCompact && musicFolder && (
-                    <div className="absolute left-[108px] flex items-center gap-1.5">
+                    <div className="absolute left-27 flex items-center gap-1.5">
                         <motion.button
                             onClick={() => setShowLeftSidebar(v => !v)}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.92 }}
+                            whileHover={{scale: 1.05}}
+                            whileTap={{scale: 0.92}}
                             className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium cursor-pointer ${showLeftSidebar ? 'bg-zinc-700/70 text-zinc-200' : 'bg-zinc-800/50 text-zinc-500 hover:text-zinc-300'}`}
                             title="Toggle sidebar daftar lagu"
                         >
@@ -963,8 +1045,8 @@ export default function Home() {
                         </motion.button>
                         <motion.button
                             onClick={() => setShowRightSidebar(v => !v)}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.92 }}
+                            whileHover={{scale: 1.05}}
+                            whileTap={{scale: 0.92}}
                             className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium cursor-pointer ${showRightSidebar ? 'bg-zinc-700/70 text-zinc-200' : 'bg-zinc-800/50 text-zinc-500 hover:text-zinc-300'}`}
                             title="Toggle panel detail"
                         >
@@ -979,16 +1061,16 @@ export default function Home() {
                 <h1 className="text-lg font-bold tracking-tight text-zinc-100 truncate max-w-[40%]">
                     {selectedSong
                         ? (metadata?.title || selectedSong.name.replace(/\.[^.]+$/, ''))
-                         : 'Symvonia'}
+                        : 'Symvonia'}
                 </h1>
                 {(() => {
                     const accent = getAccent(accentColor);
                     return (
                         <motion.span
                             key={isPlaying ? 'playing' : 'stopped'}
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ duration: 0.2 }}
+                            initial={{scale: 0.9, opacity: 0}}
+                            animate={{scale: 1, opacity: 1}}
+                            transition={{duration: 0.2}}
                             className={`text-[11px] font-medium px-2.5 py-1 rounded-full absolute right-5 flex items-center gap-1.5 ${isPlaying ? `${accent.bg15} ${accent.text400} border ${accent.border500_20}` : 'bg-zinc-800/50 text-zinc-500 border border-zinc-700/30'
                                 }`}
                         >
@@ -996,8 +1078,8 @@ export default function Home() {
                                 <>
                                     <motion.span
                                         className={`inline-block w-1.5 h-1.5 rounded-full ${accent.bg400}`}
-                                        animate={{ scale: [1, 1.4, 1], opacity: [1, 0.5, 1] }}
-                                        transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                                        animate={{scale: [1, 1.4, 1], opacity: [1, 0.5, 1]}}
+                                        transition={{duration: 1.2, repeat: Infinity, ease: 'easeInOut'}}
                                     />
                                     Playing
                                 </>
@@ -1014,122 +1096,126 @@ export default function Home() {
 
             <div className="flex flex-1 overflow-hidden">
                 <AnimatePresence mode="wait">
-                {!initialized ? (
-                    <motion.div
-                        key="init-skeleton"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.15 }}
-                        className="flex-1"
-                    >
-                        <InitSkeleton />
-                    </motion.div>
-                ) : !musicFolder ? (
-                    <motion.div
-                        key="no-folder"
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -8 }}
-                        transition={{ duration: 0.25 }}
-                        className="flex-1"
-                    >
-                        <NoFolderEmptyState onPickFolder={handlePickFolder} accentColor={accentColor} />
-                    </motion.div>
-                ) : (
-                    <motion.div
-                        key="player-area"
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -8 }}
-                        transition={{ duration: 0.25 }}
-                        className="flex flex-1 overflow-hidden"
-                    >
-                        <AnimatePresence>
-                            {(showLeftSidebar || !isCompact) && (
-                                <motion.aside
-                                    initial={isCompact ? { width: 0, opacity: 0 } : false}
-                                    animate={{ width: 'auto', opacity: 1 }}
-                                    exit={{ width: 0, opacity: 0 }}
-                                    transition={{ duration: 0.2 }}
-                                    className="flex shrink-0 overflow-hidden"
-                                >
-                                    <FolderExplorer
-                                        files={files}
-                                        loading={loadingFiles}
-                                        selectedSong={selectedSong}
-                                        playingAncestorPrefix={selectedSong?.path ?? null}
-                                        displayPath={displayPath}
-                                        debugError={debugError}
-                                        goUp={goUp}
-                                        setCurrentPath={setCurrentPath}
-                                        playSong={playSong}
-                                        onChangeFolder={handlePickFolder}
-                                        musicFolder={musicFolder}
-                                        resetSidebarToken={resetSidebarToken}
-                                        accentColor={accentColor}
-                                    />
-                                </motion.aside>
-                            )}
-                        </AnimatePresence>
+                    {!initialized ? (
+                        <motion.div
+                            key="init-skeleton"
+                            initial={{opacity: 0}}
+                            animate={{opacity: 1}}
+                            exit={{opacity: 0}}
+                            transition={{duration: 0.15}}
+                            className="flex-1"
+                        >
+                            <InitSkeleton />
+                        </motion.div>
+                    ) : !musicFolder ? (
+                        <motion.div
+                            key="no-folder"
+                            initial={{opacity: 0, y: 8}}
+                            animate={{opacity: 1, y: 0}}
+                            exit={{opacity: 0, y: -8}}
+                            transition={{duration: 0.25}}
+                            className="flex-1"
+                        >
+                            <NoFolderEmptyState onPickFolder={handlePickFolder} accentColor={accentColor} />
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="player-area"
+                            initial={{opacity: 0, y: 8}}
+                            animate={{opacity: 1, y: 0}}
+                            exit={{opacity: 0, y: -8}}
+                            transition={{duration: 0.25}}
+                            className="flex flex-1 overflow-hidden"
+                        >
+                            <AnimatePresence>
+                                {(showLeftSidebar || !isCompact) && (
+                                    <motion.aside
+                                        initial={isCompact ? {width: 0, opacity: 0} : false}
+                                        animate={{width: 'auto', opacity: 1}}
+                                        exit={{width: 0, opacity: 0}}
+                                        transition={{duration: 0.2}}
+                                        className="flex shrink-0 overflow-hidden"
+                                    >
+                                        <FolderExplorer
+                                            files={files}
+                                            loading={loadingFiles}
+                                            selectedSong={selectedSong}
+                                            playingAncestorPrefix={selectedSong?.path ?? null}
+                                            displayPath={displayPath}
+                                            debugError={debugError}
+                                            goUp={goUp}
+                                            setCurrentPath={setCurrentPath}
+                                            playSong={playSong}
+                                            onChangeFolder={handlePickFolder}
+                                            musicFolder={musicFolder}
+                                            resetSidebarToken={resetSidebarToken}
+                                            accentColor={accentColor}
+                                        />
+                                    </motion.aside>
+                                )}
+                            </AnimatePresence>
 
-                        <main className="flex-1 flex items-center justify-center p-6 overflow-hidden">
-                            {files.length === 0 ? (
-                                <EmptyFolderState folder={displayPath} />
-                            ) : (
-                                <div className="flex flex-col items-center gap-4 w-full max-w-2xl">
-                                    <PlayerPanel
-                                        metadata={metadata}
-                                        selectedSong={selectedSong}
-                                        accentColor={accentColor}
-                                    />
-                                    <SeekBar
-                                        currentTime={currentTime}
-                                        duration={duration}
-                                        handleSeek={handleSeek}
-                                        accentColor={accentColor}
-                                    />
-                                    <PlaybackControls
-                                        selectedSong={selectedSong}
-                                        isPlaying={isPlaying}
-                                        shuffle={shuffle}
-                                        repeat={repeat}
-                                        playPrev={playPrev}
-                                        togglePlayPause={togglePlayPause}
-                                        playNext={playNext}
-                                        setShuffle={setShuffleState}
-                                        setRepeat={setRepeatState}
-                                        accentColor={accentColor}
-                                    />
-                                    <VolumeControl
-                                        volume={volume}
-                                        handleVolumeChange={handleVolumeChange}
-                                        accentColor={accentColor}
-                                    />
-                                </div>
-                            )}
-                        </main>
+                            <main className="flex-1 flex items-center justify-center p-6 overflow-hidden">
+                                {files.length === 0 ? (
+                                    <EmptyFolderState folder={displayPath} />
+                                ) : (
+                                    <div className="flex flex-col items-center gap-4 w-full max-w-2xl">
+                                        <PlayerPanel
+                                            metadata={metadata}
+                                            selectedSong={selectedSong}
+                                            accentColor={accentColor}
+                                        />
+                                        <SeekBar
+                                            currentTime={currentTime}
+                                            duration={duration}
+                                            handleSeek={handleSeek}
+                                            accentColor={accentColor}
+                                        />
+                                        <PlaybackControls
+                                            selectedSong={selectedSong}
+                                            isPlaying={isPlaying}
+                                            shuffle={shuffle}
+                                            repeat={repeat}
+                                            playPrev={playPrev}
+                                            togglePlayPause={togglePlayPause}
+                                            playNext={playNext}
+                                            setShuffle={setShuffleState}
+                                            setRepeat={setRepeatState}
+                                            accentColor={accentColor}
+                                        />
+                                        <VolumeControl
+                                            volume={volume}
+                                            volumeMode={volumeMode}
+                                            systemVolumeSynced={systemVolumeSynced}
+                                            systemMuted={systemMuted}
+                                            volumeLimit={volumeLimit}
+                                            handleVolumeChange={handleVolumeChange}
+                                            accentColor={accentColor}
+                                        />
+                                    </div>
+                                )}
+                            </main>
 
-                        <AnimatePresence>
-                            {(showRightSidebar || !isCompact) && (
-                                <motion.aside
-                                    initial={isCompact ? { width: 0, opacity: 0 } : false}
-                                    animate={{ width: 'auto', opacity: 1 }}
-                                    exit={{ width: 0, opacity: 0 }}
-                                    transition={{ duration: 0.2 }}
-                                    className="flex shrink-0 overflow-hidden"
-                                >
-                                    <MetadataPanel
-                                        selectedSong={selectedSong}
-                                        metadata={metadata}
-                                        accentColor={accentColor}
-                                        resetSidebarToken={resetSidebarToken}
-                                    />
-                                </motion.aside>
-                            )}
-                        </AnimatePresence>
-                    </motion.div>
-                )}
+                            <AnimatePresence>
+                                {(showRightSidebar || !isCompact) && (
+                                    <motion.aside
+                                        initial={isCompact ? {width: 0, opacity: 0} : false}
+                                        animate={{width: 'auto', opacity: 1}}
+                                        exit={{width: 0, opacity: 0}}
+                                        transition={{duration: 0.2}}
+                                        className="flex shrink-0 overflow-hidden"
+                                    >
+                                        <MetadataPanel
+                                            selectedSong={selectedSong}
+                                            metadata={metadata}
+                                            accentColor={accentColor}
+                                            resetSidebarToken={resetSidebarToken}
+                                        />
+                                    </motion.aside>
+                                )}
+                            </AnimatePresence>
+                        </motion.div>
+                    )}
                 </AnimatePresence>
             </div>
             <ConfirmDialog
@@ -1151,6 +1237,23 @@ export default function Home() {
                 setAutoWallpaper={setAutoWallpaperState}
                 resetOnClose={resetOnClose}
                 setResetOnClose={setResetOnCloseState}
+                volumeMode={volumeMode}
+                setVolumeMode={(v: string) => setVolumeModeState(v as 'app' | 'system')}
+                volumeLimit={volumeLimit}
+                setVolumeLimit={(v: number) => {
+                    setVolumeLimitState(v);
+                    safeSetLocalStorage(VOLUME_LIMIT_KEY, String(v));
+                    // Jika volume saat ini melebihi batas baru, kurangi ke batas
+                    if (v > 0 && volumeRef.current * 100 > v) {
+                        const newVol = v / 100;
+                        setVolume(newVol);
+                        if (audioRef.current) audioRef.current.volume = newVol;
+                        if (isBrowserTauri && volumeModeRef.current === 'system') {
+                            getTauri().then(m => m.invoke('set_system_volume', {value: v})).catch(() => {});
+                        }
+                    }
+                }}
+                volume={volume}
                 defaultWallpaper={defaultWallpaper}
                 onPickWallpaper={handlePickWallpaper}
                 onClearWallpaper={() => setDefaultWallpaper(null)}
@@ -1189,11 +1292,11 @@ export default function Home() {
                 {toastVisible && (
                     <motion.div
                         key="toast"
-                        initial={{ opacity: 0, y: -12, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -12, scale: 0.95 }}
-                        transition={{ duration: 0.2 }}
-                        className="fixed top-4 right-4 z-[70] flex items-center gap-2.5 px-4 py-3 rounded-xl bg-red-900/80 border border-red-700/50 text-sm text-red-200 shadow-2xl shadow-black/40 backdrop-blur-sm"
+                        initial={{opacity: 0, y: -12, scale: 0.95}}
+                        animate={{opacity: 1, y: 0, scale: 1}}
+                        exit={{opacity: 0, y: -12, scale: 0.95}}
+                        transition={{duration: 0.2}}
+                        className="fixed top-4 right-4 z-70 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-red-900/80 border border-red-700/50 text-sm text-red-200 shadow-2xl shadow-black/40 backdrop-blur-sm"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                             <circle cx="12" cy="12" r="10" />
@@ -1210,12 +1313,37 @@ export default function Home() {
                         </button>
                     </motion.div>
                 )}
+                {volumeLimitExceeded && (
+                    <motion.div
+                        key="volume-alert"
+                        initial={{opacity: 0, y: -12, scale: 0.95}}
+                        animate={{opacity: 1, y: 0, scale: 1}}
+                        exit={{opacity: 0, y: -12, scale: 0.95}}
+                        transition={{duration: 0.3}}
+                        className="fixed top-4 left-1/2 -translate-x-1/2 z-70 flex items-center gap-2.5 px-5 py-3 rounded-xl bg-amber-900/90 border border-amber-600/60 text-sm text-amber-100 shadow-2xl shadow-black/40 backdrop-blur-sm"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                            <line x1="12" y1="9" x2="12" y2="13" />
+                            <line x1="12" y1="17" x2="12.01" y2="17" />
+                        </svg>
+                        <span>Volume sistem melebihi batas aman (<strong>{volumeLimit}</strong>)! Turunkan volume untuk melindungi pendengaran.</span>
+                        <button
+                            onClick={() => setVolumeLimitExceeded(false)}
+                            className="ml-2 w-5 h-5 rounded flex items-center justify-center text-amber-300 hover:text-amber-100 hover:bg-amber-800/60 cursor-pointer"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M18 6 6 18M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </motion.div>
+                )}
             </AnimatePresence>
         </div>
     );
 }
 
-function NoFolderEmptyState({ onPickFolder, accentColor }: { onPickFolder: () => void; accentColor: string }) {
+function NoFolderEmptyState({onPickFolder, accentColor}: {onPickFolder: () => void; accentColor: string}) {
     const accent = getAccent(accentColor);
     return (
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
@@ -1229,9 +1357,9 @@ function NoFolderEmptyState({ onPickFolder, accentColor }: { onPickFolder: () =>
             </p>
             <motion.button
                 onClick={onPickFolder}
-                whileHover={{ scale: 1.04, y: -1 }}
-                whileTap={{ scale: 0.96 }}
-                transition={{ duration: 0.15 }}
+                whileHover={{scale: 1.04, y: -1}}
+                whileTap={{scale: 0.96}}
+                transition={{duration: 0.15}}
                 className={`flex items-center gap-2.5 px-6 py-3 ${accent.bg500} ${accent.hoverBg400} text-zinc-950 font-semibold rounded-xl cursor-pointer shadow-lg ${accent.shadow20}`}
             >
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1243,7 +1371,7 @@ function NoFolderEmptyState({ onPickFolder, accentColor }: { onPickFolder: () =>
     );
 }
 
-function EmptyFolderState({ folder }: { folder: string }) {
+function EmptyFolderState({folder}: {folder: string}) {
     return (
         <div className="flex flex-col items-center justify-center text-center max-w-md">
             <div className="w-20 h-20 rounded-2xl bg-zinc-900/60 border border-zinc-800/50 flex items-center justify-center mb-5">
@@ -1265,16 +1393,16 @@ function InitSkeleton() {
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
             <motion.div
                 className="flex flex-col items-center gap-6"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.2 }}
+                initial={{opacity: 0}}
+                animate={{opacity: 1}}
+                transition={{duration: 0.2}}
             >
                 {/* App icon placeholder */}
                 <div className="w-16 h-16 rounded-2xl bg-zinc-800/50 border border-zinc-700/30 flex items-center justify-center">
                     <motion.div
                         className="w-8 h-8 rounded-full bg-zinc-700/50"
-                        animate={{ scale: [1, 1.15, 1] }}
-                        transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+                        animate={{scale: [1, 1.15, 1]}}
+                        transition={{duration: 1.8, repeat: Infinity, ease: 'easeInOut'}}
                     />
                 </div>
                 {/* Title placeholder */}
