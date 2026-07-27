@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { getAccent } from '../lib/colors';
+import React, {useState} from 'react';
+import {motion} from 'framer-motion';
+import {getAccent} from '../lib/colors';
 
 interface VolumeControlProps {
     volume: number; // 0.0 to 1.0 (appVolume or systemVolume depending on volumeMode)
@@ -14,7 +14,7 @@ interface VolumeControlProps {
     accentColor: string;
 }
 
-function VolumeIcon({ muted, low }: { muted: boolean; low: boolean }) {
+function VolumeIcon({muted, low}: {muted: boolean; low: boolean}) {
     if (muted) {
         return (
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -42,7 +42,7 @@ function VolumeIcon({ muted, low }: { muted: boolean; low: boolean }) {
 }
 
 function makeChangeEvent(value: number): React.ChangeEvent<HTMLInputElement> {
-    return { target: { value: String(value) } } as React.ChangeEvent<HTMLInputElement>;
+    return {target: {value: String(value)}} as React.ChangeEvent<HTMLInputElement>;
 }
 
 export default function VolumeControl({
@@ -59,7 +59,41 @@ export default function VolumeControl({
     const [prevVolume, setPrevVolume] = useState(volume);
 
     const isSystem = volumeMode === 'system';
+    const limit = volumeLimit;
     const pct = Math.round(volume * 100);
+
+    // Pengkondisian terpisah untuk Aturan Batas Volume Sistem
+    let isDecreaseDisabled = false;
+    let isIncreaseDisabled = false;
+    let isSliderDisabled = false;
+
+    if (isSystem && limit > 0) {
+        // Kondisi 1: Nilai volume sistem LEBIH BESAR dari batas suara
+        if (pct > limit) {
+            isDecreaseDisabled = true;
+            isIncreaseDisabled = true;
+            isSliderDisabled = true;
+        }
+        // Kondisi 2: Nilai volume sistem SAMA DENGAN batas suara
+        else if (pct === limit) {
+            isDecreaseDisabled = false;
+            isIncreaseDisabled = true;
+            isSliderDisabled = false;
+        }
+        // Kondisi 3: Nilai volume sistem DI BAWAH batas suara
+        else {
+            isDecreaseDisabled = false;
+            isIncreaseDisabled = false;
+            isSliderDisabled = false;
+        }
+    }
+
+    const showResetButton = isSystem && limit > 0 && pct > limit;
+
+    const sliderMax = isSystem
+        ? (limit > 0 ? limit : 100)
+        : 1;
+
     const showSlider = !isSystem || systemVolumeSynced;
     const muted = isSystem ? (systemMuted || pct <= 0) : volume <= 0;
     const low = pct < 50;
@@ -78,8 +112,12 @@ export default function VolumeControl({
     };
 
     const onSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (isSliderDisabled) return;
         if (isSystem) {
-            const sysVal = parseFloat(e.target.value);
+            let sysVal = parseFloat(e.target.value);
+            if (limit > 0 && sysVal > limit) {
+                sysVal = limit;
+            }
             handleVolumeChange(makeChangeEvent(sysVal / 100));
         } else {
             handleVolumeChange(e);
@@ -87,36 +125,60 @@ export default function VolumeControl({
     };
 
     const onStepButton = (direction: 'up' | 'down') => {
+        if (direction === 'up' && isIncreaseDisabled) return;
+        if (direction === 'down' && isDecreaseDisabled) return;
+
         const delta = direction === 'up' ? 0.05 : -0.05;
         let newVol = Math.max(0, Math.min(1, Math.round((volume + delta) * 100) / 100));
-        if (direction === 'up' && volumeLimit > 0 && isSystem) {
-            if (Math.round(newVol * 100) > volumeLimit) {
-                newVol = volumeLimit / 100;
+
+        if (isSystem && limit > 0) {
+            const targetPct = Math.round(newVol * 100);
+            if (pct > limit) return;
+            if (pct === limit && direction === 'up') return;
+            if (targetPct > limit) {
+                newVol = limit / 100;
             }
         }
         handleVolumeChange(makeChangeEvent(newVol));
     };
 
-    const btnClass = "w-5 h-5 flex items-center justify-center rounded text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/60 cursor-pointer transition-colors";
+    const onResetToLimit = () => {
+        if (isSystem && limit > 0) {
+            handleVolumeChange(makeChangeEvent(limit / 100));
+        }
+    };
+
+    const decreaseBtnClass = `w-5 h-5 flex items-center justify-center rounded transition-colors ${isDecreaseDisabled
+        ? "text-zinc-700 bg-transparent cursor-not-allowed opacity-40 pointer-events-none"
+        : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/60 cursor-pointer"
+        }`;
+
+    const increaseBtnClass = `w-5 h-5 flex items-center justify-center rounded transition-colors ${isIncreaseDisabled
+        ? "text-zinc-700 bg-transparent cursor-not-allowed opacity-40 pointer-events-none"
+        : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/60 cursor-pointer"
+        }`;
+
+    const visualPct = isSystem ? Math.min(pct, sliderMax) : volume * 100;
 
     return (
         <div className="flex items-center gap-2">
             <motion.button
                 onClick={toggleMute}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
+                whileHover={{scale: 1.1}}
+                whileTap={{scale: 0.9}}
                 className="text-zinc-400 hover:text-zinc-200 cursor-pointer flex items-center justify-center w-7 h-7"
             >
                 <VolumeIcon muted={muted} low={low} />
             </motion.button>
 
-            {/* Decrease button */}
+            {/* Decrease button (-) */}
             <motion.button
                 onClick={() => onStepButton('down')}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className={btnClass}
-                title="Kurangi volume"
+                disabled={isDecreaseDisabled}
+                whileHover={isDecreaseDisabled ? undefined : {scale: 1.05}}
+                whileTap={isDecreaseDisabled ? undefined : {scale: 0.95}}
+                className={decreaseBtnClass}
+                title={isDecreaseDisabled ? "Batas volume terlampaui" : "Kurangi volume"}
             >
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M5 12h14" />
@@ -134,45 +196,67 @@ export default function VolumeControl({
                         <div
                             className="absolute h-1 rounded-full transition-all duration-75"
                             style={{
-                                width: `${isSystem ? pct : volume * 100}%`,
-                                background: `linear-gradient(90deg, ${accent.hex500}, ${accent.hex400})`,
+                                width: isSystem && sliderMax > 0 ? `${(visualPct / sliderMax) * 100}%` : `${visualPct}%`,
+                                background: isSliderDisabled
+                                    ? '#52525b'
+                                    : `linear-gradient(90deg, ${accent.hex500}, ${accent.hex400})`,
                             }}
                         />
                         <motion.div
                             className="absolute w-2.5 h-2.5 rounded-full pointer-events-none"
                             style={{
-                                left: `calc(${isSystem ? pct : volume * 100}% - 5px)`,
-                                backgroundColor: accent.hex400,
-                                boxShadow: `0 0 0 2px ${accent.hex500}20`,
+                                left: isSystem && sliderMax > 0
+                                    ? `calc(${(visualPct / sliderMax) * 100}% - 5px)`
+                                    : `calc(${visualPct}% - 5px)`,
+                                backgroundColor: isSliderDisabled ? '#71717a' : accent.hex400,
+                                boxShadow: isSliderDisabled ? 'none' : `0 0 0 2px ${accent.hex500}20`,
                             }}
-                            animate={{ scale: hovering ? 1.3 : 1 }}
-                            transition={{ duration: 0.15 }}
+                            animate={{scale: hovering && !isSliderDisabled ? 1.3 : 1}}
+                            transition={{duration: 0.15}}
                         />
                     </>
                 )}
                 <input
                     type="range"
                     min="0"
-                    max={isSystem ? "100" : "1"}
+                    max={isSystem ? String(sliderMax) : "1"}
                     step={isSystem ? "1" : "0.01"}
-                    value={showSlider ? (isSystem ? pct : volume) : 0}
+                    disabled={isSliderDisabled}
+                    value={showSlider ? (isSystem ? visualPct : volume) : 0}
                     onChange={onSliderChange}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    className={`absolute inset-0 w-full h-full opacity-0 z-10 ${isSliderDisabled ? "cursor-not-allowed" : "cursor-pointer"
+                        }`}
                 />
             </div>
 
-            {/* Increase button */}
-            <motion.button
-                onClick={() => onStepButton('up')}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className={btnClass}
-                title="Tambah volume"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 5v14M5 12h14" />
-                </svg>
-            </motion.button>
+            {/* Increase button (+) or Reset button */}
+            {showResetButton ? (
+                <motion.button
+                    onClick={onResetToLimit}
+                    whileHover={{scale: 1.1}}
+                    whileTap={{scale: 0.9}}
+                    className="w-5 h-5 ml-3 -mr-3 flex items-center justify-center rounded text-amber-300 hover:text-amber-100 bg-amber-950/80 hover:bg-amber-900/90 border border-amber-600/60 cursor-pointer transition-colors shadow-xs"
+                    title={`Reset volume ke batas aman (${limit}%)`}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                        <path d="M3 3v5h5" />
+                    </svg>
+                </motion.button>
+            ) : (
+                <motion.button
+                    onClick={() => onStepButton('up')}
+                    disabled={isIncreaseDisabled}
+                    whileHover={isIncreaseDisabled ? undefined : {scale: 1.05}}
+                    whileTap={isIncreaseDisabled ? undefined : {scale: 0.95}}
+                    className={increaseBtnClass}
+                    title={isIncreaseDisabled ? "Telah mencapai batas volume" : "Tambah volume"}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 5v14M5 12h14" />
+                    </svg>
+                </motion.button>
+            )}
 
             <span className="text-[11px] tabular-nums text-right text-zinc-500 font-medium min-w-[36px]">
                 {label}

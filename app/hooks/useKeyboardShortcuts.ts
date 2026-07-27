@@ -91,11 +91,19 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
                         if (audioRef.current) audioRef.current.volume = raw;
                     } else {
                         const cur = systemVolumeRef.current;
-                        let raw = Math.min(1, Math.round((cur + 0.05) * 20) / 20);
+                        const pct = Math.round(cur * 100);
                         const limit = volumeLimitRef.current;
+
                         if (limit > 0) {
-                            if (Math.round(cur * 100) >= limit) break;
-                            if (Math.round(raw * 100) > limit) raw = limit / 100;
+                            // Kondisi 1: Nilai volume sistem LEBIH BESAR dari batas suara -> shortcut increase TIDAK BISA digunakan
+                            if (pct > limit) break;
+                            // Kondisi 2: Nilai volume sistem SAMA DENGAN batas suara -> shortcut increase TIDAK BISA digunakan
+                            if (pct === limit) break;
+                        }
+
+                        let raw = Math.min(1, Math.round((cur + 0.05) * 20) / 20);
+                        if (limit > 0 && Math.round(raw * 100) > limit) {
+                            raw = limit / 100;
                         }
                         setSystemVolume(raw);
                         if (isBrowserTauri) {
@@ -113,6 +121,15 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
                         if (audioRef.current) audioRef.current.volume = raw;
                     } else {
                         const cur = systemVolumeRef.current;
+                        const pct = Math.round(cur * 100);
+                        const limit = volumeLimitRef.current;
+
+                        if (limit > 0) {
+                            // Kondisi 1: Nilai volume sistem LEBIH BESAR dari batas suara -> shortcut decrease TIDAK BISA digunakan
+                            if (pct > limit) break;
+                            // Kondisi 2: Nilai volume sistem SAMA DENGAN batas suara -> shortcut decrease TETAP BISA digunakan (tidak break)
+                        }
+
                         const raw = Math.max(0, Math.round((cur - 0.05) * 20) / 20);
                         setSystemVolume(raw);
                         if (isBrowserTauri) {

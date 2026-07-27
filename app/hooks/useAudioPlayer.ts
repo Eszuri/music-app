@@ -324,7 +324,6 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         };
     }, []);
 
-    // Synchronize HTML5 audio element volume when volumeMode or appVolume changes
     useEffect(() => {
         if (!audioRef.current) return;
         if (volumeMode === 'app') {
@@ -342,9 +341,14 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 audioRef.current.volume = Math.max(0, Math.min(1, v));
             }
         } else {
-            if (volumeLimit > 0) {
-                if (Math.round(v * 100) > volumeLimit) return;
+            const limit = volumeLimit;
+            const targetPct = Math.round(v * 100);
+
+            // Block setting volume higher than the allowed volume limit
+            if (limit > 0 && targetPct > limit) {
+                return;
             }
+
             setSystemVolume(v);
             lastLocalVolumeSetRef.current = Date.now();
             if (isBrowserTauri) {
