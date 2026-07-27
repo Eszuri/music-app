@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { getAccent } from '../lib/colors';
 
 interface VolumeControlProps {
-    volume: number;
+    volume: number; // 0.0 to 1.0 (appVolume or systemVolume depending on volumeMode)
     volumeMode: 'app' | 'system';
     systemVolumeSynced: boolean;
     systemMuted: boolean;
@@ -41,42 +41,39 @@ function VolumeIcon({ muted, low }: { muted: boolean; low: boolean }) {
     );
 }
 
-function adjustStep(isSystem: boolean, direction: 'up' | 'down'): number {
-    if (isSystem) {
-        return direction === 'up' ? 1 : -1; // 1 integer step (0-100 scale → 0.01 float)
-    }
-    return direction === 'up' ? 0.05 : -0.05; // 5% step
-}
-
 function makeChangeEvent(value: number): React.ChangeEvent<HTMLInputElement> {
     return { target: { value: String(value) } } as React.ChangeEvent<HTMLInputElement>;
 }
 
-export default function VolumeControl({ volume, volumeMode, systemVolumeSynced, systemMuted, volumeLimit, handleVolumeChange, accentColor }: VolumeControlProps) {
+export default function VolumeControl({
+    volume,
+    volumeMode,
+    systemVolumeSynced,
+    systemMuted,
+    volumeLimit,
+    handleVolumeChange,
+    accentColor,
+}: VolumeControlProps) {
     const accent = getAccent(accentColor);
     const [hovering, setHovering] = useState(false);
     const [prevVolume, setPrevVolume] = useState(volume);
 
     const isSystem = volumeMode === 'system';
-    const sliderValue = isSystem ? Math.round(volume * 100) : volume;
-    const sliderMax = isSystem ? 100 : 1;
-    const sliderStep = isSystem ? 1 : 0.01;
+    const pct = Math.round(volume * 100);
     const showSlider = !isSystem || systemVolumeSynced;
-    const muted = isSystem ? (systemMuted || sliderValue <= 0) : volume <= 0;
-    const low = isSystem ? sliderValue < 50 : volume < 0.5;
+    const muted = isSystem ? (systemMuted || pct <= 0) : volume <= 0;
+    const low = pct < 50;
     const label = isSystem
-        ? systemVolumeSynced ? (muted ? 'Muted' : String(sliderValue)) : '–'
-        : `${Math.round(volume * 100)}%`;
+        ? systemVolumeSynced ? (muted ? 'Muted' : `${pct}%`) : '–'
+        : `${pct}%`;
 
     const toggleMute = () => {
         if (!muted) {
             setPrevVolume(volume);
-            const fakeEvent = makeChangeEvent(0);
-            handleVolumeChange(fakeEvent);
+            handleVolumeChange(makeChangeEvent(0));
         } else {
             const restored = prevVolume || 0.5;
-            const fakeEvent = makeChangeEvent(restored);
-            handleVolumeChange(fakeEvent);
+            handleVolumeChange(makeChangeEvent(restored));
         }
     };
 
@@ -90,16 +87,13 @@ export default function VolumeControl({ volume, volumeMode, systemVolumeSynced, 
     };
 
     const onStepButton = (direction: 'up' | 'down') => {
-        const step = adjustStep(isSystem, direction);
-        const currentRaw = isSystem ? Math.round(volume * 100) : volume;
-        const newRaw = isSystem
-            ? Math.max(0, Math.min(100, currentRaw + (direction === 'up' ? 1 : -1)))
-            : Math.max(0, Math.min(1, currentRaw + step));
-        // Block increase if volume limit is set and new value would exceed it
+        const delta = direction === 'up' ? 0.05 : -0.05;
+        let newVol = Math.max(0, Math.min(1, Math.round((volume + delta) * 100) / 100));
         if (direction === 'up' && volumeLimit > 0 && isSystem) {
-            if (newRaw > volumeLimit) return;
+            if (Math.round(newVol * 100) > volumeLimit) {
+                newVol = volumeLimit / 100;
+            }
         }
-        const newVol = isSystem ? newRaw / 100 : newRaw;
         handleVolumeChange(makeChangeEvent(newVol));
     };
 
@@ -140,14 +134,14 @@ export default function VolumeControl({ volume, volumeMode, systemVolumeSynced, 
                         <div
                             className="absolute h-1 rounded-full transition-all duration-75"
                             style={{
-                                width: `${isSystem ? sliderValue : volume * 100}%`,
+                                width: `${isSystem ? pct : volume * 100}%`,
                                 background: `linear-gradient(90deg, ${accent.hex500}, ${accent.hex400})`,
                             }}
                         />
                         <motion.div
                             className="absolute w-2.5 h-2.5 rounded-full pointer-events-none"
                             style={{
-                                left: `calc(${isSystem ? sliderValue : volume * 100}% - 5px)`,
+                                left: `calc(${isSystem ? pct : volume * 100}% - 5px)`,
                                 backgroundColor: accent.hex400,
                                 boxShadow: `0 0 0 2px ${accent.hex500}20`,
                             }}
@@ -159,9 +153,9 @@ export default function VolumeControl({ volume, volumeMode, systemVolumeSynced, 
                 <input
                     type="range"
                     min="0"
-                    max={sliderMax}
-                    step={sliderStep}
-                    value={showSlider ? sliderValue : 0}
+                    max={isSystem ? "100" : "1"}
+                    step={isSystem ? "1" : "0.01"}
+                    value={showSlider ? (isSystem ? pct : volume) : 0}
                     onChange={onSliderChange}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                 />

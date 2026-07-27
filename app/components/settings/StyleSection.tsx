@@ -1,0 +1,97 @@
+'use client';
+
+import {SettingRow} from './controls';
+
+export default function StyleSection({
+    accentColor,
+    setAccentColor,
+    customAccentHex,
+    setCustomAccentHex,
+    onResetSidebarWidth,
+}: {
+    accentColor: string;
+    setAccentColor: (v: string) => void;
+    customAccentHex: string;
+    setCustomAccentHex: (v: string) => void;
+    onResetSidebarWidth: () => void;
+}) {
+    const swatches: {id: string; bg: string}[] = [
+        {id: 'green', bg: 'bg-green-500'},
+        {id: 'emerald', bg: 'bg-emerald-500'},
+        {id: 'teal', bg: 'bg-teal-500'},
+        {id: 'cyan', bg: 'bg-cyan-500'},
+        {id: 'blue', bg: 'bg-blue-500'},
+        {id: 'indigo', bg: 'bg-indigo-500'},
+        {id: 'purple', bg: 'bg-purple-500'},
+        {id: 'pink', bg: 'bg-pink-500'},
+        {id: 'rose', bg: 'bg-rose-500'},
+        {id: 'red', bg: 'bg-red-500'},
+        {id: 'orange', bg: 'bg-orange-500'},
+        {id: 'amber', bg: 'bg-amber-500'},
+        {id: 'yellow', bg: 'bg-yellow-500'},
+        {id: 'lime', bg: 'bg-lime-500'},
+    ];
+    return (
+        <div className="space-y-6">
+            <SettingRow
+                title="Accent Color"
+                description="Warna aksen aplikasi"
+            >
+                <div className="flex flex-wrap gap-2 max-w-[320px]">
+                    {swatches.map((s) => {
+                        const active = accentColor === s.id;
+                        return (
+                            <button
+                                key={s.id}
+                                onClick={() => setAccentColor(s.id)}
+                                className={`w-6 h-6 rounded-full ${s.bg} cursor-pointer transition-all ${active
+                                    ? 'border-2 border-zinc-100 scale-110'
+                                    : 'border-2 border-zinc-700 opacity-50 hover:opacity-80'
+                                    }`}
+                                aria-label={s.id}
+                            />
+                        );
+                    })}
+                    <button
+                        onClick={() => setAccentColor('custom')}
+                        className={`w-6 h-6 rounded-full cursor-pointer transition-all flex items-center justify-center ${accentColor === 'custom'
+                            ? 'border-2 border-zinc-100 scale-110'
+                            : 'border-2 border-zinc-700 opacity-50 hover:opacity-80'
+                            }`}
+                        style={{background: customAccentHex}}
+                        aria-label="custom"
+                        title="Custom"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-white/80">
+                            <path d="M12 5v14M5 12h14" />
+                        </svg>
+                    </button>
+                </div>
+                {accentColor === 'custom' && (
+                    <div className="flex items-center gap-2 mt-2">
+                        <input
+                            type="color"
+                            value={customAccentHex}
+                            onChange={(e) => {
+                                setCustomAccentHex(e.target.value);
+                            }}
+                            className="w-8 h-8 rounded cursor-pointer bg-transparent border-0 p-0"
+                        />
+                        <span className="text-xs text-zinc-500 font-mono">{customAccentHex}</span>
+                    </div>
+                )}
+            </SettingRow>
+            <SettingRow
+                title="Lebar Sidebar"
+                description="Reset lebar sidebar kiri dan panel detail ke ukuran default"
+            >
+                <button
+                    onClick={onResetSidebarWidth}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 bg-zinc-800/60 hover:bg-zinc-700/70 border border-zinc-700/50 transition-colors cursor-pointer"
+                >
+                    Reset ke default
+                </button>
+            </SettingRow>
+        </div>
+    );
+}
