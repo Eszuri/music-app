@@ -4,8 +4,11 @@ import ConfirmDialog from '../ConfirmDialog';
 import SettingsModal from '../SettingsModal';
 import StreamingModal from '../StreamingModal';
 import type {LogEntry} from '../../types/log';
+import {t, type Lang} from '../../lib/translations';
 
 interface HomeModalsProps {
+    lang: Lang;
+    setLang: (v: Lang) => void;
     pendingFolderChange: boolean;
     onConfirmFolderChange: () => void;
     onCancelFolderChange: () => void;
@@ -56,6 +59,7 @@ interface HomeModalsProps {
 }
 
 export default function HomeModals({
+    lang,
     pendingFolderChange,
     onConfirmFolderChange,
     onCancelFolderChange,
@@ -100,6 +104,7 @@ export default function HomeModals({
     updateStatus,
     updateChecking,
     updateDownloaded,
+    setLang,
     updateTotal,
     streamingOpen,
     onCloseStreaming,
@@ -107,16 +112,19 @@ export default function HomeModals({
     return (
         <>
             <ConfirmDialog
+                lang={lang}
                 open={pendingFolderChange}
-                title="Ganti Folder Musik?"
-                message="Musik sedang diputar. Mengganti folder akan menghentikan pemutaran saat ini. Lanjutkan?"
-                confirmLabel="Ganti & Hentikan"
-                cancelLabel="Batal"
+                title={t(lang, 'homeModal.changeFolderTitle')}
+                message={t(lang, 'homeModal.changeFolderMessage')}
+                confirmLabel={t(lang, 'homeModal.changeFolderConfirm')}
+                cancelLabel={t(lang, 'homeModal.cancel')}
                 onConfirm={onConfirmFolderChange}
                 onCancel={onCancelFolderChange}
                 accentColor={accentColor}
             />
             <SettingsModal
+                lang={lang}
+                setLang={setLang}
                 open={settingsOpen}
                 onClose={onCloseSettings}
                 musicFolder={musicFolder}
@@ -161,6 +169,7 @@ export default function HomeModals({
                 updateTotal={updateTotal}
             />
             <StreamingModal
+                lang={lang}
                 open={streamingOpen}
                 onClose={onCloseStreaming}
                 accentColor={accentColor}

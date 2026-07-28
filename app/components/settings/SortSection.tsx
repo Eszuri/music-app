@@ -2,8 +2,10 @@
 
 import {useState} from 'react';
 import {SelectStub, SettingRow} from './controls';
+import {t, type Lang} from '../../lib/translations';
 
 export default function SortSection({
+    lang,
     folderSort,
     setFolderSort,
     fileSort,
@@ -15,6 +17,7 @@ export default function SortSection({
     formats,
     setFormats,
 }: {
+    lang: Lang;
     folderSort: string;
     setFolderSort: (v: string) => void;
     fileSort: string;
@@ -48,33 +51,33 @@ export default function SortSection({
     return (
         <div className="space-y-6">
             <SettingRow
-                title="Urutkan Folder"
-                description="Susunan folder di file explorer"
+                title={t(lang, 'sort.folderSort.title')}
+                description={t(lang, 'sort.folderSort.desc')}
             >
                 <SelectStub
-                    options={[[ 'name', 'Name' ], [ 'mtime', 'Modified Time' ], [ 'ctime', 'Created Time' ]]}
+                    options={[[ 'name', t(lang, 'sort.folder.name') ], [ 'mtime', t(lang, 'sort.folder.mtime') ], [ 'ctime', t(lang, 'sort.folder.ctime') ]]}
                     value={folderSort}
                     onChange={setFolderSort}
                 />
             </SettingRow>
             <SettingRow
-                title="Urutkan File"
-                description="Susunan file audio di file explorer"
+                title={t(lang, 'sort.fileSort.title')}
+                description={t(lang, 'sort.fileSort.desc')}
             >
                 <SelectStub
-                    options={[[ 'name', 'Name' ], [ 'mtime', 'Modified Time' ], [ 'size', 'Size' ], [ 'ext', 'Type' ], [ 'ctime', 'Created Time' ]]}
+                    options={[[ 'name', t(lang, 'sort.file.name') ], [ 'mtime', t(lang, 'sort.file.mtime') ], [ 'size', t(lang, 'sort.file.size') ], [ 'ext', t(lang, 'sort.file.ext') ], [ 'ctime', t(lang, 'sort.file.ctime') ]]}
                     value={fileSort}
                     onChange={setFileSort}
                 />
             </SettingRow>
             <SettingRow
-                title="Nama-Nama daftar lagu yg ditampilkan"
-                description="list lagu yg ditampilkan berdasarkan nama file atau title (metadata)"
+                title={t(lang, 'sort.nameSource.title')}
+                description={t(lang, 'sort.nameSource.desc')}
                 className="pb-20"
             >
 
                 <SelectStub
-                    options={[[ 'filename', 'Nama File' ], [ 'title', 'Title (Metadata)' ]]}
+                    options={[[ 'filename', t(lang, 'sort.name.filenameLabel') ], [ 'title', t(lang, 'sort.name.titleLabel') ]]}
                     value={nameSource}
                     onChange={setNameSource}
                 />
@@ -97,8 +100,8 @@ export default function SortSection({
                         </svg>
                         <span>
                             {nameSource === 'title'
-                                ? 'Menggunakan Title (Metadata) akan membaca tag dari setiap file audio, sehingga waktu memuat daftar lagu bisa lebih lama terutama jika folder berisi banyak file. bahkan bisa menyebabkan aplikasi crash'
-                                : 'Jika ingin menampilkan judul dari metadata (bukan nama file), waktu memuat daftar lagu akan sedikit lebih lama.'}
+                                ? t(lang, 'sort.nameSource.titleWarning')
+                                : t(lang, 'sort.nameSource.filenameInfo')}
                         </span>
                     </div>
 
@@ -106,18 +109,18 @@ export default function SortSection({
                 </div>
             </SettingRow>
             <SettingRow
-                title="Arah Urutan"
-                description="Naik atau turun"
+                title={t(lang, 'sort.sortDir.title')}
+                description={t(lang, 'sort.sortDir.desc')}
             >
                 <SelectStub
-                    options={[[ 'asc', 'Ascending' ], [ 'desc', 'Descending' ]]}
+                    options={[[ 'asc', t(lang, 'sort.dir.asc') ], [ 'desc', t(lang, 'sort.dir.desc') ]]}
                     value={sortDir}
                     onChange={setSortDir}
                 />
             </SettingRow>
             <SettingRow
-                title="Format File"
-                description="Format file audio yang ditampilkan di explorer"
+                title={t(lang, 'sort.format.title')}
+                description={t(lang, 'sort.format.desc')}
             >
                 <div className="space-y-2">
                     <div className="flex flex-wrap gap-1.5 max-w-[260px]">
@@ -144,14 +147,14 @@ export default function SortSection({
                             value={customInput}
                             onChange={(e) => setCustomInput(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && addCustomFormat()}
-                            placeholder=".aac"
+                            placeholder={t(lang, 'sort.format.placeholder')}
                             className="w-20 px-2 py-1 rounded-md text-[11px] bg-zinc-800/60 border border-zinc-700/50 text-zinc-300 outline-none focus:border-zinc-500 placeholder:text-zinc-600"
                         />
                         <button
                             onClick={addCustomFormat}
                             className="px-2 py-1 rounded-md text-[11px] font-medium text-zinc-300 bg-zinc-800/60 hover:bg-zinc-700/70 border border-zinc-700/50 transition-colors cursor-pointer"
                         >
-                            Tambah
+                            {t(lang, 'sort.format.add')}
                         </button>
                     </div>
                 </div>

@@ -2,8 +2,10 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useCallback, useState, useRef } from 'react';
+import {t, type Lang} from '../lib/translations';
 
 interface StreamingModalProps {
+    lang: Lang;
     open: boolean;
     onClose: () => void;
     accentColor: string;
@@ -184,29 +186,20 @@ const PLATFORMS: Platform[] = [
     },
 ];
 
-function getDomainLabel(domain: string): string {
-    const map: Record<string, string> = {
-        'youtube.com': 'YouTube',
-        'youtu.be': 'YouTube',
-        'music.youtube.com': 'YouTube Music',
-        'open.spotify.com': 'Spotify',
-        'soundcloud.com': 'SoundCloud',
-        'music.apple.com': 'Apple Music',
-        'bandcamp.com': 'Bandcamp',
-        'deezer.com': 'Deezer',
-        'tidal.com': 'Tidal',
-    };
-    return map[domain] || domain;
+function getDomainLabel(lang: Lang, domain: string): string {
+    const key = 'domain.' + domain;
+    const result = t(lang, key);
+    return result !== key ? result : domain;
 }
 
-function formatStreamTime(ts: number): string {
+function formatStreamTime(lang: Lang, ts: number): string {
     const date = new Date(ts);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
-    if (diff < 60000) return 'baru saja';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m lalu`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}j lalu`;
-    return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    if (diff < 60000) return t(lang, 'stream.justNow');
+    if (diff < 3600000) return t(lang, 'stream.minutesAgo', {n: Math.floor(diff / 60000)});
+    if (diff < 86400000) return t(lang, 'stream.hoursAgo', {n: Math.floor(diff / 3600000)});
+    return date.toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
 function isBrowserTauri(): boolean {
@@ -235,7 +228,7 @@ function addToHistory(url: string) {
     saveHistory(unique);
 }
 
-export default function StreamingModal({ open, onClose, accentColor }: StreamingModalProps) {
+export default function StreamingModal({ lang, open, onClose, accentColor }: StreamingModalProps) {
     const [history, setHistory] = useState<StreamHistoryEntry[]>([]);
     const [customUrl, setCustomUrl] = useState('');
     const inputRef = useRef<HTMLInputElement>(null);
@@ -302,11 +295,11 @@ export default function StreamingModal({ open, onClose, accentColor }: Streaming
             return;
         }
         const label = 'stream-' + Date.now();
-        await openStream(trimmed, label, 'Streaming');
+        await openStream(trimmed, label, t(lang, 'stream.fallbackTitle'));
         addToHistory(trimmed);
         setCustomUrl('');
         setHistory(loadHistory());
-    }, [customUrl, openStream]);
+    }, [customUrl, lang, openStream]);
 
     const handleCustomKeyDown = useCallback((e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
@@ -361,8 +354,8 @@ export default function StreamingModal({ open, onClose, accentColor }: Streaming
                                     </svg>
                                 </div>
                                 <div>
-                                    <h2 className="text-base font-bold text-zinc-100">Streaming</h2>
-                                    <p className="text-[11px] text-zinc-500">Platform streaming & URL media</p>
+                                    <h2 className="text-base font-bold text-zinc-100">{t(lang, 'stream.title')}</h2>
+                                    <p className="text-[11px] text-zinc-500">{t(lang, 'stream.subtitle')}</p>
                                 </div>
                             </div>
                             <motion.button
@@ -382,7 +375,7 @@ export default function StreamingModal({ open, onClose, accentColor }: Streaming
                         <div className="flex flex-1 overflow-hidden">
                             {/* Left Column - Platform Grid */}
                             <div className="w-1/2 border-r border-zinc-800/60 overflow-y-auto p-4">
-                                <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-3 px-1">Streaming Platform</div>
+                                <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-3 px-1">{t(lang, 'stream.platform')}</div>
                                 <div className="grid grid-cols-1 gap-2">
                                     {PLATFORMS.map((platform) => (
                                         <motion.button
@@ -397,7 +390,7 @@ export default function StreamingModal({ open, onClose, accentColor }: Streaming
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="text-sm font-semibold text-zinc-200 group-hover:text-zinc-100 truncate">
-                                                    {platform.name}
+                                                    {t(lang, 'stream.platform.' + platform.id)}
                                                 </div>
                                                 <div className="text-[10px] text-zinc-500 truncate">
                                                     {new URL(platform.url).hostname}
@@ -416,7 +409,7 @@ export default function StreamingModal({ open, onClose, accentColor }: Streaming
                             <div className="w-1/2 flex flex-col overflow-hidden">
                                 {/* URL Input */}
                                 <div className="p-4 border-b border-zinc-800/60">
-                                    <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-2.5 px-1">URL Media</div>
+                                    <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-2.5 px-1">{t(lang, 'stream.url')}</div>
                                     <div className="flex items-center gap-2">
                                         <div className="flex-1 relative">
                                             <input
@@ -425,7 +418,7 @@ export default function StreamingModal({ open, onClose, accentColor }: Streaming
                                                 value={customUrl}
                                                 onChange={(e) => setCustomUrl(e.target.value)}
                                                 onKeyDown={handleCustomKeyDown}
-                                                placeholder="https://youtube.com/watch?v=..."
+                                                placeholder={t(lang, 'stream.urlPlaceholder')}
                                                 className="w-full px-3 py-2 rounded-xl bg-zinc-800/60 border border-zinc-700/50 text-zinc-200 text-sm placeholder-zinc-600 outline-none focus:border-zinc-500/70 transition-colors"
                                             />
                                             {customUrl && (
@@ -452,14 +445,14 @@ export default function StreamingModal({ open, onClose, accentColor }: Streaming
                                             </svg>
                                         </motion.button>
                                     </div>
-                                    <p className="text-[10px] text-zinc-600 mt-1.5 px-1">Tempel URL dari platform streaming untuk diputar di jendela baru</p>
+                                    <p className="text-[10px] text-zinc-600 mt-1.5 px-1">{t(lang, 'stream.urlHint')}</p>
                                 </div>
 
                                 {/* History */}
                                 <div className="flex-1 overflow-y-auto p-4">
                                     <div className="flex items-center justify-between mb-3 px-1">
                                         <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-                                            History Media {history.length > 0 && `(${history.length})`}
+                                            {t(lang, 'stream.history')}{history.length > 0 && ` (${history.length})`}
                                         </div>
                                         {history.length > 0 && (
                                             <motion.button
@@ -476,7 +469,7 @@ export default function StreamingModal({ open, onClose, accentColor }: Streaming
                                                     <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
                                                     <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
                                                 </svg>
-                                                Hapus Semua
+                                                {t(lang, 'stream.deleteAll')}
                                             </motion.button>
                                         )}
                                     </div>
@@ -487,8 +480,8 @@ export default function StreamingModal({ open, onClose, accentColor }: Streaming
                                                 <path d="M12 8v8" />
                                                 <path d="M8 12h8" />
                                             </svg>
-                                            <p className="text-xs text-zinc-600">Belum ada media yang diputar</p>
-                                            <p className="text-[10px] text-zinc-700 mt-1">Putar video dari YouTube atau platform lain untuk memulai</p>
+                                            <p className="text-xs text-zinc-600">{t(lang, 'stream.emptyTitle')}</p>
+                                            <p className="text-[10px] text-zinc-700 mt-1">{t(lang, 'stream.emptyDesc')}</p>
                                         </div>
                                     ) : (
                                         <div className="space-y-4">
@@ -496,7 +489,7 @@ export default function StreamingModal({ open, onClose, accentColor }: Streaming
                                                 <div key={domain}>
                                                     <div className="flex items-center justify-between mb-2 px-1 group/header">
                                                         <div className="flex items-center gap-2">
-                                                            <span className="text-xs font-semibold text-zinc-400">{getDomainLabel(domain)}</span>
+                                                            <span className="text-xs font-semibold text-zinc-400">{getDomainLabel(lang, domain)}</span>
                                                             <span className="text-[10px] text-zinc-600">{entries.length}</span>
                                                         </div>
                                                         <motion.button
@@ -507,7 +500,7 @@ export default function StreamingModal({ open, onClose, accentColor }: Streaming
                                                             whileHover={{ scale: 1.1 }}
                                                             whileTap={{ scale: 0.9 }}
                                                             className="w-5 h-5 rounded flex items-center justify-center text-zinc-600 hover:text-red-400 hover:bg-zinc-700/50 opacity-0 group-hover/header:opacity-100 transition-all cursor-pointer"
-                                                            title={`Hapus semua ${getDomainLabel(domain)}`}
+                                                            title={t(lang, 'stream.deleteGroup', {domain: getDomainLabel(lang, domain)})}
                                                         >
                                                             <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                                                 <path d="M3 6h18" />
@@ -524,7 +517,7 @@ export default function StreamingModal({ open, onClose, accentColor }: Streaming
                                                                 <motion.button
                                                                     onClick={() => {
                                                                         const label = 'stream-' + Date.now();
-                                                                        openStream(entry.url, label, getDomainLabel(domain));
+                                                                        openStream(entry.url, label, getDomainLabel(lang, domain));
                                                                     }}
                                                                     whileTap={{ scale: 0.99 }}
                                                                     className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg bg-zinc-800/20 hover:bg-zinc-800/50 cursor-pointer text-left border border-transparent hover:border-zinc-700/30 transition-colors"
@@ -538,7 +531,7 @@ export default function StreamingModal({ open, onClose, accentColor }: Streaming
                                                                             {entry.url.length > 60 ? entry.url.slice(0, 57) + '...' : entry.url}
                                                                         </div>
                                                                     </div>
-                                                                    <span className="text-[9px] text-zinc-600 shrink-0">{formatStreamTime(entry.timestamp)}</span>
+                                                                    <span className="text-[9px] text-zinc-600 shrink-0">{formatStreamTime(lang, entry.timestamp)}</span>
                                                                 </motion.button>
                                                                 <motion.button
                                                                     onClick={() => {
@@ -548,7 +541,7 @@ export default function StreamingModal({ open, onClose, accentColor }: Streaming
                                                                     whileHover={{ scale: 1.1 }}
                                                                     whileTap={{ scale: 0.9 }}
                                                                     className="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 rounded flex items-center justify-center bg-zinc-800/80 text-zinc-500 hover:text-red-400 hover:bg-zinc-700/80 opacity-0 group-hover/entry:opacity-100 transition-all cursor-pointer shadow-sm"
-                                                                    title="Hapus"
+                                                                    title={t(lang, 'stream.deleteEntry')}
                                                                 >
                                                                     <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                                                         <path d="M18 6 6 18" />

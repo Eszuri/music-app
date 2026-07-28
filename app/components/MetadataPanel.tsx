@@ -5,8 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FileEntry } from './FolderExplorer';
 import { SongMetadata } from './PlayerPanel';
 import { getAccent } from '../lib/colors';
+import {t, type Lang} from '../lib/translations';
 
 interface MetadataPanelProps {
+    lang: Lang;
     selectedSong: FileEntry | null;
     metadata: SongMetadata | null;
     accentColor: string;
@@ -68,14 +70,14 @@ function SectionTitle({ title }: { title: string }) {
     return <h4 className="text-[11px] font-semibold tracking-wider text-zinc-400 uppercase mt-5 first:mt-0 mb-2.5">{title}</h4>;
 }
 
-function channelsLabel(ch: number | null): string {
+function channelsLabel(lang: Lang, ch: number | null): string {
     if (ch === null) return '—';
-    if (ch === 1) return 'Mono';
-    if (ch === 2) return 'Stereo';
-    return `${ch} ch`;
+    if (ch === 1) return t(lang, 'metadata.mono');
+    if (ch === 2) return t(lang, 'metadata.stereo');
+    return `${ch}${t(lang, 'metadata.ch')}`;
 }
 
-export default function MetadataPanel({ selectedSong, metadata, accentColor, resetSidebarToken }: MetadataPanelProps) {
+export default function MetadataPanel({ lang, selectedSong, metadata, accentColor, resetSidebarToken }: MetadataPanelProps) {
     const accent = getAccent(accentColor);
     const songTitle = selectedSong
         ? (metadata?.title || selectedSong.name.replace(/\.[^/.]+$/, ''))
@@ -168,7 +170,7 @@ export default function MetadataPanel({ selectedSong, metadata, accentColor, res
                     <circle cx="12" cy="12" r="10" />
                     <path d="M12 16v-4M12 8h.01" />
                 </svg>
-                <span className="text-xs font-medium text-zinc-400 tracking-wide">DETAIL</span>
+                <span className="text-xs font-medium text-zinc-400 tracking-wide">{t(lang, 'metadata.heading')}</span>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -192,7 +194,7 @@ export default function MetadataPanel({ selectedSong, metadata, accentColor, res
                                             exit={{ opacity: 0 }}
                                             transition={{ duration: 0.2 }}
                                             src={`data:${metadata.cover_mime};base64,${metadata.cover_b64}`}
-                                            alt="Cover"
+                                            alt={t(lang, 'metadata.cover')}
                                             className="w-full h-full object-contain"
                                         />
                                     ) : (
@@ -213,47 +215,44 @@ export default function MetadataPanel({ selectedSong, metadata, accentColor, res
                                 </AnimatePresence>
                             </div>
 
-                            {/* Audio metadata */}
-                            <SectionTitle title="Info Lagu" />
+                            <SectionTitle title={t(lang, 'metadata.songInfo')} />
                             <div className="space-y-3 pl-1">
-                                <MetaRow label="Judul" value={songTitle || '—'} />
-                                <MetaRow label="Artis" value={metadata?.artist || 'Unknown Artist'} />
-                                {metadata?.album && <MetaRow label="Album" value={metadata.album} />}
-                                {metadata?.genre && <MetaRow label="Genre" value={metadata.genre} />}
-                                {metadata?.year != null && <MetaRow label="Tahun" value={String(metadata.year)} />}
-                                {trackStr && <MetaRow label="Track" value={trackStr} />}
-                                {discStr && <MetaRow label="Disc" value={discStr} />}
-                                <MetaRow label="Durasi" value={formatDuration(metadata?.duration ?? null)} />
+                                <MetaRow label={t(lang, 'metadata.title')} value={songTitle || '—'} />
+                                <MetaRow label={t(lang, 'metadata.artist')} value={metadata?.artist || t(lang, 'metadata.unknownArtist')} />
+                                {metadata?.album && <MetaRow label={t(lang, 'metadata.album')} value={metadata.album} />}
+                                {metadata?.genre && <MetaRow label={t(lang, 'metadata.genre')} value={metadata.genre} />}
+                                {metadata?.year != null && <MetaRow label={t(lang, 'metadata.year')} value={String(metadata.year)} />}
+                                {trackStr && <MetaRow label={t(lang, 'metadata.track')} value={trackStr} />}
+                                {discStr && <MetaRow label={t(lang, 'metadata.disc')} value={discStr} />}
+                                <MetaRow label={t(lang, 'metadata.duration')} value={formatDuration(metadata?.duration ?? null)} />
                             </div>
 
-                            {/* Technical info */}
-                            <SectionTitle title="Info Teknis" />
+                            <SectionTitle title={t(lang, 'metadata.techInfo')} />
                             <div className="space-y-3 pl-1">
                                 {metadata?.bitrate != null && (
-                                    <MetaRow label="Bitrate" value={`${metadata.bitrate} kbps`} />
+                                    <MetaRow label={t(lang, 'metadata.bitrate')} value={`${metadata.bitrate} kbps`} />
                                 )}
                                 {metadata?.sample_rate != null && (
-                                    <MetaRow label="Sample Rate" value={`${(metadata.sample_rate / 1000).toFixed(1)} kHz`} />
+                                    <MetaRow label={t(lang, 'metadata.sampleRate')} value={`${(metadata.sample_rate / 1000).toFixed(1)} kHz`} />
                                 )}
                                 {metadata?.channels != null && (
-                                    <MetaRow label="Channel" value={channelsLabel(metadata.channels)} />
+                                    <MetaRow label={t(lang, 'metadata.channel')} value={channelsLabel(lang, metadata.channels)} />
                                 )}
-                                <MetaRow label="Format" value={selectedSong.ext.toUpperCase()} />
-                                <MetaRow label="Ukuran" value={formatSize(selectedSong.size)} />
+                                <MetaRow label={t(lang, 'metadata.format')} value={selectedSong.ext.toUpperCase()} />
+                                <MetaRow label={t(lang, 'metadata.size')} value={formatSize(selectedSong.size)} />
                             </div>
 
-                            {/* File info */}
-                            <SectionTitle title="Info File" />
+                            <SectionTitle title={t(lang, 'metadata.fileInfo')} />
                             <div className="space-y-3 pl-1">
-                                <MetaRow label="Nama File" value={selectedSong.name} />
-                                <MetaRow label="Dibuat" value={formatDate(selectedSong.ctime)} />
-                                <MetaRow label="Dimodifikasi" value={formatDate(selectedSong.mtime)} />
+                                <MetaRow label={t(lang, 'metadata.fileName')} value={selectedSong.name} />
+                                <MetaRow label={t(lang, 'metadata.created')} value={formatDate(selectedSong.ctime)} />
+                                <MetaRow label={t(lang, 'metadata.modified')} value={formatDate(selectedSong.mtime)} />
                             </div>
 
                             {/* Comment */}
                             {metadata?.comment && (
                                 <>
-                                    <SectionTitle title="Komentar" />
+                                    <SectionTitle title={t(lang, 'metadata.comment')} />
                                     <div className="pl-1">
                                         <p className="text-sm text-zinc-300 leading-relaxed break-words">
                                             {metadata.comment}
@@ -263,7 +262,7 @@ export default function MetadataPanel({ selectedSong, metadata, accentColor, res
                             )}
 
                             {/* Path */}
-                            <SectionTitle title="Lokasi" />
+                            <SectionTitle title={t(lang, 'metadata.location')} />
                             <div className="pl-1">
                                 <p className="text-xs text-zinc-500 break-all leading-relaxed font-mono">
                                     {selectedSong.path}
@@ -284,8 +283,8 @@ export default function MetadataPanel({ selectedSong, metadata, accentColor, res
                                     <path d="M12 16v-4M12 8h.01" />
                                 </svg>
                             </div>
-                            <p className="text-sm text-zinc-500">Pilih lagu untuk melihat detail</p>
-                            <p className="text-xs text-zinc-600 mt-1">Metadata dan info file akan muncul di sini</p>
+                            <p className="text-sm text-zinc-500">{t(lang, 'metadata.emptyTitle')}</p>
+                            <p className="text-xs text-zinc-600 mt-1">{t(lang, 'metadata.emptyDesc')}</p>
                         </motion.div>
                     )}
                 </AnimatePresence>

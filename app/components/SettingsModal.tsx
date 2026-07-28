@@ -3,18 +3,21 @@
 import {useEffect, useState} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
 import {getAccent} from '../lib/colors';
+import {t} from '../lib/translations';
 import AboutSection from './settings/AboutSection';
 import DebugSection from './settings/DebugSection';
 import GeneralSection from './settings/GeneralSection';
 import ShortcutSection from './settings/ShortcutSection';
 import SortSection from './settings/SortSection';
 import StyleSection from './settings/StyleSection';
-import {SECTIONS} from './settings/sectionsConfig';
+import {getSections} from './settings/sectionsConfig';
 import type {SectionId, SettingsModalProps} from './settings/types';
 
 export type {LogEntry} from '../types/log';
 
 export default function SettingsModal({
+    lang,
+    setLang,
     open,
     onClose,
     musicFolder,
@@ -71,6 +74,8 @@ export default function SettingsModal({
 
     if (!open) return null;
 
+    const sections = getSections(lang);
+
     return (
         <AnimatePresence>
             <motion.div
@@ -94,9 +99,9 @@ export default function SettingsModal({
                     {/* Sidebar nav */}
                     <nav className="w-44 border-r border-zinc-800 bg-zinc-950/60 p-3 flex flex-col gap-1">
                         <h3 className="px-3 py-2 text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
-                            Settings
+                            {t(lang, 'settings.title')}
                         </h3>
-                        {SECTIONS.map((s) => {
+                        {sections.map((s) => {
                             const isActive = s.id === activeSection;
                             const a = getAccent(accentColor);
                             return (
@@ -122,12 +127,12 @@ export default function SettingsModal({
                     <div className="flex-1 flex flex-col">
                         <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
                             <h2 className="text-lg font-semibold text-zinc-100">
-                                {SECTIONS.find((s) => s.id === activeSection)?.label}
+                                {sections.find((s) => s.id === activeSection)?.label}
                             </h2>
                             <button
                                 onClick={onClose}
                                 className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60 transition-colors cursor-pointer"
-                                aria-label="Close"
+                                aria-label={t(lang, 'settings.close')}
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M18 6 6 18M6 6l12 12" />
@@ -137,6 +142,8 @@ export default function SettingsModal({
                         <div className="flex-1 overflow-y-auto p-6">
                             {activeSection === 'general' && (
                                     <GeneralSection
+                                        lang={lang}
+                                        setLang={setLang}
                                         musicFolder={musicFolder}
                                         onChangeFolder={onChangeFolder}
                                         autoWallpaper={autoWallpaper}
@@ -163,6 +170,7 @@ export default function SettingsModal({
                             )}
                             {activeSection === 'sort' && (
                                 <SortSection
+                                    lang={lang}
                                     folderSort={folderSort}
                                     setFolderSort={setFolderSort}
                                     fileSort={fileSort}
@@ -177,6 +185,7 @@ export default function SettingsModal({
                             )}
                             {activeSection === 'shortcut' && (
                                 <ShortcutSection
+                                    lang={lang}
                                     shortcuts={shortcuts}
                                     updateShortcut={updateShortcut}
                                     resetShortcuts={resetShortcuts}
@@ -185,6 +194,7 @@ export default function SettingsModal({
                             )}
                             {activeSection === 'style' && (
                                 <StyleSection
+                                    lang={lang}
                                     accentColor={accentColor}
                                     setAccentColor={setAccentColor}
                                     customAccentHex={customAccentHex}
@@ -192,8 +202,8 @@ export default function SettingsModal({
                                     onResetSidebarWidth={onResetSidebarWidth}
                                 />
                             )}
-                            {activeSection === 'about' && <AboutSection />}
-                            {activeSection === 'debug' && <DebugSection logs={logs} />}
+                            {activeSection === 'about' && <AboutSection lang={lang} />}
+                            {activeSection === 'debug' && <DebugSection lang={lang} logs={logs} />}
                         </div>
                     </div>
                 </motion.div>

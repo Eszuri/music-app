@@ -4,15 +4,18 @@ import {useEffect, useState} from 'react';
 import {motion} from 'framer-motion';
 import type {KeyboardEvent} from 'react';
 import {getAccent} from '../../lib/colors';
+import {t, type Lang} from '../../lib/translations';
 import {SelectStub, SettingRow, ToggleStub} from './controls';
 
 export default function GeneralSection({
+    lang,
     musicFolder,
     onChangeFolder,
     autoWallpaper,
     setAutoWallpaper,
     resetOnClose,
     setResetOnClose,
+    setLang,
     volumeStep,
     setVolumeStep,
     volumeMode,
@@ -30,6 +33,8 @@ export default function GeneralSection({
     updateDownloaded,
     updateTotal,
 }: {
+    lang: Lang;
+    setLang: (v: Lang) => void;
     musicFolder: string | null;
     onChangeFolder: () => void;
     autoWallpaper: boolean;
@@ -57,8 +62,21 @@ export default function GeneralSection({
     return (
         <div className="space-y-6">
             <SettingRow
-                title="Folder Musik"
-                description="Folder tempat koleksi musik kamu disimpan"
+                title={t(lang, 'general.language.title')}
+                description={t(lang, 'general.language.desc')}
+            >
+                <SelectStub
+                    options={[
+                        ['en', t(lang, 'lang.en')],
+                        ['id', t(lang, 'lang.id')],
+                    ]}
+                    value={lang}
+                    onChange={(v) => setLang(v as Lang)}
+                />
+            </SettingRow>
+            <SettingRow
+                title={t(lang, 'general.folderMusic.title')}
+                description={t(lang, 'general.folderMusic.desc')}
             >
                 <div className="flex items-center gap-2 max-w-[260px]">
                     {musicFolder ? (
@@ -72,19 +90,19 @@ export default function GeneralSection({
                         onClick={onChangeFolder}
                         className="px-2.5 py-1 rounded-md text-[11px] font-medium text-zinc-300 bg-zinc-800/60 hover:bg-zinc-700/70 border border-zinc-700/50 transition-colors cursor-pointer shrink-0"
                     >
-                        {musicFolder ? 'Ganti' : 'Set Folder'}
+                        {musicFolder ? t(lang, 'general.folderMusic.changeBtn') : t(lang, 'general.folderMusic.setBtn')}
                     </button>
                 </div>
             </SettingRow>
             <SettingRow
-                title="Auto Wallpaper"
-                description="Gunakan cover art sebagai wallpaper desktop saat lagu diputar"
+                title={t(lang, 'general.autoWallpaper.title')}
+                description={t(lang, 'general.autoWallpaper.desc')}
             >
                 <ToggleStub checked={autoWallpaper} onChange={setAutoWallpaper} accent={accent} />
             </SettingRow>
             <SettingRow
-                title="Wallpaper Default"
-                description="Gambar yang akan digunakan sebagai wallpaper saat reset atau tutup aplikasi"
+                title={t(lang, 'general.wallpaperDefault.title')}
+                description={t(lang, 'general.wallpaperDefault.desc')}
             >
                 <div className="flex items-center gap-2 max-w-[260px]">
                     {defaultWallpaper ? (
@@ -98,42 +116,42 @@ export default function GeneralSection({
                         onClick={onPickWallpaper}
                         className="px-2.5 py-1 rounded-md text-[11px] font-medium text-zinc-300 bg-zinc-800/60 hover:bg-zinc-700/70 border border-zinc-700/50 transition-colors cursor-pointer shrink-0"
                     >
-                        {defaultWallpaper ? 'Ganti' : 'Set Wallpaper'}
+                        {defaultWallpaper ? t(lang, 'general.wallpaperDefault.changeBtn') : t(lang, 'general.wallpaperDefault.setBtn')}
                     </button>
                     {defaultWallpaper && (
                         <button
                             onClick={onClearWallpaper}
                             className="px-2 py-1 rounded-md text-[11px] font-medium text-red-400 bg-zinc-800/60 hover:bg-red-900/40 border border-zinc-700/50 transition-colors cursor-pointer shrink-0"
                         >
-                            Hapus
+                            {t(lang, 'general.wallpaperDefault.deleteBtn')}
                         </button>
                     )}
                 </div>
             </SettingRow>
             <SettingRow
-                title="Reset Wallpaper on Close"
-                description="Kembalikan wallpaper ke default saat aplikasi ditutup"
+                title={t(lang, 'general.resetWallpaper.title')}
+                description={t(lang, 'general.resetWallpaper.desc')}
             >
                 <div className="flex flex-col items-end gap-1">
                     <ToggleStub checked={resetOnClose} onChange={setResetOnClose} disabled={!defaultWallpaper} accent={accent} />
                     {!defaultWallpaper && (
-                        <span className="text-[10px] text-zinc-600 whitespace-nowrap">Set wallpaper default dulu</span>
+                        <span className="text-[10px] text-zinc-600 whitespace-nowrap">{t(lang, 'general.resetWallpaper.hint')}</span>
                     )}
                 </div>
             </SettingRow>
             <SettingRow
-                title="Mode Volume"
-                description="Volume App: kontrol sendiri. Volume Sistem: ikuti volume Windows."
+                title={t(lang, 'general.volumeMode.title')}
+                description={t(lang, 'general.volumeMode.desc')}
             >
                 <SelectStub
-                    options={[[ 'app', 'App Volume' ], [ 'system', 'System Volume' ]]}
+                    options={[[ 'app', t(lang, 'general.volumeMode.app') ], [ 'system', t(lang, 'general.volumeMode.system') ]]}
                     value={volumeMode}
                     onChange={setVolumeMode}
                 />
             </SettingRow>
             <SettingRow
-                title="Step Volume"
-                description="Jumlah perubahan volume tiap tekan tombol +/− atau shortcut (1–10)"
+                title={t(lang, 'general.stepVolume.title')}
+                description={t(lang, 'general.stepVolume.desc')}
             >
                 <SelectStub
                     options={[
@@ -154,21 +172,23 @@ export default function GeneralSection({
             </SettingRow>
             {volumeMode === 'system' && (
                 <SettingRow
-                    title="Batas Volume Sistem"
-                    description="Beri peringatan jika volume sistem melebihi batas ini (0 = tidak ada batas)"
+                    title={t(lang, 'general.volumeLimit.title')}
+                    description={t(lang, 'general.volumeLimit.desc')}
                 >
                     <VolumeLimitInput
                         volumeLimit={volumeLimit}
                         setVolumeLimit={setVolumeLimit}
                         currentVolume={volume}
+                        lang={lang}
                     />
                 </SettingRow>
             )}
             <SettingRow
-                title="Update"
-                description="Periksa versi terbaru Symvonia"
+                title={t(lang, 'general.update.title')}
+                description={t(lang, 'general.update.desc')}
             >
                 <UpdateControl
+                    lang={lang}
                     accent={accent}
                     status={updateStatus}
                     checking={updateChecking}
@@ -182,6 +202,7 @@ export default function GeneralSection({
 }
 
 function UpdateControl({
+    lang,
     accent,
     status,
     checking,
@@ -189,6 +210,7 @@ function UpdateControl({
     total,
     onCheck,
 }: {
+    lang: Lang;
     accent: Record<string, string>;
     status: string;
     checking: boolean;
@@ -231,7 +253,7 @@ function UpdateControl({
                         : 'bg-zinc-800/60 hover:bg-zinc-700/70 border-zinc-700/50'
                         }`}
                 >
-                    {checking ? 'Memeriksa...' : 'Check for Update'}
+                    {checking ? t(lang, 'general.update.checking') : t(lang, 'general.update.checkBtn')}
                 </button>
             </div>
         </div>
@@ -242,10 +264,12 @@ function VolumeLimitInput({
     volumeLimit,
     setVolumeLimit,
     currentVolume,
+    lang,
 }: {
     volumeLimit: number;
     setVolumeLimit: (v: number) => void;
     currentVolume: number;
+    lang: Lang;
 }) {
     const [draft, setDraft] = useState(volumeLimit.toString());
     const [saved, setSaved] = useState(volumeLimit);
@@ -283,11 +307,11 @@ function VolumeLimitInput({
                 onClick={handleSave}
                 className="px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 bg-zinc-800/60 hover:bg-zinc-700/70 border border-zinc-700/50 transition-colors cursor-pointer"
             >
-                Save
+                {t(lang, 'general.volumeLimit.save')}
             </button>
             {saved > 0 && (
                 <span className="text-[10px] text-zinc-500">
-                    {Math.round(currentVolume * 100) > saved ? '⚠ Volume saat ini melebihi batas' : `Batas: ${saved}`}
+                    {Math.round(currentVolume * 100) > saved ? t(lang, 'general.volumeLimit.over') : t(lang, 'general.volumeLimit.limit', {value: String(saved)})}
                 </span>
             )}
         </div>

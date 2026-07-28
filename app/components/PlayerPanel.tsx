@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileEntry } from './FolderExplorer';
 import { getAccent } from '../lib/colors';
+import {t, type Lang} from '../lib/translations';
 
 export interface SongMetadata {
     title: string | null;
@@ -24,17 +25,18 @@ export interface SongMetadata {
 }
 
 interface PlayerPanelProps {
+    lang: Lang;
     metadata: SongMetadata | null;
     selectedSong: FileEntry | null;
     accentColor: string;
 }
 
-export default function PlayerPanel({ metadata, selectedSong, accentColor }: PlayerPanelProps) {
+export default function PlayerPanel({ lang, metadata, selectedSong, accentColor }: PlayerPanelProps) {
     const accent = getAccent(accentColor);
     const songTitle = selectedSong
         ? (metadata?.title || selectedSong.name.replace(/\.[^/.]+$/, ''))
-        : 'No song selected';
-    const songArtist = selectedSong ? (metadata?.artist || 'Unknown Artist') : '';
+        : t(lang, 'player.noSongSelected');
+    const songArtist = selectedSong ? (metadata?.artist || t(lang, 'player.unknownArtist')) : '';
     const songAlbum = selectedSong ? (metadata?.album || null) : null;
 
     return (
@@ -61,7 +63,7 @@ export default function PlayerPanel({ metadata, selectedSong, accentColor }: Pla
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.25 }}
                             src={`data:${metadata.cover_mime};base64,${metadata.cover_b64}`}
-                            alt="Cover"
+                                alt={t(lang, 'player.cover')}
                             className="w-full h-full object-contain"
                         />
                     ) : (

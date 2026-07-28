@@ -9,8 +9,10 @@ import PlaybackControls from '../PlaybackControls';
 import VolumeControl from '../VolumeControl';
 import MetadataPanel from '../MetadataPanel';
 import {EmptyFolderState, InitSkeleton, NoFolderEmptyState} from './HomeEmptyStates';
+import type {Lang} from '../../lib/translations';
 
 interface HomePlayerAreaProps {
+    lang: Lang;
     initialized: boolean;
     musicFolder: string | null;
     isCompact: boolean;
@@ -49,6 +51,7 @@ interface HomePlayerAreaProps {
 }
 
 export default function HomePlayerArea({
+    lang,
     initialized,
     musicFolder,
     isCompact,
@@ -108,7 +111,7 @@ export default function HomePlayerArea({
                         transition={{duration: 0.25}}
                         className="flex-1"
                     >
-                        <NoFolderEmptyState onPickFolder={handlePickFolder} accentColor={accentColor} />
+                        <NoFolderEmptyState lang={lang} onPickFolder={handlePickFolder} accentColor={accentColor} />
                     </motion.div>
                 ) : (
                     <motion.div
@@ -129,6 +132,7 @@ export default function HomePlayerArea({
                                     className="flex shrink-0 overflow-hidden"
                                 >
                                     <FolderExplorer
+                                        lang={lang}
                                         files={files}
                                         loading={loadingFiles}
                                         selectedSong={selectedSong}
@@ -149,21 +153,24 @@ export default function HomePlayerArea({
 
                         <main className="flex-1 flex items-center justify-center p-6 overflow-hidden">
                             {files.length === 0 ? (
-                                <EmptyFolderState folder={displayPath} />
+                                <EmptyFolderState lang={lang} folder={displayPath} />
                             ) : (
                                 <div className="flex flex-col items-center gap-4 w-full max-w-2xl">
                                     <PlayerPanel
+                                        lang={lang}
                                         metadata={metadata}
                                         selectedSong={selectedSong}
                                         accentColor={accentColor}
                                     />
                                     <SeekBar
+                                        lang={lang}
                                         currentTime={currentTime}
                                         duration={duration}
                                         handleSeek={handleSeek}
                                         accentColor={accentColor}
                                     />
                                     <PlaybackControls
+                                        lang={lang}
                                         selectedSong={selectedSong}
                                         isPlaying={isPlaying}
                                         shuffle={shuffle}
@@ -176,6 +183,7 @@ export default function HomePlayerArea({
                                         accentColor={accentColor}
                                     />
                                     <VolumeControl
+                                        lang={lang}
                                         volume={volume}
                                         volumeStep={volumeStep}
                                         volumeMode={volumeMode}
@@ -199,6 +207,7 @@ export default function HomePlayerArea({
                                     className="flex shrink-0 overflow-hidden"
                                 >
                                     <MetadataPanel
+                                        lang={lang}
                                         selectedSong={selectedSong}
                                         metadata={metadata}
                                         accentColor={accentColor}

@@ -5,6 +5,7 @@ import HomeAlerts from './components/home/HomeAlerts';
 import HomeHeader from './components/home/HomeHeader';
 import HomeModals from './components/home/HomeModals';
 import HomePlayerArea from './components/home/HomePlayerArea';
+import {t} from './lib/translations';
 import {useAppLogging} from './hooks/useAppLogging';
 import {useAppUpdater} from './hooks/useAppUpdater';
 import {useAudioPlayer} from './hooks/useAudioPlayer';
@@ -44,6 +45,7 @@ export default function Home() {
     const isCompact = windowWidth < SIDEBAR_BREAKPOINT;
 
     const settings = usePlayerSettings();
+    const lang = settings.language;
 
     const player = useAudioPlayer({
         musicFolder: settings.musicFolder,
@@ -92,7 +94,7 @@ export default function Home() {
         updateDownloaded,
         updateTotal,
         handleCheckUpdate,
-    } = useAppUpdater({addLog});
+    } = useAppUpdater({addLog, lang});
 
     useEffect(() => {
         if (!isCompact) {
@@ -127,15 +129,15 @@ export default function Home() {
         } catch (e) {
             const msg = String(e);
             console.error('pick_folder error:', e);
-            setDebugError(`Folder picker error: ${msg}`);
-            showError(`Folder picker error: ${msg}`);
+            setDebugError(`${t(lang, 'alert.error')}: ${msg}`);
+            showError(`${t(lang, 'alert.error')}: ${msg}`);
         }
-    }, [settings, player, setDebugError, showError]);
+    }, [lang, settings, player, setDebugError, showError]);
 
     const handlePickFolder = useCallback(async () => {
         if (!isBrowserTauri) {
-            setDebugError('Folder picker hanya tersedia di aplikasi desktop');
-            showError('Folder picker hanya tersedia di aplikasi desktop');
+            setDebugError(t(lang, 'alert.error'));
+            showError(t(lang, 'alert.error'));
             return;
         }
         if (player.isPlaying) {
@@ -143,12 +145,12 @@ export default function Home() {
             return;
         }
         await doPickFolder();
-    }, [player.isPlaying, doPickFolder, setDebugError, showError]);
+    }, [lang, player.isPlaying, doPickFolder, setDebugError, showError]);
 
     const handlePickWallpaper = useCallback(async () => {
         if (!isBrowserTauri) {
-            setDebugError('Gambar picker hanya tersedia di aplikasi desktop');
-            showError('Gambar picker hanya tersedia di aplikasi desktop');
+            setDebugError(t(lang, 'alert.error'));
+            showError(t(lang, 'alert.error'));
             return;
         }
         try {
@@ -160,10 +162,10 @@ export default function Home() {
         } catch (e) {
             const msg = String(e);
             console.error('pick_wallpaper error:', e);
-            setDebugError(`Wallpaper picker error: ${msg}`);
-            showError(`Wallpaper picker error: ${msg}`);
+            setDebugError(`${t(lang, 'alert.error')}: ${msg}`);
+            showError(`${t(lang, 'alert.error')}: ${msg}`);
         }
-    }, [settings, setDebugError, showError]);
+    }, [lang, settings, setDebugError, showError]);
 
     const confirmFolderChange = useCallback(() => {
         setPendingFolderChange(false);
@@ -181,6 +183,7 @@ export default function Home() {
     return (
         <div className="h-full flex flex-col overflow-hidden bg-linear-to-b from-zinc-950 to-black text-zinc-100 select-none font-sans">
             <HomeHeader
+                lang={lang}
                 isCompact={isCompact}
                 musicFolder={settings.musicFolder}
                 selectedSong={player.selectedSong}
@@ -196,6 +199,7 @@ export default function Home() {
             />
 
             <HomePlayerArea
+                lang={lang}
                 initialized={settings.initialized}
                 musicFolder={settings.musicFolder}
                 isCompact={isCompact}
@@ -234,6 +238,8 @@ export default function Home() {
             />
 
             <HomeModals
+                lang={lang}
+                setLang={settings.setLanguage}
                 pendingFolderChange={pendingFolderChange}
                 onConfirmFolderChange={confirmFolderChange}
                 onCancelFolderChange={() => setPendingFolderChange(false)}
@@ -284,6 +290,7 @@ export default function Home() {
             />
 
             <HomeAlerts
+                lang={lang}
                 toastVisible={toastVisible}
                 volumeLimitExceeded={settings.volumeLimitExceeded}
                 volumeLimit={settings.volumeLimit}

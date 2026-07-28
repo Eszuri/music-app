@@ -3,8 +3,10 @@
 import React, { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getAccent } from '../lib/colors';
+import {t, type Lang} from '../lib/translations';
 
 interface ConfirmDialogProps {
+    lang?: Lang;
     open: boolean;
     title: string;
     message: string;
@@ -16,15 +18,18 @@ interface ConfirmDialogProps {
 }
 
 export default function ConfirmDialog({
+    lang = 'en',
     open,
     title,
     message,
-    confirmLabel = 'Ya',
-    cancelLabel = 'Batal',
+    confirmLabel,
+    cancelLabel,
     onConfirm,
     onCancel,
     accentColor,
 }: ConfirmDialogProps) {
+    const resolvedConfirm = confirmLabel ?? t(lang, 'confirm.defaultConfirm');
+    const resolvedCancel = cancelLabel ?? t(lang, 'confirm.defaultCancel');
     const accent = getAccent(accentColor);
     useEffect(() => {
         if (!open) return;
@@ -66,7 +71,7 @@ export default function ConfirmDialog({
                                 transition={{ duration: 0.15 }}
                                 className="px-4 py-2 rounded-lg text-sm font-medium text-zinc-300 bg-zinc-800/60 hover:bg-zinc-700/70 border border-zinc-700/50 cursor-pointer"
                             >
-                                {cancelLabel}
+                                {resolvedCancel}
                             </motion.button>
                             <motion.button
                                 onClick={onConfirm}
@@ -75,7 +80,7 @@ export default function ConfirmDialog({
                                 transition={{ duration: 0.15 }}
                                 className={`px-4 py-2 rounded-lg text-sm font-medium text-white ${accent.bg600} ${accent.hoverBg400} border ${accent.border500_30} cursor-pointer`}
                             >
-                                {confirmLabel}
+                                {resolvedConfirm}
                             </motion.button>
                         </div>
                     </motion.div>

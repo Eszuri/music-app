@@ -1,12 +1,14 @@
 import {useCallback, useRef, useState} from 'react';
 import {isBrowserTauri} from '../lib/homeState';
+import {t, type Lang} from '../lib/translations';
 
 interface UseAppUpdaterOptions {
     addLog: (level: string, message: string) => void;
+    lang: Lang;
 }
 
 export function useAppUpdater(options: UseAppUpdaterOptions) {
-    const {addLog} = options;
+    const {addLog, lang} = options;
     const [updateChecking, setUpdateChecking] = useState(false);
     const [updateStatus, setUpdateStatus] = useState('');
     const [updateDownloaded, setUpdateDownloaded] = useState(0);
@@ -15,7 +17,7 @@ export function useAppUpdater(options: UseAppUpdaterOptions) {
 
     const handleCheckUpdate = useCallback(async () => {
         if (!isBrowserTauri) {
-            setUpdateStatus('Hanya tersedia di aplikasi desktop');
+            setUpdateStatus(t(lang, 'general.update.desktopOnly'));
             return;
         }
         setUpdateChecking(true);
@@ -27,7 +29,7 @@ export function useAppUpdater(options: UseAppUpdaterOptions) {
             const {check} = await import('@tauri-apps/plugin-updater');
             const update = await check();
             if (update) {
-                setUpdateStatus(`v${update.version} tersedia. Mendownload...`);
+                setUpdateStatus(t(lang, 'general.update.available', {version: update.version}));
                 await update.download((ev) => {
                     if (ev.event === 'Started') {
                         const total = ev.data.contentLength ?? 0;
@@ -40,14 +42,14 @@ export function useAppUpdater(options: UseAppUpdaterOptions) {
                 });
                 const total = updateTotalRef.current;
                 if (total > 0) setUpdateDownloaded(total);
-                setUpdateStatus(`v${update.version} siap. Menginstall...`);
+                setUpdateStatus(t(lang, 'general.update.installing', {version: update.version}));
                 await update.install();
             } else {
-                setUpdateStatus('Sudah versi terbaru');
+                setUpdateStatus(t(lang, 'general.update.latest'));
             }
         } catch (e) {
             const msg = String(e);
-            setUpdateStatus(`Error: ${msg.slice(0, 80)}`);
+            setUpdateStatus(t(lang, 'general.update.error', {msg: msg.slice(0, 80)}));
             addLog('error', `Update check failed: ${msg}`);
         } finally {
             setUpdateChecking(false);
@@ -55,7 +57,7 @@ export function useAppUpdater(options: UseAppUpdaterOptions) {
             setUpdateTotal(0);
             updateTotalRef.current = 0;
         }
-    }, [addLog]);
+    }, [addLog, lang]);
 
     return {
         updateChecking,

@@ -1,8 +1,10 @@
 'use client';
 
 import {AnimatePresence, motion} from 'framer-motion';
+import {t, type Lang} from '../../lib/translations';
 
 interface HomeAlertsProps {
+    lang: Lang;
     toastVisible: boolean;
     volumeLimitExceeded: boolean;
     volumeLimit: number;
@@ -11,6 +13,7 @@ interface HomeAlertsProps {
 }
 
 export default function HomeAlerts({
+    lang,
     toastVisible,
     volumeLimitExceeded,
     volumeLimit,
@@ -32,7 +35,7 @@ export default function HomeAlerts({
                         <circle cx="12" cy="12" r="10" />
                         <path d="M12 8v4M12 16h.01" />
                     </svg>
-                    <span>Terjadi error. Cek <strong>Debug</strong> log untuk detail.</span>
+                    <span dangerouslySetInnerHTML={{__html: t(lang, 'alert.error')}} />
                     <button
                         onClick={onCloseToast}
                         className="ml-2 w-5 h-5 rounded flex items-center justify-center text-red-300 hover:text-red-100 hover:bg-red-800/60 cursor-pointer"
@@ -57,7 +60,7 @@ export default function HomeAlerts({
                         <line x1="12" y1="9" x2="12" y2="13" />
                         <line x1="12" y1="17" x2="12.01" y2="17" />
                     </svg>
-                    <span>Volume sistem melebihi batas aman (<strong>{volumeLimit}</strong>)! Turunkan volume untuk melindungi pendengaran.</span>
+                    <span dangerouslySetInnerHTML={{__html: t(lang, 'alert.volumeWarning', {limit: volumeLimit})}} />
                     <button
                         onClick={onCloseVolumeAlert}
                         className="ml-2 w-5 h-5 rounded flex items-center justify-center text-amber-300 hover:text-amber-100 hover:bg-amber-800/60 cursor-pointer"

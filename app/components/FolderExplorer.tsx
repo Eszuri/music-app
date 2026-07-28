@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getAccent } from '../lib/colors';
+import {t, type Lang} from '../lib/translations';
 
 export interface FileEntry {
     name: string;
@@ -17,6 +18,7 @@ export interface FileEntry {
 }
 
 interface FolderExplorerProps {
+    lang: Lang;
     files: FileEntry[];
     loading: boolean;
     selectedSong: FileEntry | null;
@@ -57,6 +59,7 @@ function loadSavedWidth(): number {
 }
 
 export default function FolderExplorer({
+    lang,
     files,
     loading,
     selectedSong,
@@ -157,7 +160,7 @@ export default function FolderExplorer({
             <div className="flex items-center gap-2 px-3 py-2.5 border-b border-zinc-800/30">
                 <motion.button
                     onClick={goUp}
-                    title="Ke folder induk"
+                    title={t(lang, 'folder.goUp')}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.92 }}
                     transition={{ duration: 0.12 }}
@@ -171,7 +174,7 @@ export default function FolderExplorer({
                 <span className="text-xs text-zinc-500 truncate flex-1" title={displayPath}>{displayPath}</span>
                 <motion.button
                     onClick={onChangeFolder}
-                    title={`Ganti folder (${musicFolder})`}
+                    title={t(lang, 'folder.changeFolder', {folder: musicFolder})}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.92 }}
                     transition={{ duration: 0.12 }}
@@ -210,10 +213,11 @@ export default function FolderExplorer({
                             transition={{ duration: 0.18 }}
                             className="p-4 text-zinc-600 text-center"
                         >
-                            Tidak ada file
+                            {t(lang, 'folder.empty')}
                         </motion.div>
                     ) : (
                         <VirtualList
+                            lang={lang}
                             files={files}
                             scrollTop={scrollTop}
                             viewportH={viewportH}
@@ -257,6 +261,7 @@ export default function FolderExplorer({
 }
 
 function VirtualList({
+    lang,
     files,
     scrollTop,
     viewportH,
@@ -269,6 +274,7 @@ function VirtualList({
     accentBorder500,
     accentBg30,
 }: {
+    lang: Lang;
     files: FileEntry[];
     scrollTop: number;
     viewportH: number;
@@ -316,7 +322,7 @@ function VirtualList({
                     rowClass = `${accentBg10} ${accentText400} border-l-2 ${accentBorder500}`;
                 } else if (isPlayingAncestor) {
                     rowClass = `${accentBg30} ${accentText400} border-l-2 ${accentBorder500}`;
-                    titleAttr = 'Folder berisi lagu yang sedang diputar';
+                    titleAttr = t(lang, 'folder.playingAncestor');
                 } else {
                     rowClass = 'text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-200 border-l-2 border-transparent';
                 }

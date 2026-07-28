@@ -1,14 +1,17 @@
 'use client';
 
 import {SettingRow} from './controls';
+import {t, type Lang} from '../../lib/translations';
 
 export default function StyleSection({
+    lang,
     accentColor,
     setAccentColor,
     customAccentHex,
     setCustomAccentHex,
     onResetSidebarWidth,
 }: {
+    lang: Lang;
     accentColor: string;
     setAccentColor: (v: string) => void;
     customAccentHex: string;
@@ -34,8 +37,8 @@ export default function StyleSection({
     return (
         <div className="space-y-6">
             <SettingRow
-                title="Accent Color"
-                description="Warna aksen aplikasi"
+                title={t(lang, 'style.accentColor.title')}
+                description={t(lang, 'style.accentColor.desc')}
             >
                 <div className="flex flex-wrap gap-2 max-w-[320px]">
                     {swatches.map((s) => {
@@ -48,7 +51,7 @@ export default function StyleSection({
                                     ? 'border-2 border-zinc-100 scale-110'
                                     : 'border-2 border-zinc-700 opacity-50 hover:opacity-80'
                                     }`}
-                                aria-label={s.id}
+                                aria-label={t(lang, 'style.color.' + s.id)}
                             />
                         );
                     })}
@@ -59,8 +62,8 @@ export default function StyleSection({
                             : 'border-2 border-zinc-700 opacity-50 hover:opacity-80'
                             }`}
                         style={{background: customAccentHex}}
-                        aria-label="custom"
-                        title="Custom"
+                        aria-label={t(lang, 'style.custom')}
+                        title={t(lang, 'style.custom')}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-white/80">
                             <path d="M12 5v14M5 12h14" />
@@ -82,14 +85,14 @@ export default function StyleSection({
                 )}
             </SettingRow>
             <SettingRow
-                title="Lebar Sidebar"
-                description="Reset lebar sidebar kiri dan panel detail ke ukuran default"
+                title={t(lang, 'style.sidebarWidth.title')}
+                description={t(lang, 'style.sidebarWidth.desc')}
             >
                 <button
                     onClick={onResetSidebarWidth}
                     className="px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 bg-zinc-800/60 hover:bg-zinc-700/70 border border-zinc-700/50 transition-colors cursor-pointer"
                 >
-                    Reset ke default
+                    {t(lang, 'style.sidebarWidth.resetBtn')}
                 </button>
             </SettingRow>
         </div>

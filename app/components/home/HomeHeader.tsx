@@ -4,8 +4,10 @@ import {motion} from 'framer-motion';
 import type {FileEntry} from '../FolderExplorer';
 import type {SongMetadata} from '../PlayerPanel';
 import {getAccent} from '../../lib/colors';
+import {t, type Lang} from '../../lib/translations';
 
 interface HomeHeaderProps {
+    lang: Lang;
     isCompact: boolean;
     musicFolder: string | null;
     selectedSong: FileEntry | null;
@@ -21,6 +23,7 @@ interface HomeHeaderProps {
 }
 
 export default function HomeHeader({
+    lang,
     isCompact,
     musicFolder,
     selectedSong,
@@ -51,7 +54,7 @@ export default function HomeHeader({
                         <path d="M4 4a16 16 0 0 1 16 16" />
                         <circle cx="5" cy="19" r="1" />
                     </svg>
-                    Streaming
+                    {t(lang, 'header.streaming')}
                 </motion.button>
                 <motion.button
                     onClick={onOpenSettings}
@@ -64,7 +67,7 @@ export default function HomeHeader({
                         <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
                         <circle cx="12" cy="12" r="3" />
                     </svg>
-                    Setting
+                    {t(lang, 'header.settings')}
                 </motion.button>
             </div>
             {isCompact && musicFolder && (
@@ -74,33 +77,33 @@ export default function HomeHeader({
                         whileHover={{scale: 1.05}}
                         whileTap={{scale: 0.92}}
                         className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium cursor-pointer ${showLeftSidebar ? 'bg-zinc-700/70 text-zinc-200' : 'bg-zinc-800/50 text-zinc-500 hover:text-zinc-300'}`}
-                        title="Toggle sidebar daftar lagu"
+                        title={t(lang, 'header.toggleList')}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M3 3h18v18H3z" />
                             <path d="M8 3v18" />
                         </svg>
-                        List
+                        {t(lang, 'header.listLabel')}
                     </motion.button>
                     <motion.button
                         onClick={onToggleRightSidebar}
                         whileHover={{scale: 1.05}}
                         whileTap={{scale: 0.92}}
                         className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium cursor-pointer ${showRightSidebar ? 'bg-zinc-700/70 text-zinc-200' : 'bg-zinc-800/50 text-zinc-500 hover:text-zinc-300'}`}
-                        title="Toggle panel detail"
+                        title={t(lang, 'header.toggleInfo')}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <circle cx="12" cy="12" r="10" />
                             <path d="M12 16v-4M12 8h.01" />
                         </svg>
-                        Info
+                        {t(lang, 'header.infoLabel')}
                     </motion.button>
                 </div>
             )}
             <h1 className="text-lg font-bold tracking-tight text-zinc-100 truncate max-w-[40%]">
                 {selectedSong
                     ? (metadata?.title || selectedSong.name.replace(/\.[^.]+$/, ''))
-                    : 'Symvonia'}
+                    : t(lang, 'about.title')}
             </h1>
             <motion.span
                 key={isPlaying ? 'playing' : 'stopped'}
@@ -117,12 +120,12 @@ export default function HomeHeader({
                             animate={{scale: [1, 1.4, 1], opacity: [1, 0.5, 1]}}
                             transition={{duration: 1.2, repeat: Infinity, ease: 'easeInOut'}}
                         />
-                        Playing
+                        {t(lang, 'header.playing')}
                     </>
                 ) : (
                     <>
                         <span className="inline-block w-1.5 h-1.5 rounded-full bg-zinc-500" />
-                        Stopped
+                        {t(lang, 'header.stopped')}
                     </>
                 )}
             </motion.span>

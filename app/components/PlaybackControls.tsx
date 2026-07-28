@@ -3,8 +3,10 @@
 import { motion } from 'framer-motion';
 import { FileEntry } from './FolderExplorer';
 import { getAccent } from '../lib/colors';
+import {t, type Lang} from '../lib/translations';
 
 interface PlaybackControlsProps {
+    lang: Lang;
     selectedSong: FileEntry | null;
     isPlaying: boolean;
     shuffle: boolean;
@@ -44,6 +46,7 @@ function RepeatIcon({ mode }: { mode: 'off' | 'all' | 'one' }) {
 }
 
 export default function PlaybackControls({
+    lang,
     selectedSong,
     isPlaying,
     shuffle,
@@ -75,7 +78,7 @@ export default function PlaybackControls({
                 className={`w-9 h-9 rounded-lg flex items-center justify-center cursor-pointer transition-colors
                     ${shuffle ? `${accent.text400} ${accent.bg10}` : 'text-zinc-500 hover:text-zinc-300'}
                     disabled:opacity-30 disabled:cursor-default`}
-                title={shuffle ? 'Shuffle: ON' : 'Shuffle: OFF'}
+                title={shuffle ? t(lang, 'playback.shuffleOn') : t(lang, 'playback.shuffleOff')}
             >
                 <ShuffleIcon active={shuffle} />
             </motion.button>
@@ -136,7 +139,7 @@ export default function PlaybackControls({
                 className={`w-9 h-9 rounded-lg flex items-center justify-center cursor-pointer transition-colors
                     ${repeat !== 'off' ? `${accent.text400} ${accent.bg10}` : 'text-zinc-500 hover:text-zinc-300'}
                     disabled:opacity-30 disabled:cursor-default`}
-                title={`Repeat: ${repeat === 'off' ? 'OFF' : repeat === 'all' ? 'ALL' : 'ONE'}`}
+                title={repeat === 'off' ? t(lang, 'playback.repeatOff') : repeat === 'all' ? t(lang, 'playback.repeatAll') : t(lang, 'playback.repeatOne')}
             >
                 <RepeatIcon mode={repeat} />
             </motion.button>

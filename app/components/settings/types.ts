@@ -1,8 +1,12 @@
 import type {LogEntry} from '../../types/log';
 
+import type {Lang} from '../../lib/translations';
+
 export type SectionId = 'general' | 'sort' | 'shortcut' | 'style' | 'about' | 'debug';
 
 export interface SettingsModalProps {
+    lang: Lang;
+    setLang: (v: Lang) => void;
     open: boolean;
     onClose: () => void;
     musicFolder: string | null;

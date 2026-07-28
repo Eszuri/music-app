@@ -3,8 +3,10 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { getAccent } from '../lib/colors';
+import {t, type Lang} from '../lib/translations';
 
 interface SeekBarProps {
+    lang: Lang;
     currentTime: number;
     duration: number;
     handleSeek: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -17,7 +19,7 @@ function formatTime(seconds: number): string {
     return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export default function SeekBar({ currentTime, duration, handleSeek, accentColor }: SeekBarProps) {
+export default function SeekBar({ lang, currentTime, duration, handleSeek, accentColor }: SeekBarProps) {
     const accent = getAccent(accentColor);
     const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0;
     const [hovering, setHovering] = useState(false);
@@ -59,7 +61,7 @@ export default function SeekBar({ currentTime, duration, handleSeek, accentColor
             </div>
             <div className="flex justify-between text-[11px] text-zinc-500 mt-1.5 tabular-nums font-medium">
                 <span>{formatTime(currentTime)}</span>
-                <span className="text-zinc-600">{duration > 0 ? formatTime(duration) : '--:--'}</span>
+                <span className="text-zinc-600">{duration > 0 ? formatTime(duration) : t(lang, 'seekBar.fallback')}</span>
             </div>
         </div>
     );

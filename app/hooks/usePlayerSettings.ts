@@ -5,6 +5,7 @@ import {
     AUTO_WALLPAPER_KEY,
     CUSTOM_ACCENT_KEY,
     DEFAULT_FORMATS,
+    DEFAULT_LANGUAGE,
     DEFAULT_SHORTCUTS,
     DEFAULT_VOLUME_STEP,
     FILE_SORT_KEY,
@@ -13,6 +14,7 @@ import {
     FORMATS_KEY,
     getTauri,
     isBrowserTauri,
+    LANGUAGE_KEY,
     loadSavedFolder,
     NAME_SOURCE_KEY,
     RESET_ON_CLOSE_KEY,
@@ -25,6 +27,7 @@ import {
     WALLPAPER_KEY,
     type ShortcutAction,
 } from '../lib/homeState';
+import type {Lang} from '../lib/translations';
 
 export const APP_VOLUME_KEY = 'music-app-app-volume';
 
@@ -45,6 +48,7 @@ export function usePlayerSettings() {
     const [volumeLimit, setVolumeLimitState] = useState(0); // 0 = no limit
     const [volumeLimitExceeded, setVolumeLimitExceeded] = useState(false);
     const [volumeStep, setVolumeStepState] = useState(DEFAULT_VOLUME_STEP);
+    const [language, setLanguageState] = useState<Lang>(DEFAULT_LANGUAGE as Lang);
     const [formats, setFormatsState] = useState<string[]>(DEFAULT_FORMATS);
     const [shuffle, setShuffleState] = useState(false);
     const [repeat, setRepeatState] = useState<'off' | 'all' | 'one'>('off');
@@ -72,6 +76,11 @@ export function usePlayerSettings() {
         setAppVolumeState(clamped);
         appVolumeRef.current = clamped;
         safeSetLocalStorage(APP_VOLUME_KEY, String(clamped));
+    }, []);
+
+    const setLanguage = useCallback((v: Lang) => {
+        setLanguageState(v);
+        safeSetLocalStorage(LANGUAGE_KEY, v);
     }, []);
 
     const setVolumeStep = useCallback((v: number) => {
@@ -167,6 +176,10 @@ export function usePlayerSettings() {
                 setVolumeStepState(n);
                 volumeStepRef.current = n;
             }
+        }
+        const ln = window.localStorage.getItem(LANGUAGE_KEY);
+        if (ln === 'en' || ln === 'id') {
+            setLanguageState(ln);
         }
         const sc = window.localStorage.getItem(SHORTCUTS_KEY);
         if (sc) {
@@ -386,6 +399,8 @@ export function usePlayerSettings() {
         systemVolumeSynced,
         systemMuted,
         setSystemMuted,
+        language,
+        setLanguage,
         volumeStep,
         volumeStepRef,
         setVolumeStep,

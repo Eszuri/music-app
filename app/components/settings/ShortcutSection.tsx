@@ -4,36 +4,40 @@ import {useState} from 'react';
 import {motion} from 'framer-motion';
 import type {KeyboardEvent} from 'react';
 import {getAccent} from '../../lib/colors';
+import {t, type Lang} from '../../lib/translations';
 import ConfirmDialog from '../ConfirmDialog';
 
 export default function ShortcutSection({
+    lang,
     shortcuts,
     updateShortcut,
     resetShortcuts,
     accentColor,
 }: {
+    lang: Lang;
     shortcuts: Record<string, string>;
     updateShortcut: (action: string, key: string) => void;
     resetShortcuts: () => void;
     accentColor: string;
 }) {
     const accent = getAccent(accentColor);
-    // Action metadata: id, label, default key, description. Keep in sync
-    // with the canonical list in app/page.tsx (DEFAULT_SHORTCUTS).
     const actions: {id: string; label: string; defaultKey: string; description: string}[] = [
-        {id: 'playPause', label: 'Play / Pause', defaultKey: ' ', description: 'Putar atau jeda lagu yang sedang diputar'},
-        {id: 'next', label: 'Next Track', defaultKey: 'n', description: 'Lanjut ke lagu berikutnya'},
-        {id: 'prev', label: 'Previous Track', defaultKey: 'p', description: 'Kembali ke lagu sebelumnya'},
-        {id: 'volumeUp', label: 'Volume Up', defaultKey: 'ArrowRight', description: 'Naikkan volume (+5%)'},
-        {id: 'volumeDown', label: 'Volume Down', defaultKey: 'ArrowLeft', description: 'Turunkan volume (-5%)'},
+        {id: 'playPause', label: t(lang, 'shortcut.playPause'), defaultKey: ' ', description: t(lang, 'shortcut.playPauseDesc')},
+        {id: 'next', label: t(lang, 'shortcut.next'), defaultKey: 'n', description: t(lang, 'shortcut.nextDesc')},
+        {id: 'prev', label: t(lang, 'shortcut.prev'), defaultKey: 'p', description: t(lang, 'shortcut.prevDesc')},
+        {id: 'volumeUp', label: t(lang, 'shortcut.volumeUp'), defaultKey: 'ArrowRight', description: t(lang, 'shortcut.volumeUpDesc')},
+        {id: 'volumeDown', label: t(lang, 'shortcut.volumeDown'), defaultKey: 'ArrowLeft', description: t(lang, 'shortcut.volumeDownDesc')},
     ];
 
     const formatKey = (key: string) => {
-        if (key === ' ') return 'Space';
-        if (key === 'ArrowRight') return '→';
-        if (key === 'ArrowLeft') return '←';
-        if (key === 'ArrowUp') return '↑';
-        if (key === 'ArrowDown') return '↓';
+        const mapping: Record<string, string> = {
+            ' ': t(lang, 'shortcut.display.Space'),
+            'ArrowRight': t(lang, 'shortcut.display.ArrowRight'),
+            'ArrowLeft': t(lang, 'shortcut.display.ArrowLeft'),
+            'ArrowUp': t(lang, 'shortcut.display.ArrowUp'),
+            'ArrowDown': t(lang, 'shortcut.display.ArrowDown'),
+        };
+        if (mapping[key]) return mapping[key];
         if (key.length === 1) return key.toUpperCase();
         return key;
     };
@@ -61,25 +65,26 @@ export default function ShortcutSection({
         <div className="space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-zinc-800/60">
                 <div>
-                    <h4 className="text-sm font-medium text-zinc-100">Keyboard Shortcut</h4>
-                    <p className="text-xs text-zinc-500 mt-0.5">Klik tombol di kanan untuk mengganti. Klik tombol Reset untuk mengembalikan.</p>
+                    <h4 className="text-sm font-medium text-zinc-100">{t(lang, 'shortcut.heading')}</h4>
+                    <p className="text-xs text-zinc-500 mt-0.5">{t(lang, 'shortcut.desc')}</p>
                 </div>
                 <button
                     onClick={requestReset}
                     disabled={!hasCustom}
-                    title={hasCustom ? 'Kembalikan semua shortcut ke default' : 'Semua shortcut masih default'}
+                    title={hasCustom ? t(lang, 'shortcut.resetTitle') : t(lang, 'shortcut.resetDefaultTitle')}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${hasCustom
                             ? 'text-zinc-300 bg-zinc-800/60 hover:bg-zinc-700/70 border-zinc-700/50 cursor-pointer'
                             : 'text-zinc-600 bg-zinc-900/60 border-zinc-800/40 cursor-not-allowed'
                         }`}
                 >
-                    Reset Semua
+                    {t(lang, 'shortcut.resetAll')}
                 </button>
             </div>
             {actions.map((action) => (
                 <ShortcutRow
                     key={action.id}
                     accent={accent}
+                    lang={lang}
                     label={action.label}
                     description={action.description}
                     currentKey={shortcuts[action.id] ?? action.defaultKey}
@@ -96,17 +101,18 @@ export default function ShortcutSection({
                     <line x1="12" y1="16" x2="12" y2="12" />
                     <line x1="12" y1="8" x2="12.01" y2="8" />
                 </svg>
-                <span>Shortcut tidak aktif saat mengetik di input/textarea atau saat modal terbuka.</span>
+                <span>{t(lang, 'shortcut.note')}</span>
             </div>
             <ConfirmDialog
                 open={confirmResetOpen}
-                title="Reset Semua Shortcut?"
-                message="Semua shortcut akan dikembalikan ke tombol bawaan (default)."
-                confirmLabel="Reset"
-                cancelLabel="Batal"
+                title={t(lang, 'shortcut.confirmResetTitle')}
+                message={t(lang, 'shortcut.confirmResetMessage')}
+                confirmLabel={t(lang, 'shortcut.confirmReset')}
+                cancelLabel={t(lang, 'shortcut.cancel')}
                 onConfirm={performReset}
                 onCancel={() => setConfirmResetOpen(false)}
                 accentColor={accentColor}
+                lang={lang}
             />
         </div>
     );
@@ -120,6 +126,7 @@ function ShortcutRow({
     defaultKey,
     isCustom,
     formatKey,
+    lang,
     onChange,
     onReset,
 }: {
@@ -130,6 +137,7 @@ function ShortcutRow({
     defaultKey: string;
     isCustom: boolean;
     formatKey: (key: string) => string;
+    lang: Lang;
     onChange: (newKey: string) => void;
     onReset: () => void;
 }) {
@@ -161,13 +169,13 @@ function ShortcutRow({
                     <h5 className="text-sm font-medium text-zinc-100">{label}</h5>
                     {isCustom && (
                         <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 border border-zinc-700/40">
-                            Custom
+                            {t(lang, 'shortcut.custom')}
                         </span>
                     )}
                 </div>
                 <p className="text-xs text-zinc-500 mt-0.5">{description}</p>
                 <p className="text-[10px] text-zinc-600 mt-0.5">
-                    Default: <span className="font-mono">{formatKey(defaultKey)}</span>
+                    {t(lang, 'shortcut.defaultKey')} <span className="font-mono">{formatKey(defaultKey)}</span>
                 </p>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
@@ -182,16 +190,16 @@ function ShortcutRow({
                                 ? `bg-amber-900/15 text-amber-300 border-amber-700/30 hover:bg-amber-900/25`
                                 : 'bg-zinc-800/60 text-zinc-300 border-zinc-700/50 hover:bg-zinc-700/70'
                         }`}
-                    title={capturing ? 'Tekan tombol baru, atau Esc untuk batal' : 'Klik untuk mengubah'}
+                    title={capturing ? t(lang, 'shortcut.pressKeyTitle') : t(lang, 'shortcut.clickToChange')}
                 >
-                    {capturing ? 'Tekan tombol...' : formatKey(currentKey)}
+                    {capturing ? t(lang, 'shortcut.pressKey') : formatKey(currentKey)}
                 </motion.button>
                 {isCustom && (
                     <motion.button
                         onClick={onReset}
                         whileHover={{scale: 1.05}}
                         whileTap={{scale: 0.95}}
-                        title={`Reset ke default (${formatKey(defaultKey)})`}
+                        title={`${t(lang, 'shortcut.resetToDefault')} (${formatKey(defaultKey)})`}
                         className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-200 bg-zinc-800/40 hover:bg-zinc-700/60 border border-zinc-700/40 cursor-pointer"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
