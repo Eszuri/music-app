@@ -79,9 +79,24 @@ Symvonia bisa memeriksa dan menginstall versi terbaru langsung dari dalam aplika
 
 ## Instalasi
 
+### Untuk Pengguna
+
+**Persyaratan Sistem:**
+- **OS:** Windows 10 1809+ (build 17763) atau Windows 11
+- **WebView2 Runtime** — sudah terinstall bawaan di Windows 11 dan Windows 10 versi terbaru. Jika belum ada, akan otomatis terdownload saat instalasi
+- **Ruang disk:** ~200 MB
+
 Download installer `.msi` atau `.exe` dari [halaman Releases](https://github.com/eszuri/symvonia/releases/latest), jalankan, dan Symvonia siap digunakan.
 
-Atau jika kamu ingin membangun dari source:
+### Untuk Developer
+
+**Persyaratan Sistem:**
+- **OS:** Windows 10 1809+ atau Windows 11
+- **Node.js** ≥ 18.18
+- **Rust toolchain** ≥ 1.77.2 (via [rustup](https://rustup.rs/))
+- **Visual Studio 2022 Build Tools** — dengan workload "Desktop development with C++" (diperlukan oleh Tauri)
+- **WebView2 Runtime** (sama seperti di atas)
+- **Git**
 
 ```bash
 git clone https://github.com/Eszuri/symvonia.git
