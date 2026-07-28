@@ -30,41 +30,15 @@ export default function AboutSection({lang}: {lang: Lang}) {
                 </div>
             </div>
 
-            <div className="bg-zinc-900/60 rounded-xl border border-zinc-800/60 p-4">
-                <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-3">{t(lang, 'about.frontend')}</h4>
-                <div className="flex flex-wrap gap-1.5">
-                    <TechBadge label="Next.js" version="16.2" />
-                    <TechBadge label="React" version="19.2" />
-                    <TechBadge label="TypeScript" version="5" />
-                    <TechBadge label="Tailwind CSS" version="v4" />
-                    <TechBadge label="Framer Motion" version="12.4" />
-                </div>
-            </div>
-
-            <div className="bg-zinc-900/60 rounded-xl border border-zinc-800/60 p-4">
-                <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-3">{t(lang, 'about.backend')}</h4>
-                <div className="flex flex-wrap gap-1.5">
-                    <TechBadge label="Tauri" version="2.11" />
-                    <TechBadge label="Lofty" version="0.22" />
-                    <TechBadge label="image" version="0.25" />
-                    <TechBadge label="rfd" version="0.15" />
-                    <TechBadge label="base64" version="0.22" />
-                    <TechBadge label="serde" version="1.0" />
-                </div>
+            <div className="bg-zinc-900/60 rounded-xl border border-zinc-800/60 p-5 text-center">
+                <p className="text-sm text-zinc-300 leading-relaxed">
+                    {t(lang, 'about.desc')}
+                </p>
             </div>
 
             <p className="text-[11px] text-zinc-600 text-center pt-1">
                 {t(lang, 'about.footer')}
             </p>
         </div>
-    );
-}
-
-function TechBadge({label, version}: {label: string; version: string}) {
-    return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-zinc-800/70 border border-zinc-700/40 text-[11px] text-zinc-300">
-            {label}
-            <span className="text-[10px] text-zinc-500">{version}</span>
-        </span>
     );
 }
