@@ -13,6 +13,8 @@ export interface SettingsModalProps {
     setResetOnClose: (v: boolean) => void;
     volumeMode: string;
     setVolumeMode: (v: string) => void;
+    volumeStep: number;
+    setVolumeStep: (v: number) => void;
     volumeLimit: number;
     setVolumeLimit: (v: number) => void;
     volume: number;

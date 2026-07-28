@@ -23,6 +23,8 @@ export default function SettingsModal({
     setAutoWallpaper,
     resetOnClose,
     setResetOnClose,
+    volumeStep,
+    setVolumeStep,
     volumeMode,
     setVolumeMode,
     volumeLimit,
@@ -134,18 +136,20 @@ export default function SettingsModal({
                         </header>
                         <div className="flex-1 overflow-y-auto p-6">
                             {activeSection === 'general' && (
-                                <GeneralSection
-                                    musicFolder={musicFolder}
-                                    onChangeFolder={onChangeFolder}
-                                    autoWallpaper={autoWallpaper}
-                                    setAutoWallpaper={setAutoWallpaper}
-                                    resetOnClose={resetOnClose}
-                                    setResetOnClose={setResetOnClose}
-                                    volumeMode={volumeMode}
-                                    setVolumeMode={setVolumeMode}
-                                    volumeLimit={volumeLimit}
-                                    setVolumeLimit={setVolumeLimit}
-                                    volume={volume}
+                                    <GeneralSection
+                                        musicFolder={musicFolder}
+                                        onChangeFolder={onChangeFolder}
+                                        autoWallpaper={autoWallpaper}
+                                        setAutoWallpaper={setAutoWallpaper}
+                                        resetOnClose={resetOnClose}
+                                        setResetOnClose={setResetOnClose}
+                                        volumeStep={volumeStep}
+                                        setVolumeStep={setVolumeStep}
+                                        volumeMode={volumeMode}
+                                        setVolumeMode={setVolumeMode}
+                                        volumeLimit={volumeLimit}
+                                        setVolumeLimit={setVolumeLimit}
+                                        volume={volume}
                                     defaultWallpaper={defaultWallpaper}
                                     onPickWallpaper={onPickWallpaper}
                                     onClearWallpaper={onClearWallpaper}

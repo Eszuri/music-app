@@ -13,6 +13,8 @@ export default function GeneralSection({
     setAutoWallpaper,
     resetOnClose,
     setResetOnClose,
+    volumeStep,
+    setVolumeStep,
     volumeMode,
     setVolumeMode,
     volumeLimit,
@@ -34,6 +36,8 @@ export default function GeneralSection({
     setAutoWallpaper: (v: boolean) => void;
     resetOnClose: boolean;
     setResetOnClose: (v: boolean) => void;
+    volumeStep: number;
+    setVolumeStep: (v: number) => void;
     volumeMode: string;
     setVolumeMode: (v: string) => void;
     volumeLimit: number;
@@ -125,6 +129,27 @@ export default function GeneralSection({
                     options={[[ 'app', 'App Volume' ], [ 'system', 'System Volume' ]]}
                     value={volumeMode}
                     onChange={setVolumeMode}
+                />
+            </SettingRow>
+            <SettingRow
+                title="Step Volume"
+                description="Jumlah perubahan volume tiap tekan tombol +/− atau shortcut (1–10)"
+            >
+                <SelectStub
+                    options={[
+                        [ '1', '1' ],
+                        [ '2', '2' ],
+                        [ '3', '3' ],
+                        [ '4', '4' ],
+                        [ '5', '5' ],
+                        [ '6', '6' ],
+                        [ '7', '7' ],
+                        [ '8', '8' ],
+                        [ '9', '9' ],
+                        [ '10', '10' ],
+                    ]}
+                    value={String(volumeStep)}
+                    onChange={(v) => setVolumeStep(parseInt(v, 10))}
                 />
             </SettingRow>
             {volumeMode === 'system' && (

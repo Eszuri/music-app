@@ -77,6 +77,7 @@ export default function Home() {
         playPrevRef: player.playPrevRef,
         appVolumeRef: settings.appVolumeRef,
         systemVolumeRef: settings.systemVolumeRef,
+        volumeStepRef: settings.volumeStepRef,
         setAppVolume: settings.setAppVolume,
         setSystemVolume: settings.setSystemVolume,
         volumeModeRef: settings.volumeModeRef,
@@ -212,6 +213,7 @@ export default function Home() {
                 shuffle={settings.shuffle}
                 repeat={settings.repeat}
                 volume={player.activeVolume}
+                volumeStep={settings.volumeStep}
                 volumeMode={settings.volumeMode}
                 systemVolumeSynced={settings.systemVolumeSynced}
                 systemMuted={settings.systemMuted}
@@ -243,6 +245,8 @@ export default function Home() {
                 setAutoWallpaper={settings.setAutoWallpaperState}
                 resetOnClose={settings.resetOnClose}
                 setResetOnClose={settings.setResetOnCloseState}
+                volumeStep={settings.volumeStep}
+                setVolumeStep={settings.setVolumeStep}
                 volumeMode={settings.volumeMode}
                 setVolumeMode={(v: string) => settings.setVolumeModeState(v as 'app' | 'system')}
                 volumeLimit={settings.volumeLimit}

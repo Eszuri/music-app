@@ -17,6 +17,8 @@ interface HomeModalsProps {
     setAutoWallpaper: (v: boolean) => void;
     resetOnClose: boolean;
     setResetOnClose: (v: boolean) => void;
+    volumeStep: number;
+    setVolumeStep: (v: number) => void;
     volumeMode: string;
     setVolumeMode: (v: string) => void;
     volumeLimit: number;
@@ -65,6 +67,8 @@ export default function HomeModals({
     setAutoWallpaper,
     resetOnClose,
     setResetOnClose,
+    volumeStep,
+    setVolumeStep,
     volumeMode,
     setVolumeMode,
     volumeLimit,
@@ -121,6 +125,8 @@ export default function HomeModals({
                 setAutoWallpaper={setAutoWallpaper}
                 resetOnClose={resetOnClose}
                 setResetOnClose={setResetOnClose}
+                volumeStep={volumeStep}
+                setVolumeStep={setVolumeStep}
                 volumeMode={volumeMode}
                 setVolumeMode={setVolumeMode}
                 volumeLimit={volumeLimit}

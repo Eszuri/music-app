@@ -11,6 +11,7 @@ interface UseKeyboardShortcutsOptions {
     playPrevRef: React.MutableRefObject<() => void>;
     appVolumeRef: React.MutableRefObject<number>;
     systemVolumeRef: React.MutableRefObject<number>;
+    volumeStepRef: React.MutableRefObject<number>;
     setAppVolume: (v: number) => void;
     setSystemVolume: (v: number) => void;
     volumeModeRef: React.MutableRefObject<'app' | 'system'>;
@@ -30,6 +31,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
         playPrevRef,
         appVolumeRef,
         systemVolumeRef,
+        volumeStepRef,
         setAppVolume,
         setSystemVolume,
         volumeModeRef,
@@ -84,9 +86,10 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
                     playPrevRef.current();
                     break;
                 case 'volumeUp': {
+                    const step = volumeStepRef.current / 100;
                     if (volumeModeRef.current === 'app') {
                         const cur = appVolumeRef.current;
-                        const raw = Math.min(1, Math.round((cur + 0.05) * 20) / 20);
+                        const raw = Math.min(1, Math.round((cur + step) / step) * step);
                         setAppVolume(raw);
                         if (audioRef.current) audioRef.current.volume = raw;
                     } else {
@@ -95,13 +98,11 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
                         const limit = volumeLimitRef.current;
 
                         if (limit > 0) {
-                            // Kondisi 1: Nilai volume sistem LEBIH BESAR dari batas suara -> shortcut increase TIDAK BISA digunakan
                             if (pct > limit) break;
-                            // Kondisi 2: Nilai volume sistem SAMA DENGAN batas suara -> shortcut increase TIDAK BISA digunakan
                             if (pct === limit) break;
                         }
 
-                        let raw = Math.min(1, Math.round((cur + 0.05) * 20) / 20);
+                        let raw = Math.min(1, Math.round((cur + step) / step) * step);
                         if (limit > 0 && Math.round(raw * 100) > limit) {
                             raw = limit / 100;
                         }
@@ -114,9 +115,10 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
                     break;
                 }
                 case 'volumeDown': {
+                    const step = volumeStepRef.current / 100;
                     if (volumeModeRef.current === 'app') {
                         const cur = appVolumeRef.current;
-                        const raw = Math.max(0, Math.round((cur - 0.05) * 20) / 20);
+                        const raw = Math.max(0, Math.round((cur - step) / step) * step);
                         setAppVolume(raw);
                         if (audioRef.current) audioRef.current.volume = raw;
                     } else {
@@ -125,12 +127,10 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
                         const limit = volumeLimitRef.current;
 
                         if (limit > 0) {
-                            // Kondisi 1: Nilai volume sistem LEBIH BESAR dari batas suara -> shortcut decrease TIDAK BISA digunakan
                             if (pct > limit) break;
-                            // Kondisi 2: Nilai volume sistem SAMA DENGAN batas suara -> shortcut decrease TETAP BISA digunakan (tidak break)
                         }
 
-                        const raw = Math.max(0, Math.round((cur - 0.05) * 20) / 20);
+                        const raw = Math.max(0, Math.round((cur - step) / step) * step);
                         setSystemVolume(raw);
                         if (isBrowserTauri) {
                             lastLocalVolumeSetRef.current = Date.now();
@@ -154,6 +154,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
         playPrevRef,
         appVolumeRef,
         systemVolumeRef,
+        volumeStepRef,
         setAppVolume,
         setSystemVolume,
         volumeModeRef,

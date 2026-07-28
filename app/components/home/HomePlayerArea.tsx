@@ -28,6 +28,7 @@ interface HomePlayerAreaProps {
     shuffle: boolean;
     repeat: 'off' | 'all' | 'one';
     volume: number;
+    volumeStep: number;
     volumeMode: 'app' | 'system';
     systemVolumeSynced: boolean;
     systemMuted: boolean;
@@ -65,6 +66,7 @@ export default function HomePlayerArea({
     shuffle,
     repeat,
     volume,
+    volumeStep,
     volumeMode,
     systemVolumeSynced,
     systemMuted,
@@ -175,6 +177,7 @@ export default function HomePlayerArea({
                                     />
                                     <VolumeControl
                                         volume={volume}
+                                        volumeStep={volumeStep}
                                         volumeMode={volumeMode}
                                         systemVolumeSynced={systemVolumeSynced}
                                         systemMuted={systemMuted}

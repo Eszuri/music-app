@@ -10,6 +10,7 @@ interface VolumeControlProps {
     systemVolumeSynced: boolean;
     systemMuted: boolean;
     volumeLimit: number;
+    volumeStep: number;
     handleVolumeChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     accentColor: string;
 }
@@ -51,6 +52,7 @@ export default function VolumeControl({
     systemVolumeSynced,
     systemMuted,
     volumeLimit,
+    volumeStep,
     handleVolumeChange,
     accentColor,
 }: VolumeControlProps) {
@@ -128,8 +130,9 @@ export default function VolumeControl({
         if (direction === 'up' && isIncreaseDisabled) return;
         if (direction === 'down' && isDecreaseDisabled) return;
 
-        const delta = direction === 'up' ? 0.05 : -0.05;
-        let newVol = Math.max(0, Math.min(1, Math.round((volume + delta) * 100) / 100));
+        const step = volumeStep / 100;
+        const delta = direction === 'up' ? step : -step;
+        let newVol = Math.max(0, Math.min(1, Math.round((volume + delta) / step) * step));
 
         if (isSystem && limit > 0) {
             const targetPct = Math.round(newVol * 100);

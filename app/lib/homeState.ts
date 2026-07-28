@@ -14,6 +14,8 @@ export const WALLPAPER_KEY = 'music-app-wallpaper';
 export const FORMATS_KEY = 'music-app-formats';
 export const VOLUME_MODE_KEY = 'music-app-volume-mode';
 export const VOLUME_LIMIT_KEY = 'music-app-volume-limit';
+export const VOLUME_STEP_KEY = 'music-app-volume-step';
+export const DEFAULT_VOLUME_STEP = 2;
 
 // Shortcut action IDs. Each maps to one key on the keyboard. The user can
 // remap any of these via Settings -> Shortcut; the binding is stored in

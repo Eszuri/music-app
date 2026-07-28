@@ -6,6 +6,7 @@ import {
     CUSTOM_ACCENT_KEY,
     DEFAULT_FORMATS,
     DEFAULT_SHORTCUTS,
+    DEFAULT_VOLUME_STEP,
     FILE_SORT_KEY,
     FOLDER_SORT_KEY,
     FOLDER_STORAGE_KEY,
@@ -20,6 +21,7 @@ import {
     SORT_DIR_KEY,
     VOLUME_LIMIT_KEY,
     VOLUME_MODE_KEY,
+    VOLUME_STEP_KEY,
     WALLPAPER_KEY,
     type ShortcutAction,
 } from '../lib/homeState';
@@ -42,6 +44,7 @@ export function usePlayerSettings() {
     const [systemMuted, setSystemMuted] = useState(false);
     const [volumeLimit, setVolumeLimitState] = useState(0); // 0 = no limit
     const [volumeLimitExceeded, setVolumeLimitExceeded] = useState(false);
+    const [volumeStep, setVolumeStepState] = useState(DEFAULT_VOLUME_STEP);
     const [formats, setFormatsState] = useState<string[]>(DEFAULT_FORMATS);
     const [shuffle, setShuffleState] = useState(false);
     const [repeat, setRepeatState] = useState<'off' | 'all' | 'one'>('off');
@@ -52,6 +55,7 @@ export function usePlayerSettings() {
 
     const shortcutsRef = useRef<Record<ShortcutAction, string>>(DEFAULT_SHORTCUTS);
     const volumeLimitRef = useRef<number>(0);
+    const volumeStepRef = useRef<number>(DEFAULT_VOLUME_STEP);
     const volumeModeRef = useRef<'app' | 'system'>('app');
     const appVolumeRef = useRef<number>(1);
     const systemVolumeRef = useRef<number>(1);
@@ -59,6 +63,7 @@ export function usePlayerSettings() {
 
     volumeModeRef.current = volumeMode;
     volumeLimitRef.current = volumeLimit;
+    volumeStepRef.current = volumeStep;
     appVolumeRef.current = appVolume;
     systemVolumeRef.current = systemVolume;
 
@@ -67,6 +72,13 @@ export function usePlayerSettings() {
         setAppVolumeState(clamped);
         appVolumeRef.current = clamped;
         safeSetLocalStorage(APP_VOLUME_KEY, String(clamped));
+    }, []);
+
+    const setVolumeStep = useCallback((v: number) => {
+        const clamped = Math.max(1, Math.min(10, v));
+        setVolumeStepState(clamped);
+        volumeStepRef.current = clamped;
+        safeSetLocalStorage(VOLUME_STEP_KEY, String(clamped));
     }, []);
 
     const setSystemVolume = useCallback((v: number) => {
@@ -147,6 +159,14 @@ export function usePlayerSettings() {
         if (vl) {
             const n = parseInt(vl, 10);
             if (!isNaN(n) && n >= 0 && n <= 100) setVolumeLimitState(n);
+        }
+        const vs = window.localStorage.getItem(VOLUME_STEP_KEY);
+        if (vs) {
+            const n = parseInt(vs, 10);
+            if (!isNaN(n) && n >= 1 && n <= 10) {
+                setVolumeStepState(n);
+                volumeStepRef.current = n;
+            }
         }
         const sc = window.localStorage.getItem(SHORTCUTS_KEY);
         if (sc) {
@@ -366,6 +386,9 @@ export function usePlayerSettings() {
         systemVolumeSynced,
         systemMuted,
         setSystemMuted,
+        volumeStep,
+        volumeStepRef,
+        setVolumeStep,
         volumeLimit,
         volumeLimitExceeded,
         setVolumeLimitExceeded,
