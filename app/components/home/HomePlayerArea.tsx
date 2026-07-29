@@ -160,11 +160,11 @@ export default function HomePlayerArea({
                             )}
                         </AnimatePresence>
 
-                        <main className={`flex items-center justify-center p-4 sm:p-6 overflow-y-auto overflow-x-hidden ${mainWidthClass} flex-1 min-w-0`}>
+                        <main className={`flex flex-col items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto overflow-x-hidden ${mainWidthClass} flex-1 min-w-0 h-full`}>
                             {files.length === 0 ? (
                                 <EmptyFolderState lang={lang} folder={displayPath} />
                             ) : (
-                                <div className="flex flex-col items-center gap-4 w-full max-w-2xl">
+                                <div className="flex flex-col items-center justify-center gap-2.5 sm:gap-4 w-full max-w-2xl min-w-0 my-auto py-1">
                                     <PlayerPanel
                                         lang={lang}
                                         metadata={metadata}

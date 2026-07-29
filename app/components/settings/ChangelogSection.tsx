@@ -3,6 +3,7 @@
 import {type Lang} from '../../lib/translations';
 
 const changelogEn = [
+    {version: '0.8.5', items: ['Responsive layout adjustments for narrow viewports', 'Header buttons no longer overlap on small screens', 'Fixed text overflow']},
     {version: '0.8.0', items: ['Pubkey removed from source config, injected via CI env var', 'Pre-build script for CI environment injection', 'Changelog section in Settings']},
     {version: '0.7.5', items: ['Auto-update notification on startup with download progress', 'Remind Later / Stay on Current Version options for updates']},
     {version: '0.7.0', items: ['Bilingual support (English / Indonesia)', 'Persistent language selection in Settings', 'All UI text moved to translation system', 'Non-technical About section with app description', 'Public-facing README rewrite']},
@@ -15,6 +16,7 @@ const changelogEn = [
 ];
 
 const changelogId = [
+    {version: '0.8.5', items: ['Penyesuaian layout responsif untuk viewport sempit', 'Tombol header tidak lagi bertumpuk di layar kecil', 'Perbaikan overflow teks ']},
     {version: '0.8.0', items: ['Pubkey dihapus dari source config, diinjeksi via env var CI', 'Script pre-build untuk injeksi environment CI', 'Bagian Changelog di Settings']},
     {version: '0.7.5', items: ['Notifikasi update otomatis saat startup dengan progress download', 'Opsi Ingatkan Nanti / Tetap di Versi Saat Ini untuk update']},
     {version: '0.7.0', items: ['Dukungan bilingual (English / Indonesia)', 'Pemilihan bahasa persisten di Settings', 'Semua teks UI dipindahkan ke sistem translasi', 'Bagian About non-teknis dengan deskripsi aplikasi', 'Penulisan ulang README untuk publik']},

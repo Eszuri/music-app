@@ -40,14 +40,14 @@ export default function PlayerPanel({ lang, metadata, selectedSong, accentColor 
     const songAlbum = selectedSong ? (metadata?.album || null) : null;
 
     return (
-        <div className="w-full flex flex-col items-center gap-4 sm:gap-6">
+        <div className="w-full flex flex-col items-center gap-2 sm:gap-3.5">
             <motion.div
                 key={selectedSong?.path || 'no-song'}
                 initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                 whileHover={{ scale: 1.02 }}
-                className="w-full aspect-square rounded-2xl overflow-hidden bg-zinc-900 flex items-center justify-center ring-1 ring-white/5 cursor-pointer relative"
+                className="w-full max-w-[360px] sm:max-w-[420px] md:max-w-[460px] max-h-[45vh] rounded-2xl overflow-hidden bg-zinc-900/80 flex items-center justify-center ring-1 ring-white/5 cursor-pointer relative shrink"
                 style={{
                     boxShadow: selectedSong
                         ? `0 20px 60px -10px ${accent.hex500}15, 0 10px 30px -5px rgba(0,0,0,0.5)`
@@ -63,8 +63,8 @@ export default function PlayerPanel({ lang, metadata, selectedSong, accentColor 
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.25 }}
                             src={`data:${metadata.cover_mime};base64,${metadata.cover_b64}`}
-                                alt={t(lang, 'player.cover')}
-                            className="w-full h-full object-contain"
+                            alt={t(lang, 'player.cover')}
+                            className="max-h-[45vh] max-w-full w-auto h-auto object-contain rounded-2xl"
                         />
                     ) : (
                         <motion.div
@@ -73,9 +73,9 @@ export default function PlayerPanel({ lang, metadata, selectedSong, accentColor 
                             animate={{ opacity: 0.15 }}
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.25 }}
-                            className="flex items-center justify-center"
+                            className="w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 max-h-[45vh] aspect-square flex items-center justify-center"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">
                                 <path d="M9 18V5l12-2v13" />
                                 <circle cx="6" cy="18" r="3" />
                                 <circle cx="18" cy="16" r="3" />
