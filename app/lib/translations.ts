@@ -247,6 +247,8 @@ const en: Record<string, string> = {
     'player.noSongSelected': 'No song selected',
     'player.unknownArtist': 'Unknown Artist',
     'player.cover': 'Cover',
+    'player.autoHideTimer': 'Auto-hide Timer',
+    'player.autoHideNever': 'Never',
 
     'playback.shuffleOn': 'Shuffle: ON',
     'playback.shuffleOff': 'Shuffle: OFF',
@@ -546,6 +548,8 @@ const id: Record<string, string> = {
     'player.noSongSelected': 'Tidak ada lagu dipilih',
     'player.unknownArtist': 'Artis Tidak Dikenal',
     'player.cover': 'Cover',
+    'player.autoHideTimer': 'Waktu Sembunyi',
+    'player.autoHideNever': 'Tidak Pernah',
 
     'playback.shuffleOn': 'Acak: AKTIF',
     'playback.shuffleOff': 'Acak: NONAKTIF',

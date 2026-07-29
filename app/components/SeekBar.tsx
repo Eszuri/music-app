@@ -59,9 +59,9 @@ export default function SeekBar({ lang, currentTime, duration, handleSeek, accen
                     transition={{ duration: 0.15 }}
                 />
             </div>
-            <div className="flex justify-between text-[11px] text-zinc-500 mt-1.5 tabular-nums font-medium">
+            <div className="flex justify-between text-[11px] text-white/80 mt-1.5 tabular-nums font-medium">
                 <span>{formatTime(currentTime)}</span>
-                <span className="text-zinc-600">{duration > 0 ? formatTime(duration) : t(lang, 'seekBar.fallback')}</span>
+                <span className="text-white/60">{duration > 0 ? formatTime(duration) : t(lang, 'seekBar.fallback')}</span>
             </div>
         </div>
     );

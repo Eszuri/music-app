@@ -96,7 +96,7 @@ export default function PlayerPanel({ lang, metadata, selectedSong, accentColor,
                     <>
                         <p className={`text-sm mt-1.5 truncate ${accent.text400} opacity-80`}>{songArtist}</p>
                         {songAlbum && (
-                            <p className="text-xs text-zinc-500 mt-0.5 truncate">{songAlbum}</p>
+                            <p className="text-xs text-white/70 mt-0.5 truncate">{songAlbum}</p>
                         )}
                     </>
                 )}

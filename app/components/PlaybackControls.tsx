@@ -72,7 +72,7 @@ export default function PlaybackControls({
     // ON:  accent color text + tinted background + bottom dot indicator
     const shuffleClass = shuffle
         ? `${accent.text400} ${accent.bg15} border ${accent.border500_20}`
-        : 'text-zinc-500 hover:text-zinc-300 border border-transparent hover:border-zinc-700/40 hover:bg-zinc-800/40';
+        : 'text-white/70 hover:text-white border border-transparent hover:border-white/20 hover:bg-white/10';
 
     // ─── Repeat button styles ─────────────────────────────────────────────────
     // OFF:  muted zinc, no background
@@ -80,7 +80,7 @@ export default function PlaybackControls({
     // ONE:  stronger accent background (bg30) + accent border — visually more intense
     const repeatClass =
         repeat === 'off'
-            ? 'text-zinc-500 hover:text-zinc-300 border border-transparent hover:border-zinc-700/40 hover:bg-zinc-800/40'
+            ? 'text-white/70 hover:text-white border border-transparent hover:border-white/20 hover:bg-white/10'
             : repeat === 'all'
                 ? `${accent.text400} ${accent.bg15} border ${accent.border500_20}`
                 : `${accent.text400} ${accent.bg30} border ${accent.border500_20}`;
@@ -123,7 +123,7 @@ export default function PlaybackControls({
                 whileHover={hasSong ? { scale: 1.1 } : {}}
                 whileTap={hasSong ? { scale: 0.9 } : {}}
                 transition={{ duration: 0.12 }}
-                className="w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-100 disabled:opacity-30 cursor-pointer transition-colors"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-white/80 hover:text-white disabled:opacity-30 cursor-pointer transition-colors"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z" />
@@ -137,8 +137,8 @@ export default function PlaybackControls({
                 whileHover={hasSong ? { scale: 1.06 } : {}}
                 whileTap={hasSong ? { scale: 0.94 } : {}}
                 transition={{ duration: 0.12 }}
-                className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-zinc-950 cursor-pointer
-                    ${hasSong ? `${accent.bg500} shadow-lg ${accent.shadow25}` : 'bg-zinc-800 text-zinc-600'}`}
+                className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center cursor-pointer
+                    ${hasSong ? `${accent.bg500} shadow-lg text-white ${accent.shadow25}` : 'bg-white/10 text-white/50'}`}
                 style={hasSong ? { boxShadow: `0 4px 20px ${accent.hex500}30` } : {}}
             >
                 {isPlaying ? (
@@ -159,7 +159,7 @@ export default function PlaybackControls({
                 whileHover={hasSong ? { scale: 1.1 } : {}}
                 whileTap={hasSong ? { scale: 0.9 } : {}}
                 transition={{ duration: 0.12 }}
-                className="w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-100 disabled:opacity-30 cursor-pointer transition-colors"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-white/80 hover:text-white disabled:opacity-30 cursor-pointer transition-colors"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />

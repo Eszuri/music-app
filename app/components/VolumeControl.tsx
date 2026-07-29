@@ -155,13 +155,13 @@ export default function VolumeControl({
     };
 
     const decreaseBtnClass = `w-5 h-5 flex items-center justify-center rounded transition-colors ${isDecreaseDisabled
-        ? "text-zinc-700 bg-transparent cursor-not-allowed opacity-40 pointer-events-none"
-        : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/60 cursor-pointer"
+        ? "text-white/30 bg-transparent cursor-not-allowed pointer-events-none"
+        : "text-white/80 hover:text-white hover:bg-white/10 cursor-pointer"
         }`;
 
     const increaseBtnClass = `w-5 h-5 flex items-center justify-center rounded transition-colors ${isIncreaseDisabled
-        ? "text-zinc-700 bg-transparent cursor-not-allowed opacity-40 pointer-events-none"
-        : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/60 cursor-pointer"
+        ? "text-white/30 bg-transparent cursor-not-allowed pointer-events-none"
+        : "text-white/80 hover:text-white hover:bg-white/10 cursor-pointer"
         }`;
 
     const visualPct = isSystem ? Math.min(pct, sliderMax) : volume * 100;
@@ -172,7 +172,7 @@ export default function VolumeControl({
                 onClick={toggleMute}
                 whileHover={{scale: 1.1}}
                 whileTap={{scale: 0.9}}
-                className="text-zinc-400 hover:text-zinc-200 cursor-pointer flex items-center justify-center w-7 h-7 shrink-0"
+                className="text-white/80 hover:text-white cursor-pointer flex items-center justify-center w-7 h-7 shrink-0"
             >
                 <VolumeIcon muted={muted} low={low} />
             </motion.button>
@@ -264,7 +264,7 @@ export default function VolumeControl({
                 </motion.button>
             )}
 
-            <span className="text-[11px] tabular-nums text-right text-zinc-500 font-medium min-w-[36px]">
+            <span className="text-[11px] tabular-nums text-right text-white/50 font-medium min-w-[36px]">
                 {label}
             </span>
         </div>
