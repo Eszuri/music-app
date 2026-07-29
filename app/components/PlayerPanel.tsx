@@ -30,9 +30,10 @@ interface PlayerPanelProps {
     selectedSong: FileEntry | null;
     accentColor: string;
     onContextMenu?: (e: React.MouseEvent) => void;
+    hideCover?: boolean;
 }
 
-export default function PlayerPanel({ lang, metadata, selectedSong, accentColor, onContextMenu }: PlayerPanelProps) {
+export default function PlayerPanel({ lang, metadata, selectedSong, accentColor, onContextMenu, hideCover }: PlayerPanelProps) {
     const accent = getAccent(accentColor);
     const songTitle = selectedSong
         ? (metadata?.title || selectedSong.name.replace(/\.[^/.]+$/, ''))
@@ -42,9 +43,10 @@ export default function PlayerPanel({ lang, metadata, selectedSong, accentColor,
 
     return (
         <div className="w-full flex flex-col items-center gap-2 sm:gap-3.5">
-            <motion.div
-                key={selectedSong?.path || 'no-song'}
-                initial={{ opacity: 0, scale: 0.96 }}
+            {!hideCover && (
+                <motion.div
+                    key={selectedSong?.path || 'no-song'}
+                    initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                 whileHover={{ scale: 1.02 }}
@@ -86,6 +88,7 @@ export default function PlayerPanel({ lang, metadata, selectedSong, accentColor,
                     )}
                 </AnimatePresence>
             </motion.div>
+            )}
 
             <div className="text-center w-full px-3 sm:px-4">
                 <h2 className="text-xl font-semibold text-zinc-100 truncate">{songTitle}</h2>

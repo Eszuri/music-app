@@ -1,7 +1,7 @@
 'use client';
 
 import {AnimatePresence, motion} from 'framer-motion';
-import {useCallback, useState, type ChangeEvent} from 'react';
+import {useCallback, useState, useEffect, useRef, type ChangeEvent} from 'react';
 import FolderExplorer, {FileEntry} from '../FolderExplorer';
 import PlayerPanel, {SongMetadata} from '../PlayerPanel';
 import SeekBar from '../SeekBar';
@@ -127,6 +127,40 @@ export default function HomePlayerArea({
             : 'max-lg:w-[320px] max-lg:flex-none max-lg:min-w-0';
 
     const [contextMenu, setContextMenu] = useState<{x: number; y: number; items: ContextMenuItem[]} | null>(null);
+    const [isFullScreenAlbum, setIsFullScreenAlbum] = useState(false);
+    const [controlsVisible, setControlsVisible] = useState(true);
+    const controlsHoverRef = useRef(false);
+    const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const val = localStorage.getItem('music-app-fullscreen');
+            if (val) setIsFullScreenAlbum(val === 'true');
+        }
+    }, []);
+
+    const triggerControlsVisibility = useCallback(() => {
+        setControlsVisible(true);
+        if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = setTimeout(() => {
+            if (!controlsHoverRef.current && isFullScreenAlbum) {
+                setControlsVisible(false);
+            }
+        }, 2000);
+    }, [isFullScreenAlbum]);
+
+    useEffect(() => {
+        if (isFullScreenAlbum) {
+            triggerControlsVisibility();
+        } else {
+            setControlsVisible(true);
+            if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+        }
+        return () => {
+            if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+        };
+    }, [isFullScreenAlbum, triggerControlsVisibility]);
+
     const hideContextMenu = useCallback(() => setContextMenu(null), []);
 
     // Album/cover art context menu
@@ -135,6 +169,17 @@ export default function HomePlayerArea({
         e.preventDefault();
         e.stopPropagation();
         const items: ContextMenuItem[] = [
+            {
+                label: t(lang, 'contextMenu.fullScreenAlbum'),
+                icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>,
+                onClick: () => setIsFullScreenAlbum(prev => {
+                    const next = !prev;
+                    if (typeof window !== 'undefined') localStorage.setItem('music-app-fullscreen', String(next));
+                    return next;
+                }),
+                active: isFullScreenAlbum,
+                badge: isFullScreenAlbum ? 'ON' : undefined
+            },
             {
                 label: t(lang, 'contextMenu.saveImage'),
                 icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
@@ -149,7 +194,7 @@ export default function HomePlayerArea({
             },
         ];
         setContextMenu({x: e.clientX, y: e.clientY, items: [...items, ...appendDevTools(items, lang)]});
-    }, [lang, metadata]);
+    }, [lang, metadata, isFullScreenAlbum]);
 
     // Folder context menu
     const showFolderMenu = useCallback((e: React.MouseEvent, file: FileEntry) => {
@@ -264,52 +309,92 @@ export default function HomePlayerArea({
                         {/* Main player area — global context menu */}
                         <main
                             onContextMenu={onGlobalContextMenu}
-                            className={`flex flex-col items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto overflow-x-hidden ${mainWidthClass} flex-1 min-w-0 h-full`}
+                            className={`flex flex-col items-center justify-center overflow-y-auto overflow-x-hidden ${mainWidthClass} flex-1 min-w-0 h-full relative`}
                         >
-                            {files.length === 0 ? (
-                                <EmptyFolderState lang={lang} folder={displayPath} />
-                            ) : (
-                                <div className="flex flex-col items-center justify-center gap-2.5 sm:gap-4 w-full max-w-2xl min-w-0 my-auto py-1">
-                                    <PlayerPanel
-                                        lang={lang}
-                                        metadata={metadata}
-                                        selectedSong={selectedSong}
-                                        accentColor={accentColor}
-                                        onContextMenu={showAlbumMenu}
-                                    />
-                                    <SeekBar
-                                        lang={lang}
-                                        currentTime={currentTime}
-                                        duration={duration}
-                                        handleSeek={handleSeek}
-                                        accentColor={accentColor}
-                                    />
-                                    <PlaybackControls
-                                        lang={lang}
-                                        selectedSong={selectedSong}
-                                        isPlaying={isPlaying}
-                                        shuffle={shuffle}
-                                        repeat={repeat}
-                                        playPrev={playPrev}
-                                        togglePlayPause={togglePlayPause}
-                                        playNext={playNext}
-                                        setShuffle={setShuffle}
-                                        setRepeat={setRepeat}
-                                        accentColor={accentColor}
-                                    />
-                                    <VolumeControl
-                                        lang={lang}
-                                        volume={volume}
-                                        volumeStep={volumeStep}
-                                        volumeMode={volumeMode}
-                                        systemVolumeSynced={systemVolumeSynced}
-                                        systemMuted={systemMuted}
-                                        volumeLimit={volumeLimit}
-                                        handleVolumeChange={handleVolumeChange}
-                                        accentColor={accentColor}
-                                    />
-                                </div>
-                            )}
+                            <AnimatePresence>
+                                {isFullScreenAlbum && metadata?.cover_b64 && files.length > 0 && (
+                                    <motion.div 
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.5, ease: "easeInOut" }}
+                                        className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none"
+                                    >
+                                        <img
+                                            onContextMenu={showAlbumMenu}
+                                            src={`data:${metadata.cover_mime};base64,${metadata.cover_b64}`}
+                                            className="w-full h-full object-contain pointer-events-auto"
+                                            alt="Fullscreen cover"
+                                        />
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            <div className="flex flex-col items-center p-2 sm:p-4 md:p-6 w-full h-full z-10 pointer-events-none">
+                                {files.length === 0 ? (
+                                    <div className="pointer-events-auto h-full flex flex-col justify-center w-full">
+                                        <EmptyFolderState lang={lang} folder={displayPath} />
+                                    </div>
+                                ) : (
+                                    <motion.div 
+                                        layout
+                                        initial={false}
+                                        animate={{ 
+                                            opacity: (isFullScreenAlbum && !controlsVisible) ? 0 : 1, 
+                                            y: (isFullScreenAlbum && !controlsVisible) ? 20 : 0 
+                                        }}
+                                        transition={{ 
+                                            opacity: { duration: 0.4 }, 
+                                            y: { duration: 0.4 },
+                                            layout: { duration: 0.5, type: 'spring', bounce: 0.15 } 
+                                        }}
+                                        onMouseEnter={() => { controlsHoverRef.current = true; triggerControlsVisibility(); }}
+                                        onMouseLeave={() => { controlsHoverRef.current = false; triggerControlsVisibility(); }}
+                                        onMouseMove={triggerControlsVisibility}
+                                        className={`flex flex-col items-center justify-center gap-2.5 sm:gap-4 w-full max-w-2xl min-w-0 pointer-events-auto ${isFullScreenAlbum ? 'mt-auto mb-4 bg-black/40 backdrop-blur-md rounded-3xl p-6 sm:p-8 shadow-2xl' : 'my-auto py-1'}`}
+                                    >
+                                        <PlayerPanel
+                                            lang={lang}
+                                            metadata={metadata}
+                                            selectedSong={selectedSong}
+                                            accentColor={accentColor}
+                                            onContextMenu={showAlbumMenu}
+                                            hideCover={isFullScreenAlbum}
+                                        />
+                                        <SeekBar
+                                            lang={lang}
+                                            currentTime={currentTime}
+                                            duration={duration}
+                                            handleSeek={handleSeek}
+                                            accentColor={accentColor}
+                                        />
+                                        <PlaybackControls
+                                            lang={lang}
+                                            selectedSong={selectedSong}
+                                            isPlaying={isPlaying}
+                                            shuffle={shuffle}
+                                            repeat={repeat}
+                                            playPrev={playPrev}
+                                            togglePlayPause={togglePlayPause}
+                                            playNext={playNext}
+                                            setShuffle={setShuffle}
+                                            setRepeat={setRepeat}
+                                            accentColor={accentColor}
+                                        />
+                                        <VolumeControl
+                                            lang={lang}
+                                            volume={volume}
+                                            volumeStep={volumeStep}
+                                            volumeMode={volumeMode}
+                                            systemVolumeSynced={systemVolumeSynced}
+                                            systemMuted={systemMuted}
+                                            volumeLimit={volumeLimit}
+                                            handleVolumeChange={handleVolumeChange}
+                                            accentColor={accentColor}
+                                        />
+                                    </motion.div>
+                                )}
+                            </div>
                         </main>
 
                         {/* Right sidebar — global context menu on empty areas */}
