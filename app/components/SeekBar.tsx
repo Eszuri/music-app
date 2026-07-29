@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { getAccent } from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
+import {useHoverDescription} from '../hooks/useHoverDescription';
 
 interface SeekBarProps {
     lang: Lang;
@@ -23,9 +24,10 @@ export default function SeekBar({ lang, currentTime, duration, handleSeek, accen
     const accent = getAccent(accentColor);
     const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0;
     const [hovering, setHovering] = useState(false);
+    const hoverProps = useHoverDescription(t(lang, 'status.seekBar'));
 
     return (
-        <div className="w-full group">
+        <div className="w-full group" {...hoverProps}>
             <div
                 className="relative w-full h-5 flex items-center cursor-pointer"
                 onMouseEnter={() => setHovering(true)}

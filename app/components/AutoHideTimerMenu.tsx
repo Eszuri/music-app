@@ -2,6 +2,7 @@ import {useState, useEffect, useRef} from 'react';
 import {motion, AnimatePresence} from 'framer-motion';
 import {getAccent} from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
+import {useHoverDescription} from '../hooks/useHoverDescription';
 
 interface AutoHideTimerMenuProps {
     lang: Lang;
@@ -49,9 +50,12 @@ export default function AutoHideTimerMenu({
         }
     };
 
+    const timerHover = useHoverDescription(t(lang, 'status.timer'));
+
     return (
         <div className="absolute top-12 right-9 max-lg:top-4 max-lg:right-0 z-50 flex flex-col items-end gap-1.5" ref={menuRef}>
             <button
+                {...timerHover}
                 onClick={() => setOpen(!open)}
                 className="text-xs font-semibold px-3 py-1.5 rounded-full bg-black/60 hover:bg-black/80 text-white transition-colors border border-white/10 flex items-center gap-1.5 backdrop-blur-xl shadow-lg"
                 title={t(lang, 'contextMenu.fullScreenAlbum')}

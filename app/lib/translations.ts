@@ -265,10 +265,10 @@ const en: Record<string, string> = {
     'volume.increaseDisabled': 'Volume limit reached',
     'volume.increase': 'Increase volume',
     'volume.resetToLimit': 'Reset volume to safe limit ({limit}%)',
-    
+
     // Volume callback debug messages
     'debug.volumeCallback.registerFailed': 'Failed to register volume callback',
-    'debug.volumeCallback.unregisterFailed': 'Failed to unregister volume callback', 
+    'debug.volumeCallback.unregisterFailed': 'Failed to unregister volume callback',
     'debug.volumeCallback.setupFailed': 'Failed to setup volume callback',
 
     'stream.title': 'Streaming',
@@ -305,6 +305,37 @@ const en: Record<string, string> = {
     'domain.bandcamp.com': 'Bandcamp',
     'domain.deezer.com': 'Deezer',
     'domain.tidal.com': 'Tidal',
+
+    // Status descriptions
+    'status.ready': 'Ready',
+    'status.prev': 'Play previous song',
+    'status.next': 'Play next song',
+    'status.play': 'Play',
+    'status.pause': 'Pause',
+    'status.shuffleOn': 'Shuffle: ON',
+    'status.shuffleOff': 'Shuffle: OFF',
+    'status.repeatOff': 'Repeat: OFF',
+    'status.repeatAll': 'Repeat: ALL',
+    'status.repeatOne': 'Repeat: ONE',
+    'status.volume': 'Adjust volume level',
+    'status.mute': 'Mute audio',
+    'status.unmute': 'Unmute audio',
+    'status.seekBar': 'Seek song position',
+    'status.timer': 'Set auto-hide controls timer duration',
+    'status.settings': 'Open application settings',
+    'status.streaming': 'Open streaming / web browser',
+    'status.goUp': 'Go to parent directory',
+    'status.search': 'Search files and folders',
+    'status.changeFolder': 'Change music folder directory',
+    'status.pathName': 'Copy folder path',
+    'status.toggleLeftSidebar': 'Toggle file explorer sidebar',
+    'status.toggleRightSidebar': 'Toggle playlist / details sidebar',
+    'status.fileRow': 'Play song (click to play)',
+    'status.folderRow': 'Open folder (click to open)',
+    'status.songDetails': 'Song metadata details (Right-click to copy)',
+    'status.closeSettings': 'Close settings window',
+    'status.closeStreaming': 'Close streaming web browser',
+    'status.settingItem': 'Configure setting option',
 };
 
 const id: Record<string, string> = {
@@ -571,7 +602,7 @@ const id: Record<string, string> = {
     'volume.increaseDisabled': 'Telah mencapai batas volume',
     'volume.increase': 'Tambah volume',
     'volume.resetToLimit': 'Reset volume ke batas aman ({limit}%)',
-    
+
     // Volume callback debug messages
     'debug.volumeCallback.registerFailed': 'Gagal mendaftarkan volume callback',
     'debug.volumeCallback.unregisterFailed': 'Gagal menghentikan volume callback',
@@ -611,6 +642,37 @@ const id: Record<string, string> = {
     'domain.bandcamp.com': 'Bandcamp',
     'domain.deezer.com': 'Deezer',
     'domain.tidal.com': 'Tidal',
+
+    // Status descriptions
+    'status.ready': 'Siap',
+    'status.prev': 'Putar lagu sebelumnya',
+    'status.next': 'Putar lagu berikutnya',
+    'status.play': 'Putar',
+    'status.pause': 'Jeda',
+    'status.shuffleOn': 'Acak: AKTIF',
+    'status.shuffleOff': 'Acak: NONAKTIF',
+    'status.repeatOff': 'Ulang: NONAKTIF',
+    'status.repeatAll': 'Ulang: SEMUA',
+    'status.repeatOne': 'Ulang: SATU',
+    'status.volume': 'Atur tingkat volume',
+    'status.mute': 'Senyapkan audio',
+    'status.unmute': 'Bunyikan audio',
+    'status.seekBar': 'Lompati posisi lagu',
+    'status.timer': 'Atur durasi waktu sembunyi otomatis kontrol',
+    'status.settings': 'Buka pengaturan aplikasi',
+    'status.streaming': 'Buka streaming / peramban web',
+    'status.goUp': 'Kembali ke direktori induk',
+    'status.search': 'Cari file dan folder',
+    'status.changeFolder': 'Ubah direktori folder musik',
+    'status.pathName': 'jalur folder, klik kanan ada opsi salin path',
+    'status.toggleLeftSidebar': 'Tampilkan/sembunyikan bilah sisi penjelajah file',
+    'status.toggleRightSidebar': 'Tampilkan/sembunyikan bilah sisi daftar putar / detail',
+    'status.fileRow': 'Mainkan lagu (Klik ganda untuk memutar)',
+    'status.folderRow': 'Buka folder (Klik ganda untuk membuka)',
+    'status.songDetails': 'Detail info metadata (pilih text lalu klik kanan untuk menyalin)',
+    'status.closeSettings': 'Tutup jendela pengaturan',
+    'status.closeStreaming': 'Tutup peramban web streaming',
+    'status.settingItem': 'Konfigurasi opsi pengaturan',
 };
 
 const all: Record<Lang, Record<string, string>> = {en, id};

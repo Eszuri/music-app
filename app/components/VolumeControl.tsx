@@ -4,6 +4,7 @@ import React, {useState} from 'react';
 import {motion} from 'framer-motion';
 import {getAccent} from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
+import {useHoverDescription} from '../hooks/useHoverDescription';
 
 interface VolumeControlProps {
     lang: Lang;
@@ -166,9 +167,13 @@ export default function VolumeControl({
 
     const visualPct = isSystem ? Math.min(pct, sliderMax) : volume * 100;
 
+    const muteHover = useHoverDescription(t(lang, muted ? 'status.unmute' : 'status.mute'));
+    const volumeHover = useHoverDescription(t(lang, 'status.volume'));
+
     return (
         <div className="flex items-center gap-2 w-full justify-center">
             <motion.button
+                {...muteHover}
                 onClick={toggleMute}
                 whileHover={{scale: 1.1}}
                 whileTap={{scale: 0.9}}
@@ -179,6 +184,7 @@ export default function VolumeControl({
 
             {/* Decrease button (-) */}
             <motion.button
+                {...volumeHover}
                 onClick={() => onStepButton('down')}
                 disabled={isDecreaseDisabled}
                 whileHover={isDecreaseDisabled ? undefined : {scale: 1.05}}
@@ -192,6 +198,7 @@ export default function VolumeControl({
             </motion.button>
 
             <div
+                {...volumeHover}
                 className="relative flex-1 min-w-[56px] max-w-40 h-5 flex items-center"
                 onMouseEnter={() => setHovering(true)}
                 onMouseLeave={() => setHovering(false)}
@@ -238,6 +245,7 @@ export default function VolumeControl({
             {/* Increase button (+) or Reset button */}
             {showResetButton ? (
                 <motion.button
+                    {...volumeHover}
                     onClick={onResetToLimit}
                     whileHover={{scale: 1.1}}
                     whileTap={{scale: 0.9}}
@@ -251,6 +259,7 @@ export default function VolumeControl({
                 </motion.button>
             ) : (
                 <motion.button
+                    {...volumeHover}
                     onClick={() => onStepButton('up')}
                     disabled={isIncreaseDisabled}
                     whileHover={isIncreaseDisabled ? undefined : {scale: 1.05}}

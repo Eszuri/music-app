@@ -4,6 +4,7 @@ import {useEffect, useState} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
 import {getAccent} from '../lib/colors';
 import {t} from '../lib/translations';
+import {useHoverDescription} from '../hooks/useHoverDescription';
 import AboutSection from './settings/AboutSection';
 import ChangelogSection from './settings/ChangelogSection';
 import DebugSection from './settings/DebugSection';
@@ -63,6 +64,8 @@ export default function SettingsModal({
     updateTotal,
 }: SettingsModalProps) {
     const [activeSection, setActiveSection] = useState<SectionId>('general');
+    const closeHover = useHoverDescription(t(lang, 'status.closeSettings'));
+    const settingItemHover = useHoverDescription(t(lang, 'status.settingItem'));
 
     useEffect(() => {
         if (!open) return;
@@ -108,6 +111,7 @@ export default function SettingsModal({
                             return (
                                 <motion.button
                                     key={s.id}
+                                    {...settingItemHover}
                                     onClick={() => setActiveSection(s.id)}
                                     whileHover={{x: 2}}
                                     whileTap={{scale: 0.97}}
@@ -132,6 +136,7 @@ export default function SettingsModal({
                             </h2>
                             <button
                                 onClick={onClose}
+                                {...closeHover}
                                 className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60 transition-colors cursor-pointer"
                                 aria-label={t(lang, 'settings.close')}
                             >

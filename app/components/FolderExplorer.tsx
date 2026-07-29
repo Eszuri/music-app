@@ -5,6 +5,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { getAccent } from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
 import ContextMenu, { ContextMenuItem } from './ContextMenu';
+import { useHoverInfo } from '../contexts/HoverInfoContext';
+import { useHoverDescription } from '../hooks/useHoverDescription';
 
 export interface FileEntry {
     name: string;
@@ -92,6 +94,10 @@ export default function FolderExplorer({
     const [scrollTop, setScrollTop] = useState(0);
     const [viewportH, setViewportH] = useState(0);
     const lastFilesRef = useRef<FileEntry[]>(files);
+
+    const goUpHover = useHoverDescription(t(lang, 'status.goUp'));
+    const pathHover = useHoverDescription(t(lang, 'status.pathName'));
+    const changeFolderHover = useHoverDescription(t(lang, 'status.changeFolder'));
 
     useEffect(() => {
         const el = scrollRef.current;
@@ -191,6 +197,7 @@ export default function FolderExplorer({
                 className="flex items-center gap-2 px-3 py-2.5 border-b border-zinc-800/30"
             >
                 <motion.button
+                    {...goUpHover}
                     onClick={goUp}
                     onContextMenu={(e: React.MouseEvent) => {
                         e.preventDefault();
@@ -220,6 +227,7 @@ export default function FolderExplorer({
                     </svg>
                 </motion.button>
                 <span 
+                    {...pathHover}
                     onContextMenu={(e: React.MouseEvent) => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -244,6 +252,7 @@ export default function FolderExplorer({
                     {displayPath}
                 </span>
                 <motion.button
+                    {...changeFolderHover}
                     onClick={onChangeFolder}
                     onContextMenu={(e: React.MouseEvent) => {
                         e.preventDefault();
@@ -389,6 +398,7 @@ function VirtualList({
     accentBorder500: string;
     accentBg30: string;
 }) {
+    const { setHoverInfo } = useHoverInfo();
     const totalH = files.length * ROW_HEIGHT;
     const visibleCount = viewportH > 0 ? Math.ceil(viewportH / ROW_HEIGHT) : 20;
     let startIdx = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - VIRTUAL_BUFFER);
@@ -431,6 +441,8 @@ function VirtualList({
                 return (
                     <button
                         key={file.path}
+                        onMouseEnter={() => setHoverInfo(t(lang, file.is_dir ? 'status.folderRow' : 'status.fileRow'))}
+                        onMouseLeave={() => setHoverInfo(null)}
                         onClick={() => file.is_dir ? onEnterDir(file.path) : onPick(file)}
                         onContextMenu={(e) => {
                             if (file.is_dir) {

@@ -8,6 +8,7 @@ import {getAccent} from '../../lib/colors';
 import {t, type Lang} from '../../lib/translations';
 import ContextMenu, {type ContextMenuItem} from '../ContextMenu';
 import {getTauri} from '../../lib/homeState';
+import {useHoverDescription} from '../../hooks/useHoverDescription';
 
 interface HomeHeaderProps {
     lang: Lang;
@@ -109,11 +110,17 @@ export default function HomeHeader({
         setContextMenu({x: e.clientX, y: e.clientY, items: [...items, ...appendDevTools(items, lang)]});
     }, [lang, onOpenSettings]);
 
+    const streamingHover = useHoverDescription(t(lang, 'status.streaming'));
+    const settingsHover = useHoverDescription(t(lang, 'status.settings'));
+    const leftSidebarHover = useHoverDescription(t(lang, 'status.toggleLeftSidebar'));
+    const rightSidebarHover = useHoverDescription(t(lang, 'status.toggleRightSidebar'));
+
     return (
         <>
             <header className="flex items-center px-3 sm:px-5 py-2.5 sm:py-3 border-b border-zinc-800/50 bg-zinc-950/80 backdrop-blur-sm relative gap-2">
                 <div className="flex items-center gap-1.5 shrink-0">
                     <motion.button
+                        {...streamingHover}
                         onClick={onOpenStreaming}
                         onContextMenu={showStreamingMenu}
                         whileHover={{scale: 1.04}}
@@ -129,6 +136,7 @@ export default function HomeHeader({
                         <span className="hidden sm:inline">{t(lang, 'header.streaming')}</span>
                     </motion.button>
                     <motion.button
+                        {...settingsHover}
                         onClick={onOpenSettings}
                         onContextMenu={showSettingsMenu}
                         whileHover={{scale: 1.04}}
@@ -146,6 +154,7 @@ export default function HomeHeader({
                         <>
                             <div className="w-px h-5 bg-zinc-800/60 mx-0.5" />
                             <motion.button
+                                {...leftSidebarHover}
                                 onClick={onToggleLeftSidebar}
                                 whileHover={{scale: 1.05}}
                                 whileTap={{scale: 0.92}}
@@ -159,6 +168,7 @@ export default function HomeHeader({
                                 <span className="hidden sm:inline">{t(lang, 'header.listLabel')}</span>
                             </motion.button>
                             <motion.button
+                                {...rightSidebarHover}
                                 onClick={onToggleRightSidebar}
                                 whileHover={{scale: 1.05}}
                                 whileTap={{scale: 0.92}}

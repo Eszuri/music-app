@@ -1,6 +1,7 @@
 'use client';
 
 import type {ReactNode} from 'react';
+import {useHoverDescription} from '../../hooks/useHoverDescription';
 
 export function SettingRow({
     title,
@@ -13,8 +14,12 @@ export function SettingRow({
     children: ReactNode;
     className?: string
 }) {
+    const hoverProps = useHoverDescription(description);
     return (
-        <div className={`relative flex items-start justify-between gap-4 pb-4 border-b border-zinc-800/60 last:border-0 ${className}`}>
+        <div 
+            {...hoverProps}
+            className={`relative flex items-start justify-between gap-4 pb-4 border-b border-zinc-800/60 last:border-0 ${className}`}
+        >
             <div className="flex-1 min-w-0">
                 <h4 className="text-sm font-medium text-zinc-100">{title}</h4>
                 <p className="text-xs text-zinc-500 mt-0.5">{description}</p>

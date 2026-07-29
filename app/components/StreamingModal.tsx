@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useCallback, useState, useRef } from 'react';
 import {t, type Lang} from '../lib/translations';
+import {useHoverDescription} from '../hooks/useHoverDescription';
 
 interface StreamingModalProps {
     lang: Lang;
@@ -233,6 +234,9 @@ export default function StreamingModal({ lang, open, onClose, accentColor }: Str
     const [customUrl, setCustomUrl] = useState('');
     const inputRef = useRef<HTMLInputElement>(null);
 
+    const closeHover = useHoverDescription(t(lang, 'status.closeStreaming'));
+    const streamHover = useHoverDescription(t(lang, 'status.streaming'));
+
     const handleEsc = useCallback((e: KeyboardEvent) => {
         if (e.key === 'Escape') onClose();
     }, [onClose]);
@@ -359,6 +363,7 @@ export default function StreamingModal({ lang, open, onClose, accentColor }: Str
                                 </div>
                             </div>
                             <motion.button
+                                {...closeHover}
                                 onClick={onClose}
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.9 }}
@@ -380,6 +385,7 @@ export default function StreamingModal({ lang, open, onClose, accentColor }: Str
                                     {PLATFORMS.map((platform) => (
                                         <motion.button
                                             key={platform.id}
+                                            {...streamHover}
                                             onClick={() => handlePlatformClick(platform)}
                                             whileHover={{ scale: 1.02, y: -1 }}
                                             whileTap={{ scale: 0.98 }}
@@ -413,6 +419,7 @@ export default function StreamingModal({ lang, open, onClose, accentColor }: Str
                                     <div className="flex items-center gap-2">
                                         <div className="flex-1 relative">
                                             <input
+                                                {...streamHover}
                                                 ref={inputRef}
                                                 type="text"
                                                 value={customUrl}
@@ -434,6 +441,7 @@ export default function StreamingModal({ lang, open, onClose, accentColor }: Str
                                             )}
                                         </div>
                                         <motion.button
+                                            {...streamHover}
                                             onClick={handleCustomPlay}
                                             disabled={!customUrl.trim()}
                                             whileHover={{ scale: customUrl.trim() ? 1.04 : 1 }}

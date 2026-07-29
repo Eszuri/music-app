@@ -1,6 +1,7 @@
 'use client';
 
 import {type ChangeEvent, useCallback, useEffect, useRef, useState} from 'react';
+import {HoverInfoProvider, useHoverInfo} from './contexts/HoverInfoContext';
 import HomeAlerts from './components/home/HomeAlerts';
 import HomeHeader from './components/home/HomeHeader';
 import HomeModals from './components/home/HomeModals';
@@ -40,6 +41,71 @@ function appendDevTools(items: ContextMenuItem[], lang: string): ContextMenuItem
 }
 
 export default function Home() {
+    return (
+        <HoverInfoProvider>
+            <HomeContent />
+        </HoverInfoProvider>
+    );
+}
+
+// Auto-scrolling status bar text — scrolls when text overflows, no scrollbar shown
+function StatusBarText({ text }: { text: string }) {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const textRef = useRef<HTMLSpanElement>(null);
+    const [scrollDist, setScrollDist] = useState<number | null>(null); // null = no scroll
+    const [duration, setDuration] = useState(8);
+
+    useEffect(() => {
+        const container = containerRef.current;
+        const inner = textRef.current;
+        if (!container || !inner) return;
+
+        const measure = () => {
+            const cw = container.offsetWidth;
+            // scrollWidth of inner span = width of first copy only (no duplicate yet)
+            const tw = inner.scrollWidth;
+            if (tw > cw) {
+                // gap between end and start of loop = 60px
+                setScrollDist(tw + 60);
+                setDuration(Math.max(5, tw / 55));
+            } else {
+                setScrollDist(null);
+            }
+        };
+
+        measure();
+        const ro = new ResizeObserver(measure);
+        ro.observe(container);
+        return () => ro.disconnect();
+    }, [text]);
+
+    const isScrolling = scrollDist !== null;
+
+    return (
+        <div ref={containerRef} className="overflow-hidden w-full whitespace-nowrap">
+            <span
+                style={isScrolling ? {
+                    display: 'inline-flex',
+                    gap: '3.75rem',         // 60px gap between copies
+                    animation: `status-scroll ${duration}s linear infinite`,
+                    ['--scroll-dist' as string]: `-${scrollDist}px`,
+                } : {
+                    display: 'inline-block',
+                    maxWidth: '100%',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    verticalAlign: 'middle',
+                }}
+            >
+                <span ref={textRef}>{text}</span>
+                {isScrolling && <span aria-hidden>{text}</span>}
+            </span>
+        </div>
+    );
+}
+
+function HomeContent() {
+    const { hoverInfo } = useHoverInfo();
     const {
         debugError,
         setDebugError,
@@ -465,6 +531,20 @@ export default function Home() {
                     onClose={hideGlobalContextMenu}
                 />
             )}
+
+            {/* Status Bar */}
+            <div className="w-full h-6 bg-zinc-950/85 backdrop-blur-md border-t border-white/5 px-3 text-[11px] text-zinc-400 font-medium select-none flex items-center justify-between z-50 shrink-0 relative overflow-hidden">
+                <div className="flex-1 min-w-0 overflow-hidden relative">
+                    {hoverInfo && (
+                        <StatusBarText text={hoverInfo} />
+                    )}
+                </div>
+                <div className="flex items-center gap-3 shrink-0 text-zinc-600 text-[10px] uppercase tracking-wider font-semibold ml-3">
+                    <span>v0.8.5</span>
+                    <span className="h-2.5 w-px bg-zinc-800" />
+                    <span>Symvonia</span>
+                </div>
+            </div>
         </div>
     );
 }

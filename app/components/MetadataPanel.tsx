@@ -7,6 +7,7 @@ import { SongMetadata } from './PlayerPanel';
 import { getAccent } from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
 import ContextMenu, { ContextMenuItem } from './ContextMenu';
+import { useHoverDescription } from '../hooks/useHoverDescription';
 
 interface MetadataPanelProps {
     lang: Lang;
@@ -90,6 +91,8 @@ export default function MetadataPanel({ lang, selectedSong, metadata, accentColo
     const isDraggingRef = useRef(false);
     const startXRef = useRef(0);
     const startWidthRef = useRef(DEFAULT_WIDTH);
+
+    const metaHover = useHoverDescription(t(lang, 'status.songDetails'));
 
     useEffect(() => {
         setWidth(loadSavedWidth());
@@ -197,6 +200,7 @@ export default function MetadataPanel({ lang, selectedSong, metadata, accentColo
             </div>
 
             <div 
+                {...metaHover}
                 className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-4 space-y-3 md:space-y-4 select-text [&_*::selection]:bg-[var(--selection-bg)] [&_*::selection]:text-[var(--selection-color)]"
                 style={{
                     '--selection-bg': accent.hex500 + '80',

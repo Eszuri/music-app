@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { FileEntry } from './FolderExplorer';
 import { getAccent } from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
+import {useHoverDescription} from '../hooks/useHoverDescription';
 
 interface PlaybackControlsProps {
     lang: Lang;
@@ -92,11 +93,18 @@ export default function PlaybackControls({
                 ? t(lang, 'playback.repeatAll')
                 : t(lang, 'playback.repeatOne');
 
+    const shuffleHover = useHoverDescription(hasSong ? t(lang, shuffle ? 'status.shuffleOff' : 'status.shuffleOn') : null);
+    const prevHover = useHoverDescription(hasSong ? t(lang, 'status.prev') : null);
+    const playPauseHover = useHoverDescription(hasSong ? t(lang, isPlaying ? 'status.pause' : 'status.play') : null);
+    const nextHover = useHoverDescription(hasSong ? t(lang, 'status.next') : null);
+    const repeatHover = useHoverDescription(hasSong ? t(lang, repeat === 'off' ? 'status.repeatAll' : repeat === 'all' ? 'status.repeatOne' : 'status.repeatOff') : null);
+
     return (
         <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
 
             {/* ── Shuffle ─────────────────────────────────────────── */}
             <motion.button
+                {...shuffleHover}
                 onClick={() => setShuffle(!shuffle)}
                 disabled={!hasSong}
                 whileHover={hasSong ? { scale: 1.08 } : {}}
@@ -118,6 +126,7 @@ export default function PlaybackControls({
 
             {/* ── Previous ────────────────────────────────────────── */}
             <motion.button
+                {...prevHover}
                 onClick={playPrev}
                 disabled={!hasSong}
                 whileHover={hasSong ? { scale: 1.1 } : {}}
@@ -132,6 +141,7 @@ export default function PlaybackControls({
 
             {/* ── Play / Pause ─────────────────────────────────────── */}
             <motion.button
+                {...playPauseHover}
                 onClick={togglePlayPause}
                 disabled={!hasSong}
                 whileHover={hasSong ? { scale: 1.06 } : {}}
@@ -154,6 +164,7 @@ export default function PlaybackControls({
 
             {/* ── Next ────────────────────────────────────────────── */}
             <motion.button
+                {...nextHover}
                 onClick={playNext}
                 disabled={!hasSong}
                 whileHover={hasSong ? { scale: 1.1 } : {}}
@@ -168,6 +179,7 @@ export default function PlaybackControls({
 
             {/* ── Repeat ──────────────────────────────────────────── */}
             <motion.button
+                {...repeatHover}
                 onClick={cycleRepeat}
                 disabled={!hasSong}
                 whileHover={hasSong ? { scale: 1.08 } : {}}
