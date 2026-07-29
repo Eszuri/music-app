@@ -51,6 +51,7 @@
     },
     "plugins": {
         "updater": {
+            "pubkey": "__TAURI_UPDATER_PUBKEY__",
             "endpoints": [
                 "https://github.com/Eszuri/symvonia/releases/latest/download/latest.json"
             ]
