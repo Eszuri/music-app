@@ -5,6 +5,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {getAccent} from '../lib/colors';
 import {t} from '../lib/translations';
 import AboutSection from './settings/AboutSection';
+import ChangelogSection from './settings/ChangelogSection';
 import DebugSection from './settings/DebugSection';
 import GeneralSection from './settings/GeneralSection';
 import ShortcutSection from './settings/ShortcutSection';
@@ -202,6 +203,7 @@ export default function SettingsModal({
                                     onResetSidebarWidth={onResetSidebarWidth}
                                 />
                             )}
+                            {activeSection === 'changelog' && <ChangelogSection />}
                             {activeSection === 'about' && <AboutSection lang={lang} />}
                             {activeSection === 'debug' && <DebugSection lang={lang} logs={logs} />}
                         </div>

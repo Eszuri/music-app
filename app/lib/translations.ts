@@ -11,6 +11,7 @@ const en: Record<string, string> = {
     'sections.style': 'Style',
     'sections.debug': 'Debug',
     'sections.about': 'About',
+    'sections.changelog': "What's New",
 
     'settings.title': 'Settings',
     'settings.close': 'Close',
@@ -292,6 +293,7 @@ const id: Record<string, string> = {
     'sections.style': 'Style',
     'sections.debug': 'Debug',
     'sections.about': 'About',
+    'sections.changelog': 'Yang Baru',
 
     'settings.title': 'Pengaturan',
     'settings.close': 'Tutup',

@@ -616,7 +616,15 @@ pub fn run() {
             set_reset_on_close,
             open_webview_stream
         ])
-        .plugin(tauri_plugin_updater::Builder::default().build())
+        .plugin({
+            let mut updater = tauri_plugin_updater::Builder::default();
+            if let Some(pk) = option_env!("TAURI_UPDATER_PUBKEY") {
+                if !pk.is_empty() {
+                    updater = updater.pubkey(pk);
+                }
+            }
+            updater.build()
+        })
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(

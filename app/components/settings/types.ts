@@ -2,7 +2,7 @@ import type {LogEntry} from '../../types/log';
 
 import type {Lang} from '../../lib/translations';
 
-export type SectionId = 'general' | 'sort' | 'shortcut' | 'style' | 'about' | 'debug';
+export type SectionId = 'general' | 'sort' | 'shortcut' | 'style' | 'changelog' | 'about' | 'debug';
 
 export interface SettingsModalProps {
     lang: Lang;
