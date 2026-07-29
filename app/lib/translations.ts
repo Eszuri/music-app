@@ -44,6 +44,11 @@ const en: Record<string, string> = {
 
     'general.stepVolume.title': 'Step Volume',
     'general.stepVolume.desc': 'Volume change amount per button press or shortcut (1–10)',
+
+    'general.pauseIfMuted.title': 'Pause if Muted / Volume 0',
+    'general.pauseIfMuted.desc': 'Automatically pause playback when volume reaches 0 or is muted',
+    'general.pauseIfMuted.on': 'On',
+    'general.pauseIfMuted.off': 'Off',
     'general.volumeLimit.title': 'System Volume Limit',
     'general.volumeLimit.desc': 'Warn if system volume exceeds this limit (0 = no limit)',
     'general.volumeLimit.save': 'Save',
@@ -381,6 +386,11 @@ const id: Record<string, string> = {
 
     'general.stepVolume.title': 'Step Volume',
     'general.stepVolume.desc': 'Jumlah perubahan volume tiap tekan tombol +/− atau shortcut (1–10)',
+
+    'general.pauseIfMuted.title': 'Jeda jika Volume 0 / Dibisukan',
+    'general.pauseIfMuted.desc': 'Otomatis menjeda pemutaran ketika volume mencapai 0 atau dimatikan',
+    'general.pauseIfMuted.on': 'Aktif',
+    'general.pauseIfMuted.off': 'Nonaktif',
     'general.volumeLimit.title': 'Batas Volume Sistem',
     'general.volumeLimit.desc': 'Beri peringatan jika volume sistem melebihi batas ini (0 = tidak ada batas)',
     'general.volumeLimit.save': 'Simpan',

@@ -22,6 +22,8 @@ export default function GeneralSection({
     setVolumeMode,
     volumeLimit,
     setVolumeLimit,
+    pauseIfMuted,
+    setPauseIfMuted,
     volume,
     defaultWallpaper,
     onPickWallpaper,
@@ -47,6 +49,8 @@ export default function GeneralSection({
     setVolumeMode: (v: string) => void;
     volumeLimit: number;
     setVolumeLimit: (v: number) => void;
+    pauseIfMuted: boolean;
+    setPauseIfMuted: (v: boolean) => void;
     volume: number;
     defaultWallpaper: string | null;
     onPickWallpaper: () => void;
@@ -168,6 +172,19 @@ export default function GeneralSection({
                     ]}
                     value={String(volumeStep)}
                     onChange={(v) => setVolumeStep(parseInt(v, 10))}
+                />
+            </SettingRow>
+            <SettingRow
+                title={t(lang, 'general.pauseIfMuted.title')}
+                description={t(lang, 'general.pauseIfMuted.desc')}
+            >
+                <SelectStub
+                    options={[
+                        ['true', t(lang, 'general.pauseIfMuted.on')],
+                        ['false', t(lang, 'general.pauseIfMuted.off')],
+                    ]}
+                    value={String(pauseIfMuted)}
+                    onChange={(v) => setPauseIfMuted(v === 'true')}
                 />
             </SettingRow>
             {volumeMode === 'system' && (

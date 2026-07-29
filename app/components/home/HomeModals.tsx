@@ -26,6 +26,8 @@ interface HomeModalsProps {
     setVolumeMode: (v: string) => void;
     volumeLimit: number;
     setVolumeLimit: (v: number) => void;
+    pauseIfMuted: boolean;
+    setPauseIfMuted: (v: boolean) => void;
     volume: number;
     defaultWallpaper: string | null;
     onPickWallpaper: () => void;
@@ -77,6 +79,8 @@ export default function HomeModals({
     setVolumeMode,
     volumeLimit,
     setVolumeLimit,
+    pauseIfMuted,
+    setPauseIfMuted,
     volume,
     defaultWallpaper,
     onPickWallpaper,
@@ -139,6 +143,8 @@ export default function HomeModals({
                 setVolumeMode={setVolumeMode}
                 volumeLimit={volumeLimit}
                 setVolumeLimit={setVolumeLimit}
+                pauseIfMuted={pauseIfMuted}
+                setPauseIfMuted={setPauseIfMuted}
                 volume={volume}
                 defaultWallpaper={defaultWallpaper}
                 onPickWallpaper={onPickWallpaper}

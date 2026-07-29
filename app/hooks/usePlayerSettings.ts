@@ -27,6 +27,8 @@ import {
     WALLPAPER_KEY,
     type ShortcutAction,
 } from '../lib/homeState';
+
+export const PAUSE_IF_MUTED_KEY = 'music-app-pause-if-muted';
 import type {Lang} from '../lib/translations';
 import {t} from '../lib/translations';
 
@@ -57,6 +59,7 @@ export function usePlayerSettings() {
     const [customAccentHex, setCustomAccentHexState] = useState('#22c55e');
     const [defaultWallpaper, setDefaultWallpaperState] = useState<string | null>(null);
     const [shortcuts, setShortcutsState] = useState<Record<ShortcutAction, string>>(DEFAULT_SHORTCUTS);
+    const [pauseIfMuted, setPauseIfMutedState] = useState(true); // default on
 
     const shortcutsRef = useRef<Record<ShortcutAction, string>>(DEFAULT_SHORTCUTS);
     const volumeLimitRef = useRef<number>(0);
@@ -192,6 +195,8 @@ export function usePlayerSettings() {
                 }
             } catch { /* ignore */}
         }
+        const pim = window.localStorage.getItem(PAUSE_IF_MUTED_KEY);
+        if (pim !== null) setPauseIfMutedState(pim !== 'false');
         setInitialized(true);
     }, []);
 
@@ -438,6 +443,11 @@ export function usePlayerSettings() {
         }
     };
 
+    const setPauseIfMuted = useCallback((v: boolean) => {
+        setPauseIfMutedState(v);
+        safeSetLocalStorage(PAUSE_IF_MUTED_KEY, String(v));
+    }, []);
+
     return {
         musicFolder,
         setMusicFolder,
@@ -493,5 +503,7 @@ export function usePlayerSettings() {
         appVolumeRef,
         systemVolumeRef,
         lastLocalVolumeSetRef,
+        pauseIfMuted,
+        setPauseIfMuted,
     };
 }

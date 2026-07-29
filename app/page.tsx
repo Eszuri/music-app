@@ -163,6 +163,8 @@ function HomeContent() {
         addLog,
         setSystemMuted: settings.setSystemMuted,
         lastLocalVolumeSetRef: settings.lastLocalVolumeSetRef,
+        pauseIfMuted: settings.pauseIfMuted,
+        systemMuted: settings.systemMuted,
     });
 
     useKeyboardShortcuts({
@@ -475,6 +477,8 @@ function HomeContent() {
                 setVolumeMode={(v: string) => settings.setVolumeModeState(v as 'app' | 'system')}
                 volumeLimit={settings.volumeLimit}
                 setVolumeLimit={settings.handleVolumeLimitSetting}
+                pauseIfMuted={settings.pauseIfMuted}
+                setPauseIfMuted={settings.setPauseIfMuted}
                 volume={player.activeVolume}
                 defaultWallpaper={settings.defaultWallpaper}
                 onPickWallpaper={handlePickWallpaper}

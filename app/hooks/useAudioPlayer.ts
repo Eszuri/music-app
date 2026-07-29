@@ -23,6 +23,8 @@ interface UseAudioPlayerOptions {
     addLog: (level: string, message: string) => void;
     setSystemMuted: React.Dispatch<React.SetStateAction<boolean>>;
     lastLocalVolumeSetRef: React.MutableRefObject<number>;
+    pauseIfMuted: boolean;
+    systemMuted: boolean;
 }
 
 export function useAudioPlayer(options: UseAudioPlayerOptions) {
@@ -46,6 +48,8 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         addLog,
         setSystemMuted,
         lastLocalVolumeSetRef,
+        pauseIfMuted,
+        systemMuted,
     } = options;
 
     const [files, setFiles] = useState<FileEntry[]>([]);
@@ -332,6 +336,18 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             audioRef.current.volume = 1;
         }
     }, [volumeMode, appVolume]);
+
+    // Pause playback when volume reaches 0 or is muted (if enabled)
+    useEffect(() => {
+        if (!pauseIfMuted || !isPlaying) return;
+        const isZero = volumeMode === 'app'
+            ? appVolume <= 0
+            : (systemMuted || systemVolume <= 0);
+        if (isZero && audioRef.current) {
+            audioRef.current.pause();
+            setIsPlaying(false);
+        }
+    }, [pauseIfMuted, volumeMode, appVolume, systemVolume, systemMuted, isPlaying]);
 
     // Sinkronkan state repeat === 'one' langsung ke elemen audio agar realtime
     useEffect(() => {

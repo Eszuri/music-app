@@ -34,6 +34,8 @@ export default function SettingsModal({
     setVolumeMode,
     volumeLimit,
     setVolumeLimit,
+    pauseIfMuted,
+    setPauseIfMuted,
     volume,
     defaultWallpaper,
     onPickWallpaper,
@@ -162,6 +164,8 @@ export default function SettingsModal({
                                         setVolumeMode={setVolumeMode}
                                         volumeLimit={volumeLimit}
                                         setVolumeLimit={setVolumeLimit}
+                                        pauseIfMuted={pauseIfMuted}
+                                        setPauseIfMuted={setPauseIfMuted}
                                         volume={volume}
                                     defaultWallpaper={defaultWallpaper}
                                     onPickWallpaper={onPickWallpaper}
