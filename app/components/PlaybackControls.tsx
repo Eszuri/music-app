@@ -68,7 +68,7 @@ export default function PlaybackControls({
     };
 
     return (
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
             <motion.button
                 onClick={() => setShuffle(!shuffle)}
                 disabled={!hasSong}
@@ -102,7 +102,7 @@ export default function PlaybackControls({
                 whileHover={hasSong ? { scale: 1.06 } : {}}
                 whileTap={hasSong ? { scale: 0.94 } : {}}
                 transition={{ duration: 0.12 }}
-                className={`w-14 h-14 rounded-full flex items-center justify-center text-zinc-950 cursor-pointer
+                className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-zinc-950 cursor-pointer
                     ${hasSong ? `${accent.bg500} shadow-lg ${accent.shadow25}` : 'bg-zinc-800 text-zinc-600'}`}
                 style={hasSong ? { boxShadow: `0 4px 20px ${accent.hex500}30` } : {}}
             >

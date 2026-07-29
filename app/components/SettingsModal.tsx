@@ -98,7 +98,7 @@ export default function SettingsModal({
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Sidebar nav */}
-                    <nav className="w-44 border-r border-zinc-800 bg-zinc-950/60 p-3 flex flex-col gap-1">
+                    <nav className="w-36 lg:w-40 xl:w-44 border-r border-zinc-800 bg-zinc-950/60 p-2.5 md:p-3 flex flex-col gap-1 overflow-y-auto">
                         <h3 className="px-3 py-2 text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
                             {t(lang, 'settings.title')}
                         </h3>
@@ -126,7 +126,7 @@ export default function SettingsModal({
 
                     {/* Content */}
                     <div className="flex-1 flex flex-col">
-                        <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
+                        <header className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-zinc-800">
                             <h2 className="text-lg font-semibold text-zinc-100">
                                 {sections.find((s) => s.id === activeSection)?.label}
                             </h2>
@@ -140,7 +140,7 @@ export default function SettingsModal({
                                 </svg>
                             </button>
                         </header>
-                        <div className="flex-1 overflow-y-auto p-6">
+                        <div className="flex-1 overflow-y-auto p-4 md:p-6">
                             {activeSection === 'general' && (
                                     <GeneralSection
                                         lang={lang}

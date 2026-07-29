@@ -15,8 +15,8 @@ interface MetadataPanelProps {
     resetSidebarToken: number;
 }
 
-const MIN_WIDTH = 240;
-const MAX_WIDTH = 520;
+const MIN_WIDTH = 200;
+const MAX_WIDTH = 640;
 const DEFAULT_WIDTH = 320;
 const STORAGE_KEY = 'music-app-meta-width';
 
@@ -57,9 +57,9 @@ function formatDuration(seconds: number | null): string {
 
 function MetaRow({ label, value }: { label: string; value: string }) {
     return (
-        <div className="flex flex-col gap-0.5">
-            <span className="text-[10px] font-medium tracking-wider text-zinc-500 uppercase">{label}</span>
-            <span className={`text-sm ${value === '—' ? 'text-zinc-600' : 'text-zinc-200'} truncate`} title={value}>
+        <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-[10px] font-medium tracking-wider text-zinc-500 uppercase truncate">{label}</span>
+            <span className={`text-sm ${value === '—' ? 'text-zinc-600' : 'text-zinc-200'} break-all`} title={value}>
                 {value}
             </span>
         </div>
@@ -103,10 +103,30 @@ export default function MetadataPanel({ lang, selectedSong, metadata, accentColo
         window.localStorage.setItem(STORAGE_KEY, String(width));
     }, [width]);
 
+    useEffect(() => {
+        const handleWindowResize = () => {
+            const currentWinW = window.innerWidth;
+            const folderWidth = typeof window !== 'undefined'
+                ? Number(window.localStorage.getItem('music-app-sidebar-width') || 288)
+                : 288;
+            const maxAllowed = Math.max(MIN_WIDTH, currentWinW - folderWidth - 300);
+            const effectiveMax = Math.min(MAX_WIDTH, maxAllowed);
+            setWidth(prev => (prev > effectiveMax ? effectiveMax : prev));
+        };
+        window.addEventListener('resize', handleWindowResize);
+        return () => window.removeEventListener('resize', handleWindowResize);
+    }, []);
+
     const onMouseMove = useCallback((e: MouseEvent) => {
         if (!isDraggingRef.current) return;
         const delta = startXRef.current - e.clientX;
-        const next = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidthRef.current + delta));
+        const currentWinW = window.innerWidth;
+        const folderWidth = typeof window !== 'undefined'
+            ? Number(window.localStorage.getItem('music-app-sidebar-width') || 288)
+            : 288;
+        const maxAllowed = Math.max(MIN_WIDTH, currentWinW - folderWidth - 300);
+        const effectiveMax = Math.min(MAX_WIDTH, maxAllowed);
+        const next = Math.min(effectiveMax, Math.max(MIN_WIDTH, startWidthRef.current + delta));
         setWidth(next);
     }, []);
 
@@ -152,7 +172,7 @@ export default function MetadataPanel({ lang, selectedSong, metadata, accentColo
     return (
         <aside
             style={{ width }}
-            className="relative flex shrink-0 flex-col border-l border-zinc-800/50 bg-zinc-950/40"
+            className="relative flex shrink-0 flex-col border-l border-zinc-800/50 bg-zinc-950/40 max-lg:flex-1 max-lg:min-w-0 overflow-hidden"
         >
             <div
                 onMouseDown={onMouseDown}
@@ -162,7 +182,7 @@ export default function MetadataPanel({ lang, selectedSong, metadata, accentColo
                 onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = '';
                 }}
-                className="absolute top-0 left-0 h-full w-1.5 cursor-col-resize transition-colors z-10"
+                className="absolute top-0 left-0 h-full w-1.5 cursor-col-resize transition-colors z-10 max-lg:hidden"
             />
 
             <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800/30">
@@ -173,7 +193,7 @@ export default function MetadataPanel({ lang, selectedSong, metadata, accentColo
                 <span className="text-xs font-medium text-zinc-400 tracking-wide">{t(lang, 'metadata.heading')}</span>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-4 space-y-3 md:space-y-4">
                 <AnimatePresence mode="wait">
                     {selectedSong ? (
                         <motion.div

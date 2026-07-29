@@ -29,7 +29,7 @@ interface FolderExplorerProps {
     setCurrentPath: (path: string) => void;
     playSong: (file: FileEntry) => void;
     onChangeFolder: () => void;
-    musicFolder: string;
+    musicFolder: string | null;
     resetSidebarToken: number;
     accentColor: string;
 }
@@ -42,8 +42,8 @@ function isAncestorOf(folderPath: string, targetPath: string): boolean {
     return t.startsWith(f + '\\') || t.startsWith(f + '/');
 }
 
-const MIN_WIDTH = 200;
-const MAX_WIDTH = 500;
+const MIN_WIDTH = 160;
+const MAX_WIDTH = 640;
 const DEFAULT_WIDTH = 288;
 const STORAGE_KEY = 'music-app-sidebar-width';
 const ROW_HEIGHT = 36;
@@ -118,10 +118,30 @@ export default function FolderExplorer({
         window.localStorage.setItem(STORAGE_KEY, String(width));
     }, [width]);
 
+    useEffect(() => {
+        const handleWindowResize = () => {
+            const currentWinW = window.innerWidth;
+            const metaWidth = typeof window !== 'undefined'
+                ? Number(window.localStorage.getItem('music-app-meta-width') || 320)
+                : 320;
+            const maxAllowed = Math.max(MIN_WIDTH, currentWinW - metaWidth - 300);
+            const effectiveMax = Math.min(MAX_WIDTH, maxAllowed);
+            setWidth(prev => (prev > effectiveMax ? effectiveMax : prev));
+        };
+        window.addEventListener('resize', handleWindowResize);
+        return () => window.removeEventListener('resize', handleWindowResize);
+    }, []);
+
     const onMouseMove = useCallback((e: MouseEvent) => {
         if (!isDraggingRef.current) return;
         const delta = e.clientX - startXRef.current;
-        const next = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidthRef.current + delta));
+        const currentWinW = window.innerWidth;
+        const metaWidth = typeof window !== 'undefined'
+            ? Number(window.localStorage.getItem('music-app-meta-width') || 320)
+            : 320;
+        const maxAllowed = Math.max(MIN_WIDTH, currentWinW - metaWidth - 300);
+        const effectiveMax = Math.min(MAX_WIDTH, maxAllowed);
+        const next = Math.min(effectiveMax, Math.max(MIN_WIDTH, startWidthRef.current + delta));
         setWidth(next);
     }, []);
 
@@ -155,7 +175,7 @@ export default function FolderExplorer({
     return (
         <aside
             style={{ width }}
-            className="relative flex shrink-0 flex-col border-r border-zinc-800/50 bg-black/30"
+            className="relative flex shrink-0 flex-col border-r border-zinc-800/50 bg-black/30 max-lg:flex-1 max-lg:min-w-0 overflow-hidden"
         >
             <div className="flex items-center gap-2 px-3 py-2.5 border-b border-zinc-800/30">
                 <motion.button
@@ -174,7 +194,7 @@ export default function FolderExplorer({
                 <span className="text-xs text-zinc-500 truncate flex-1" title={displayPath}>{displayPath}</span>
                 <motion.button
                     onClick={onChangeFolder}
-                    title={t(lang, 'folder.changeFolder', {folder: musicFolder})}
+                    title={t(lang, 'folder.changeFolder', {folder: musicFolder || ''})}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.92 }}
                     transition={{ duration: 0.12 }}
@@ -254,7 +274,7 @@ export default function FolderExplorer({
                 onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = '';
                 }}
-                className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize transition-colors"
+                className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize transition-colors max-lg:hidden"
             />
         </aside>
     );

@@ -167,12 +167,12 @@ export default function VolumeControl({
     const visualPct = isSystem ? Math.min(pct, sliderMax) : volume * 100;
 
     return (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full justify-center">
             <motion.button
                 onClick={toggleMute}
                 whileHover={{scale: 1.1}}
                 whileTap={{scale: 0.9}}
-                className="text-zinc-400 hover:text-zinc-200 cursor-pointer flex items-center justify-center w-7 h-7"
+                className="text-zinc-400 hover:text-zinc-200 cursor-pointer flex items-center justify-center w-7 h-7 shrink-0"
             >
                 <VolumeIcon muted={muted} low={low} />
             </motion.button>
@@ -192,7 +192,7 @@ export default function VolumeControl({
             </motion.button>
 
             <div
-                className="relative w-40 h-5 flex items-center"
+                className="relative flex-1 min-w-[56px] max-w-40 h-5 flex items-center"
                 onMouseEnter={() => setHovering(true)}
                 onMouseLeave={() => setHovering(false)}
             >

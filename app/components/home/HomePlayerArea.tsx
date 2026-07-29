@@ -88,6 +88,15 @@ export default function HomePlayerArea({
     setRepeat,
     handleVolumeChange,
 }: HomePlayerAreaProps) {
+    const leftVisible = showLeftSidebar || !isCompact;
+    const rightVisible = showRightSidebar || !isCompact;
+
+    const mainWidthClass = !leftVisible && !rightVisible
+        ? 'max-lg:flex-1'
+        : leftVisible !== rightVisible
+            ? 'max-lg:w-1/2 max-lg:flex-none max-lg:min-w-0'
+            : 'max-lg:w-[320px] max-lg:flex-none max-lg:min-w-0';
+
     return (
         <div className="flex flex-1 overflow-hidden">
             <AnimatePresence mode="wait">
@@ -129,7 +138,7 @@ export default function HomePlayerArea({
                                     animate={{width: 'auto', opacity: 1}}
                                     exit={{width: 0, opacity: 0}}
                                     transition={{duration: 0.2}}
-                                    className="flex shrink-0 overflow-hidden"
+                                    className="flex shrink-0 overflow-hidden max-lg:flex-1 max-lg:min-w-0"
                                 >
                                     <FolderExplorer
                                         lang={lang}
@@ -151,7 +160,7 @@ export default function HomePlayerArea({
                             )}
                         </AnimatePresence>
 
-                        <main className="flex-1 flex items-center justify-center p-6 overflow-hidden">
+                        <main className={`flex items-center justify-center p-4 sm:p-6 overflow-y-auto overflow-x-hidden ${mainWidthClass} flex-1 min-w-0`}>
                             {files.length === 0 ? (
                                 <EmptyFolderState lang={lang} folder={displayPath} />
                             ) : (
@@ -204,7 +213,7 @@ export default function HomePlayerArea({
                                     animate={{width: 'auto', opacity: 1}}
                                     exit={{width: 0, opacity: 0}}
                                     transition={{duration: 0.2}}
-                                    className="flex shrink-0 overflow-hidden"
+                                    className="flex shrink-0 overflow-hidden max-lg:flex-1 max-lg:min-w-0"
                                 >
                                     <MetadataPanel
                                         lang={lang}
