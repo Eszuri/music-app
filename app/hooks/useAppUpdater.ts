@@ -1,10 +1,32 @@
-import {useCallback, useRef, useState} from 'react';
-import {isBrowserTauri} from '../lib/homeState';
+'use client';
+
+import {useCallback, useEffect, useRef, useState} from 'react';
+import {isBrowserTauri, UPDATE_SKIP_KEY} from '../lib/homeState';
 import {t, type Lang} from '../lib/translations';
 
 interface UseAppUpdaterOptions {
     addLog: (level: string, message: string) => void;
     lang: Lang;
+}
+
+interface AutoUpdateInfo {
+    version: string;
+    update: unknown;
+}
+
+function getSkippedVersion(): string | null {
+    if (typeof window === 'undefined') return null;
+    try {
+        return window.localStorage.getItem(UPDATE_SKIP_KEY);
+    } catch {
+        return null;
+    }
+}
+
+function setSkippedVersion(version: string) {
+    try {
+        window.localStorage.setItem(UPDATE_SKIP_KEY, version);
+    } catch { }
 }
 
 export function useAppUpdater(options: UseAppUpdaterOptions) {
@@ -14,6 +36,14 @@ export function useAppUpdater(options: UseAppUpdaterOptions) {
     const [updateDownloaded, setUpdateDownloaded] = useState(0);
     const [updateTotal, setUpdateTotal] = useState(0);
     const updateTotalRef = useRef(0);
+
+    const [autoUpdateInfo, setAutoUpdateInfo] = useState<AutoUpdateInfo | null>(null);
+    const [autoUpdateShown, setAutoUpdateShown] = useState(false);
+    const [autoUpdateDownloading, setAutoUpdateDownloading] = useState(false);
+    const [autoUpdateProgress, setAutoUpdateProgress] = useState(0);
+    const [autoUpdateTotal, setAutoUpdateTotal] = useState(0);
+    const autoUpdateTotalRef = useRef(0);
+    const autoCheckDone = useRef(false);
 
     const handleCheckUpdate = useCallback(async () => {
         if (!isBrowserTauri) {
@@ -30,14 +60,14 @@ export function useAppUpdater(options: UseAppUpdaterOptions) {
             const update = await check();
             if (update) {
                 setUpdateStatus(t(lang, 'general.update.available', {version: update.version}));
-                await update.download((ev) => {
+                await update.download((ev: {event: string; data?: {contentLength?: number; chunkLength?: number}}) => {
                     if (ev.event === 'Started') {
-                        const total = ev.data.contentLength ?? 0;
+                        const total = ev.data?.contentLength ?? 0;
                         updateTotalRef.current = total;
                         setUpdateTotal(total);
                         setUpdateDownloaded(0);
                     } else if (ev.event === 'Progress') {
-                        setUpdateDownloaded((d) => d + ev.data.chunkLength);
+                        setUpdateDownloaded((d: number) => d + (ev.data?.chunkLength ?? 0));
                     }
                 });
                 const total = updateTotalRef.current;
@@ -59,11 +89,96 @@ export function useAppUpdater(options: UseAppUpdaterOptions) {
         }
     }, [addLog, lang]);
 
+    const autoCheckUpdate = useCallback(async () => {
+        if (!isBrowserTauri) return;
+        if (autoCheckDone.current) return;
+        autoCheckDone.current = true;
+        try {
+            const {check} = await import('@tauri-apps/plugin-updater');
+            const update = await check();
+            if (update) {
+                const skipped = getSkippedVersion();
+                if (skipped === update.version) return;
+                setAutoUpdateInfo({version: update.version, update});
+            }
+        } catch {
+            // silently ignore — user may be offline
+        }
+    }, []);
+
+    useEffect(() => {
+        const timer = setTimeout(() => autoCheckUpdate(), 1000);
+        return () => clearTimeout(timer);
+    }, [autoCheckUpdate]);
+
+    useEffect(() => {
+        if (autoUpdateInfo && !autoUpdateShown) {
+            setAutoUpdateShown(true);
+        }
+    }, [autoUpdateInfo, autoUpdateShown]);
+
+    const dismissAutoUpdate = useCallback(() => {
+        setAutoUpdateInfo(null);
+        setAutoUpdateShown(false);
+        setAutoUpdateDownloading(false);
+        setAutoUpdateProgress(0);
+        setAutoUpdateTotal(0);
+    }, []);
+
+    const skipAutoUpdateVersion = useCallback(() => {
+        if (autoUpdateInfo) {
+            setSkippedVersion(autoUpdateInfo.version);
+        }
+        dismissAutoUpdate();
+    }, [autoUpdateInfo, dismissAutoUpdate]);
+
+    const startAutoUpdateDownload = useCallback(async () => {
+        if (!autoUpdateInfo) return;
+        setAutoUpdateDownloading(true);
+        setAutoUpdateProgress(0);
+        setAutoUpdateTotal(0);
+        autoUpdateTotalRef.current = 0;
+        try {
+            const {check} = await import('@tauri-apps/plugin-updater');
+            const update = await check();
+            if (update && update.version === autoUpdateInfo.version) {
+                await update.download((ev: {event: string; data?: {contentLength?: number; chunkLength?: number}}) => {
+                    if (ev.event === 'Started') {
+                        const total = ev.data?.contentLength ?? 0;
+                        autoUpdateTotalRef.current = total;
+                        setAutoUpdateTotal(total);
+                        setAutoUpdateProgress(0);
+                    } else if (ev.event === 'Progress') {
+                        setAutoUpdateProgress((d: number) => d + (ev.data?.chunkLength ?? 0));
+                    }
+                });
+                const total = autoUpdateTotalRef.current;
+                if (total > 0) setAutoUpdateProgress(total);
+                setAutoUpdateDownloading(false);
+                await update.install();
+            }
+        } catch (e) {
+            const msg = String(e);
+            addLog('error', `Auto update download failed: ${msg}`);
+            setAutoUpdateDownloading(false);
+            setAutoUpdateInfo(null);
+            setAutoUpdateShown(false);
+        }
+    }, [autoUpdateInfo, addLog]);
+
     return {
         updateChecking,
         updateStatus,
         updateDownloaded,
         updateTotal,
         handleCheckUpdate,
+        autoUpdateInfo,
+        autoUpdateShown,
+        autoUpdateDownloading,
+        autoUpdateProgress,
+        autoUpdateTotal,
+        dismissAutoUpdate,
+        skipAutoUpdateVersion,
+        startAutoUpdateDownload,
     };
 }

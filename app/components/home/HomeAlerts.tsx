@@ -10,6 +10,13 @@ interface HomeAlertsProps {
     volumeLimit: number;
     onCloseToast: () => void;
     onCloseVolumeAlert: () => void;
+    updateAlertInfo: {version: string} | null;
+    updateAlertDownloading: boolean;
+    updateAlertProgress: number;
+    updateAlertTotal: number;
+    onUpdate: () => void;
+    onRemindLater: () => void;
+    onStayCurrent: () => void;
 }
 
 export default function HomeAlerts({
@@ -19,7 +26,19 @@ export default function HomeAlerts({
     volumeLimit,
     onCloseToast,
     onCloseVolumeAlert,
+    updateAlertInfo,
+    updateAlertDownloading,
+    updateAlertProgress,
+    updateAlertTotal,
+    onUpdate,
+    onRemindLater,
+    onStayCurrent,
 }: HomeAlertsProps) {
+    const updateProgress =
+        updateAlertDownloading && updateAlertTotal > 0
+            ? Math.min(updateAlertProgress / updateAlertTotal, 1)
+            : 0;
+
     return (
         <AnimatePresence>
             {toastVisible && (
@@ -69,6 +88,74 @@ export default function HomeAlerts({
                             <path d="M18 6 6 18M6 6l12 12" />
                         </svg>
                     </button>
+                </motion.div>
+            )}
+            {updateAlertInfo && !updateAlertDownloading && (
+                <motion.div
+                    key="update-alert"
+                    initial={{opacity: 0, y: -12, scale: 0.95}}
+                    animate={{opacity: 1, y: 0, scale: 1}}
+                    exit={{opacity: 0, y: -12, scale: 0.95}}
+                    transition={{duration: 0.3}}
+                    className="fixed top-4 right-4 z-70 flex flex-col gap-3 px-5 py-4 rounded-xl bg-zinc-900/90 border border-zinc-700/60 text-sm text-zinc-200 shadow-2xl shadow-black/40 backdrop-blur-sm min-w-[280px]"
+                >
+                    <div className="flex items-center gap-2.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+                            <path d="M12 6v6l4 2" />
+                        </svg>
+                        <div className="flex flex-col">
+                            <span className="text-sm font-semibold text-zinc-100">{t(lang, 'general.updateAlert.title')}</span>
+                            <span className="text-xs text-zinc-400">{t(lang, 'general.updateAlert.message', {version: updateAlertInfo.version})}</span>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={onUpdate}
+                            className="flex-1 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-green-600 hover:bg-green-500 transition-colors cursor-pointer"
+                        >
+                            {t(lang, 'general.updateAlert.updateBtn')}
+                        </button>
+                        <button
+                            onClick={onRemindLater}
+                            className="flex-1 px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700/50 transition-colors cursor-pointer"
+                        >
+                            {t(lang, 'general.updateAlert.remindLater')}
+                        </button>
+                        <button
+                            onClick={onStayCurrent}
+                            className="flex-1 px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-400 bg-zinc-800/50 hover:bg-zinc-700/70 border border-zinc-700/30 transition-colors cursor-pointer"
+                        >
+                            {t(lang, 'general.updateAlert.stayCurrent')}
+                        </button>
+                    </div>
+                </motion.div>
+            )}
+            {updateAlertDownloading && (
+                <motion.div
+                    key="update-downloading"
+                    initial={{opacity: 0, y: -12, scale: 0.95}}
+                    animate={{opacity: 1, y: 0, scale: 1}}
+                    exit={{opacity: 0, y: -12, scale: 0.95}}
+                    transition={{duration: 0.3}}
+                    className="fixed top-4 right-4 z-70 flex flex-col gap-2.5 px-5 py-4 rounded-xl bg-zinc-900/90 border border-zinc-700/60 text-sm text-zinc-200 shadow-2xl shadow-black/40 backdrop-blur-sm min-w-[260px]"
+                >
+                    <div className="flex items-center gap-2.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        <span className="text-xs text-zinc-300">{t(lang, 'general.updateAlert.downloading')}</span>
+                    </div>
+                    {updateAlertTotal > 0 && (
+                        <div className="w-full h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+                            <div
+                                className="h-full rounded-full bg-green-500 transition-all duration-200"
+                                style={{width: `${updateProgress * 100}%`}}
+                            />
+                        </div>
+                    )}
                 </motion.div>
             )}
         </AnimatePresence>

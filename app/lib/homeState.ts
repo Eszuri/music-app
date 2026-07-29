@@ -18,6 +18,7 @@ export const VOLUME_STEP_KEY = 'music-app-volume-step';
 export const DEFAULT_VOLUME_STEP = 2;
 export const LANGUAGE_KEY = 'music-app-language';
 export const DEFAULT_LANGUAGE = 'en';
+export const UPDATE_SKIP_KEY = 'music-app-update-skip';
 
 // Shortcut action IDs. Each maps to one key on the keyboard. The user can
 // remap any of these via Settings -> Shortcut; the binding is stored in

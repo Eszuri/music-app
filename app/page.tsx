@@ -94,6 +94,14 @@ export default function Home() {
         updateDownloaded,
         updateTotal,
         handleCheckUpdate,
+        autoUpdateInfo,
+        autoUpdateShown,
+        autoUpdateDownloading,
+        autoUpdateProgress,
+        autoUpdateTotal,
+        dismissAutoUpdate,
+        skipAutoUpdateVersion,
+        startAutoUpdateDownload,
     } = useAppUpdater({addLog, lang});
 
     useEffect(() => {
@@ -296,6 +304,13 @@ export default function Home() {
                 volumeLimit={settings.volumeLimit}
                 onCloseToast={() => setToastVisible(false)}
                 onCloseVolumeAlert={() => settings.setVolumeLimitExceeded(false)}
+                updateAlertInfo={autoUpdateInfo}
+                updateAlertDownloading={autoUpdateDownloading}
+                updateAlertProgress={autoUpdateProgress}
+                updateAlertTotal={autoUpdateTotal}
+                onUpdate={startAutoUpdateDownload}
+                onRemindLater={dismissAutoUpdate}
+                onStayCurrent={skipAutoUpdateVersion}
             />
         </div>
     );
