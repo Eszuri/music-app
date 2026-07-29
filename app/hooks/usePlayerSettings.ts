@@ -28,6 +28,7 @@ import {
     type ShortcutAction,
 } from '../lib/homeState';
 import type {Lang} from '../lib/translations';
+import {t} from '../lib/translations';
 
 export const APP_VOLUME_KEY = 'music-app-app-volume';
 
@@ -232,7 +233,7 @@ export function usePlayerSettings() {
         safeSetLocalStorage(VOLUME_MODE_KEY, volumeMode);
     }, [volumeMode]);
 
-    // Real-time system volume & mute listener (runs every 150ms in system mode)
+    // Event-driven system volume listener (triggered by Windows COM callback)
     useEffect(() => {
         if (!isBrowserTauri || volumeMode !== 'system') {
             setSystemVolumeSynced(false);
@@ -240,47 +241,110 @@ export function usePlayerSettings() {
         }
 
         let cancelled = false;
+        let volumeUnlisten: (() => void) | null = null;
+        let focusUnlisten: (() => void) | null = null;
+        let blurUnlisten: (() => void) | null = null;
 
-        const updateSystemVolumeState = async () => {
+        const setupVolumeCallback = async () => {
             try {
                 const m = await getTauri();
-                const osPct = await m.invoke<number>('get_system_volume');
-                const v = osPct / 100;
-                let muted = false;
-                try {
-                    muted = await m.invoke<boolean>('get_system_mute');
-                } catch { /* ignore */ }
+                const {getCurrentWindow} = await import('@tauri-apps/api/window');
+                const {listen} = await import('@tauri-apps/api/event');
 
-                if (cancelled) return;
+                // Initial sync
+                const initialVolume = await m.invoke<number>('get_system_volume');
+                const initialMuted = await m.invoke<boolean>('get_system_mute').catch(() => false);
+                
+                if (!cancelled) {
+                    setSystemVolumeState(initialVolume / 100);
+                    systemVolumeRef.current = initialVolume / 100;
+                    setSystemMuted(initialMuted);
+                    setSystemVolumeSynced(true);
 
-                setSystemMuted(muted);
-                setSystemVolumeSynced(true);
-
-                const limit = volumeLimitRef.current;
-                if (limit > 0 && v > 0) {
-                    setVolumeLimitExceeded(v > limit / 100);
-                } else if (limit === 0) {
-                    setVolumeLimitExceeded(false);
+                    const limit = volumeLimitRef.current;
+                    if (limit > 0 && initialVolume > 0) {
+                        setVolumeLimitExceeded(initialVolume > limit);
+                    }
                 }
 
-                // If user recently changed volume locally in system mode, delay external sync for 300ms
-                if (Date.now() - lastLocalVolumeSetRef.current < 300) return;
+                // Listen to volume change events from Rust callback
+                volumeUnlisten = await listen<{volume: number; muted: boolean}>(
+                    'system-volume-changed',
+                    (event) => {
+                        if (cancelled) return;
 
-                if (Math.abs(v - systemVolumeRef.current) > 0.001) {
-                    setSystemVolumeState(v);
-                    systemVolumeRef.current = v;
+                        const {volume: osPct, muted} = event.payload;
+                        const v = osPct / 100;
+
+                        setSystemMuted(muted);
+                        setSystemVolumeSynced(true);
+
+                        const limit = volumeLimitRef.current;
+                        if (limit > 0 && v > 0) {
+                            setVolumeLimitExceeded(v > limit / 100);
+                        } else if (limit === 0) {
+                            setVolumeLimitExceeded(false);
+                        }
+
+                        // Delay sync if user recently changed volume locally
+                        if (Date.now() - lastLocalVolumeSetRef.current < 300) return;
+
+                        if (Math.abs(v - systemVolumeRef.current) > 0.001) {
+                            setSystemVolumeState(v);
+                            systemVolumeRef.current = v;
+                        }
+                    }
+                );
+
+                const currentWindow = getCurrentWindow();
+
+                // Register callback when window gains focus
+                focusUnlisten = await currentWindow.onFocusChanged(async ({payload: focused}) => {
+                    if (!focused || cancelled) return;
+                    
+                    try {
+                        await m.invoke('register_volume_callback');
+                    } catch (err) {
+                        console.warn(t(language, 'debug.volumeCallback.registerFailed') + ':', err);
+                    }
+                });
+
+                // Unregister callback when window loses focus (optional, to save resources)
+                blurUnlisten = await currentWindow.onFocusChanged(async ({payload: focused}) => {
+                    if (focused || cancelled) return;
+                    
+                    try {
+                        await m.invoke('unregister_volume_callback');
+                    } catch (err) {
+                        console.warn(t(language, 'debug.volumeCallback.unregisterFailed') + ':', err);
+                    }
+                });
+
+                // Register immediately if window is already focused
+                if (await currentWindow.isFocused()) {
+                    await m.invoke('register_volume_callback');
                 }
-            } catch {
+
+            } catch (err) {
+                console.error(t(language, 'debug.volumeCallback.setupFailed') + ':', err);
                 if (!cancelled) setSystemVolumeSynced(true);
             }
         };
 
-        updateSystemVolumeState();
-        const intervalId = setInterval(updateSystemVolumeState, 150);
+        setupVolumeCallback();
 
         return () => {
             cancelled = true;
-            clearInterval(intervalId);
+            volumeUnlisten?.();
+            focusUnlisten?.();
+            blurUnlisten?.();
+            
+            // Cleanup: unregister callback
+            if (isBrowserTauri) {
+                getTauri()
+                    .then(m => m.invoke('unregister_volume_callback'))
+                    .catch(() => {});
+            }
         };
     }, [volumeMode]);
 

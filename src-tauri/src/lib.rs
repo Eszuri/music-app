@@ -14,7 +14,20 @@ use lofty::file::TaggedFileExt;
 use lofty::read_from_path;
 use lofty::tag::Accessor;
 use serde::Serialize;
-use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder, Url};
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, Url};
+
+#[cfg(windows)]
+use windows::core::implement;
+#[cfg(windows)]
+use windows::Win32::Media::Audio::Endpoints::{
+    IAudioEndpointVolume, IAudioEndpointVolumeCallback, IAudioEndpointVolumeCallback_Impl,
+};
+#[cfg(windows)]
+use windows::Win32::Media::Audio::AUDIO_VOLUME_NOTIFICATION_DATA;
+#[cfg(windows)]
+use windows::Win32::System::Com::{CLSCTX_INPROC_SERVER, CoCreateInstance, CoInitializeEx, COINIT_APARTMENTTHREADED};
+#[cfg(windows)]
+use windows::Win32::Media::Audio::{IMMDeviceEnumerator, MMDeviceEnumerator, eRender, eMultimedia};
 
 #[cfg(windows)]
 #[link(name = "user32")]
@@ -43,9 +56,62 @@ struct FileEntry {
 static RESET_ON_CLOSE: AtomicBool = AtomicBool::new(true);
 static DEFAULT_WALLPAPER_PATH: Mutex<Option<String>> = Mutex::new(None);
 
+#[cfg(windows)]
+static VOLUME_CALLBACK_REGISTERED: AtomicBool = AtomicBool::new(false);
+
 #[tauri::command]
 fn set_reset_on_close(enabled: bool) {
     RESET_ON_CLOSE.store(enabled, Ordering::SeqCst);
+}
+
+#[cfg(windows)]
+#[derive(Serialize, Clone)]
+struct VolumeChangeEvent {
+    volume: u32,
+    muted: bool,
+}
+
+#[cfg(windows)]
+#[implement(IAudioEndpointVolumeCallback)]
+struct VolumeCallback {
+    app_handle: AppHandle,
+}
+
+#[cfg(windows)]
+#[allow(non_snake_case)]
+impl IAudioEndpointVolumeCallback_Impl for VolumeCallback_Impl {
+    fn OnNotify(&self, pnotify: *mut AUDIO_VOLUME_NOTIFICATION_DATA) -> windows::core::Result<()> {
+        unsafe {
+            if pnotify.is_null() {
+                return Ok(());
+            }
+            
+            let notification = &*pnotify;
+            let volume_pct = (notification.fMasterVolume * 100.0).round() as u32;
+            let is_muted = notification.bMuted.as_bool();
+            
+            let _ = self.app_handle.emit("system-volume-changed", VolumeChangeEvent {
+                volume: volume_pct.clamp(0, 100),
+                muted: is_muted,
+            });
+        }
+        Ok(())
+    }
+}
+
+#[cfg(windows)]
+struct VolumeCallbackWrapper {
+    callback: IAudioEndpointVolumeCallback,
+    endpoint: IAudioEndpointVolume,
+}
+
+#[cfg(windows)]
+impl Drop for VolumeCallbackWrapper {
+    fn drop(&mut self) {
+        unsafe {
+            let _ = self.endpoint.UnregisterControlChangeNotify(&self.callback);
+        }
+    }
 }
 
 #[derive(Serialize)]
@@ -167,19 +233,19 @@ fn list_files_inner(
     name_source: String,
     formats: Vec<String>,
 ) -> Result<Vec<FileEntry>, String> {
-    let entries = fs::read_dir(&path).map_err(|e| format!("Gagal membaca folder: {}", e))?;
+    let entries = fs::read_dir(&path).map_err(|e| format!("Failed to read directory: {}", e))?;
 
     let mut files: Vec<FileEntry> = Vec::new();
 
     for entry in entries {
-        let entry = entry.map_err(|e| format!("Gagal membaca entry: {}", e))?;
+        let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
         let name = entry.file_name().to_string_lossy().to_string();
 
         if name.starts_with('.') {
             continue;
         }
 
-        let metadata = entry.metadata().map_err(|e| format!("Gagal baca metadata: {}", e))?;
+        let metadata = entry.metadata().map_err(|e| format!("Failed to read file metadata: {}", e))?;
         let file_type = metadata.file_type();
         let is_dir = file_type.is_dir();
         let ext = entry
@@ -273,10 +339,10 @@ async fn list_files(
 fn get_metadata(file_path: String) -> Result<SongMetadata, String> {
     let path = Path::new(&file_path);
     if !path.exists() {
-        return Err("File tidak ditemukan".to_string());
+        return Err("File not found".to_string());
     }
 
-    let tagged_file = read_from_path(path).map_err(|e| format!("Gagal baca metadata: {}", e))?;
+    let tagged_file = read_from_path(path).map_err(|e| format!("Failed to read metadata: {}", e))?;
 
     let props = tagged_file.properties();
     let duration = props.duration().as_secs_f64();
@@ -356,7 +422,7 @@ fn apply_wallpaper(bmp_path: &Path) -> Result<(), String> {
         )
     };
 
-    if result != 0 { Ok(()) } else { Err("Gagal set wallpaper".into()) }
+    if result != 0 { Ok(()) } else { Err("Failed to set wallpaper".into()) }
 }
 
 #[cfg(windows)]
@@ -365,13 +431,13 @@ fn clear_wallpaper_internal() -> Result<(), String> {
     if let Some(img_path) = guard.as_ref() {
         let path = Path::new(img_path);
         if !path.exists() {
-            return Err("File wallpaper default tidak ditemukan".to_string());
+            return Err("Default wallpaper file not found".to_string());
         }
-        let img = image::open(path).map_err(|e| format!("Gagal buka gambar: {}", e))?;
+        let img = image::open(path).map_err(|e| format!("Failed to open image: {}", e))?;
         let temp_dir = std::env::temp_dir();
         let bmp_path = temp_dir.join("mw-def.bmp");
         img.save_with_format(&bmp_path, image::ImageFormat::Bmp)
-            .map_err(|e| format!("Gagal save BMP: {}", e))?;
+            .map_err(|e| format!("Failed to save BMP: {}", e))?;
         apply_wallpaper(&bmp_path)
     } else {
         Ok(())
@@ -434,7 +500,7 @@ fn get_system_volume() -> Result<u32, String> {
     }
     #[cfg(not(windows))]
     {
-        Err("System volume hanya tersedia di Windows".to_string())
+        Err("System volume only available on Windows".to_string())
     }
 }
 
@@ -453,7 +519,7 @@ fn set_system_volume(value: u32) -> Result<(), String> {
     }
     #[cfg(not(windows))]
     {
-        Err("System volume hanya tersedia di Windows".to_string())
+        Err("System volume only available on Windows".to_string())
     }
 }
 
@@ -472,7 +538,7 @@ fn get_system_mute() -> Result<bool, String> {
     }
     #[cfg(not(windows))]
     {
-        Err("System mute hanya tersedia di Windows".to_string())
+        Err("System mute only available on Windows".to_string())
     }
 }
 
@@ -490,8 +556,87 @@ fn set_system_mute(mute: bool) -> Result<(), String> {
     }
     #[cfg(not(windows))]
     {
-        Err("System mute hanya tersedia di Windows".to_string())
+        Err("System mute only available on Windows".to_string())
     }
+}
+
+#[cfg(windows)]
+#[tauri::command]
+fn register_volume_callback(app: AppHandle) -> Result<(), String> {
+    // Prevent multiple registrations
+    if VOLUME_CALLBACK_REGISTERED.load(Ordering::SeqCst) {
+        return Ok(());
+    }
+
+    std::thread::spawn(move || {
+        unsafe {
+            let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED);
+
+            let enumerator: IMMDeviceEnumerator = match CoCreateInstance(
+                &MMDeviceEnumerator,
+                None,
+                CLSCTX_INPROC_SERVER,
+            ) {
+                Ok(e) => e,
+                Err(_) => return,
+            };
+
+            let device = match enumerator.GetDefaultAudioEndpoint(eRender, eMultimedia) {
+                Ok(d) => d,
+                Err(_) => return,
+            };
+
+            let endpoint: IAudioEndpointVolume = match device.Activate(CLSCTX_INPROC_SERVER, None) {
+                Ok(e) => e,
+                Err(_) => return,
+            };
+
+            let callback_impl = VolumeCallback {
+                app_handle: app.clone(),
+            };
+            let callback: IAudioEndpointVolumeCallback = callback_impl.into();
+
+            if endpoint.RegisterControlChangeNotify(&callback).is_ok() {
+                VOLUME_CALLBACK_REGISTERED.store(true, Ordering::SeqCst);
+                
+                // Keep callback alive by leaking it
+                // This is intentional - callback must live for the entire app lifetime
+                let _ = Box::leak(Box::new(VolumeCallbackWrapper {
+                    callback,
+                    endpoint,
+                }));
+
+                // Keep COM apartment alive
+                loop {
+                    std::thread::sleep(Duration::from_secs(1));
+                    if !VOLUME_CALLBACK_REGISTERED.load(Ordering::SeqCst) {
+                        break;
+                    }
+                }
+            }
+        }
+    });
+
+    Ok(())
+}
+
+#[cfg(not(windows))]
+#[tauri::command]
+fn register_volume_callback(_app: AppHandle) -> Result<(), String> {
+    Err("Volume callback only available on Windows".to_string())
+}
+
+#[cfg(windows)]
+#[tauri::command]
+fn unregister_volume_callback() -> Result<(), String> {
+    VOLUME_CALLBACK_REGISTERED.store(false, Ordering::SeqCst);
+    Ok(())
+}
+
+#[cfg(not(windows))]
+#[tauri::command]
+fn unregister_volume_callback() -> Result<(), String> {
+    Err("Volume callback only available on Windows".to_string())
 }
 
 #[tauri::command]
@@ -500,7 +645,7 @@ fn set_wallpaper(cover_b64: String) -> Result<(), String> {
     let data = engine.decode(&cover_b64).map_err(|e| format!("Base64 decode error: {}", e))?;
 
     let img = image::load_from_memory(&data)
-        .map_err(|e| format!("Gagal decode image: {}", e))?;
+        .map_err(|e| format!("Failed to decode image: {}", e))?;
 
     let temp_dir = std::env::temp_dir();
     let bmp_path = temp_dir.join("mw-cover.bmp");
@@ -645,6 +790,8 @@ pub fn run() {
             set_system_volume,
             get_system_mute,
             set_system_mute,
+            register_volume_callback,
+            unregister_volume_callback,
             set_wallpaper,
             clear_wallpaper,
             pick_folder,

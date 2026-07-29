@@ -265,6 +265,11 @@ const en: Record<string, string> = {
     'volume.increaseDisabled': 'Volume limit reached',
     'volume.increase': 'Increase volume',
     'volume.resetToLimit': 'Reset volume to safe limit ({limit}%)',
+    
+    // Volume callback debug messages
+    'debug.volumeCallback.registerFailed': 'Failed to register volume callback',
+    'debug.volumeCallback.unregisterFailed': 'Failed to unregister volume callback', 
+    'debug.volumeCallback.setupFailed': 'Failed to setup volume callback',
 
     'stream.title': 'Streaming',
     'stream.subtitle': 'Streaming platforms & media URL',
@@ -566,6 +571,11 @@ const id: Record<string, string> = {
     'volume.increaseDisabled': 'Telah mencapai batas volume',
     'volume.increase': 'Tambah volume',
     'volume.resetToLimit': 'Reset volume ke batas aman ({limit}%)',
+    
+    // Volume callback debug messages
+    'debug.volumeCallback.registerFailed': 'Gagal mendaftarkan volume callback',
+    'debug.volumeCallback.unregisterFailed': 'Gagal menghentikan volume callback',
+    'debug.volumeCallback.setupFailed': 'Gagal mengatur volume callback',
 
     'stream.title': 'Streaming',
     'stream.subtitle': 'Platform streaming & URL media',
