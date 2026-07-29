@@ -97,7 +97,7 @@ export default function HomeAlerts({
                     animate={{opacity: 1, y: 0, scale: 1}}
                     exit={{opacity: 0, y: -12, scale: 0.95}}
                     transition={{duration: 0.3}}
-                    className="fixed top-4 right-4 z-70 flex flex-col gap-3 px-5 py-4 rounded-xl bg-zinc-900/90 border border-zinc-700/60 text-sm text-zinc-200 shadow-2xl shadow-black/40 backdrop-blur-sm min-w-[280px]"
+                    className="fixed top-4 right-4 z-70 flex flex-col gap-3 px-5 py-4 rounded-xl bg-zinc-900/90 border border-zinc-700/60 text-sm text-zinc-200 shadow-2xl shadow-black/40 backdrop-blur-sm min-w-[340px]"
                 >
                     <div className="flex items-center gap-2.5">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
@@ -109,22 +109,22 @@ export default function HomeAlerts({
                             <span className="text-xs text-zinc-400">{t(lang, 'general.updateAlert.message', {version: updateAlertInfo.version})}</span>
                         </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="flex gap-2">
                         <button
                             onClick={onUpdate}
-                            className="px-1.5 py-1.5 rounded-lg text-[11px] font-medium text-white bg-green-600 hover:bg-green-500 transition-colors cursor-pointer text-center leading-tight"
+                            className="h-8 px-3 rounded-lg text-[11px] font-medium text-white bg-green-600 hover:bg-green-500 transition-colors cursor-pointer text-center whitespace-nowrap"
                         >
                             {t(lang, 'general.updateAlert.updateBtn')}
                         </button>
                         <button
                             onClick={onRemindLater}
-                            className="px-1.5 py-1.5 rounded-lg text-[11px] font-medium text-zinc-300 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700/50 transition-colors cursor-pointer text-center leading-tight"
+                            className="h-8 px-3 rounded-lg text-[11px] font-medium text-zinc-300 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700/50 transition-colors cursor-pointer text-center whitespace-nowrap"
                         >
                             {t(lang, 'general.updateAlert.remindLater')}
                         </button>
                         <button
                             onClick={onStayCurrent}
-                            className="px-1.5 py-1.5 rounded-lg text-[11px] font-medium text-zinc-400 bg-zinc-800/50 hover:bg-zinc-700/70 border border-zinc-700/30 transition-colors cursor-pointer text-center leading-tight"
+                            className="h-8 px-3 rounded-lg text-[11px] font-medium text-zinc-400 bg-zinc-800/50 hover:bg-zinc-700/70 border border-zinc-700/30 transition-colors cursor-pointer text-center whitespace-nowrap"
                         >
                             {t(lang, 'general.updateAlert.stayCurrent')}
                         </button>
