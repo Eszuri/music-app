@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getAccent } from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
+import ContextMenu, { ContextMenuItem } from './ContextMenu';
 
 export interface FileEntry {
     name: string;
@@ -32,6 +33,9 @@ interface FolderExplorerProps {
     musicFolder: string | null;
     resetSidebarToken: number;
     accentColor: string;
+    onContextDir?: (e: React.MouseEvent, file: FileEntry) => void;
+    onContextFile?: (e: React.MouseEvent, file: FileEntry) => void;
+    onGlobalContextMenu?: (e: React.MouseEvent) => void;
 }
 
 function isAncestorOf(folderPath: string, targetPath: string): boolean {
@@ -73,9 +77,13 @@ export default function FolderExplorer({
     musicFolder,
     resetSidebarToken,
     accentColor,
+    onContextDir,
+    onContextFile,
+    onGlobalContextMenu,
 }: FolderExplorerProps) {
     const accent = getAccent(accentColor);
     const [width, setWidth] = useState<number>(DEFAULT_WIDTH);
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
     const isDraggingRef = useRef(false);
     const startXRef = useRef(0);
     const startWidthRef = useRef(DEFAULT_WIDTH);
@@ -177,9 +185,29 @@ export default function FolderExplorer({
             style={{ width }}
             className="relative flex shrink-0 flex-col border-r border-zinc-800/50 bg-black/30 max-lg:flex-1 max-lg:min-w-0 overflow-hidden"
         >
-            <div className="flex items-center gap-2 px-3 py-2.5 border-b border-zinc-800/30">
+            {/* Toolbar header */}
+            <div
+                onContextMenu={onGlobalContextMenu}
+                className="flex items-center gap-2 px-3 py-2.5 border-b border-zinc-800/30"
+            >
                 <motion.button
                     onClick={goUp}
+                    onContextMenu={(e: React.MouseEvent) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setContextMenu({
+                            x: e.clientX,
+                            y: e.clientY,
+                            items: [
+                                {
+                                    label: t(lang, 'folder.goUp'),
+                                    icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>,
+                                    onClick: goUp,
+                                    disabled: displayPath === musicFolder
+                                }
+                            ]
+                        });
+                    }}
                     title={t(lang, 'folder.goUp')}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.92 }}
@@ -191,9 +219,47 @@ export default function FolderExplorer({
                         <path d="m15 18-6-6 6-6" />
                     </svg>
                 </motion.button>
-                <span className="text-xs text-zinc-500 truncate flex-1" title={displayPath}>{displayPath}</span>
+                <span 
+                    onContextMenu={(e: React.MouseEvent) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setContextMenu({
+                            x: e.clientX,
+                            y: e.clientY,
+                            items: [
+                                {
+                                    label: t(lang, 'contextMenu.copyPath'),
+                                    icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
+                                    onClick: () => {
+                                        if (displayPath) navigator.clipboard.writeText(displayPath);
+                                    },
+                                    disabled: !displayPath
+                                }
+                            ]
+                        });
+                    }}
+                    className="text-xs text-zinc-500 truncate flex-1 cursor-default" 
+                    title={displayPath}
+                >
+                    {displayPath}
+                </span>
                 <motion.button
                     onClick={onChangeFolder}
+                    onContextMenu={(e: React.MouseEvent) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setContextMenu({
+                            x: e.clientX,
+                            y: e.clientY,
+                            items: [
+                                {
+                                    label: t(lang, 'folder.changeFolder', {folder: musicFolder || ''}),
+                                    icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 12h6M12 9l3 3-3 3"/></svg>,
+                                    onClick: onChangeFolder
+                                }
+                            ]
+                        });
+                    }}
                     title={t(lang, 'folder.changeFolder', {folder: musicFolder || ''})}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.92 }}
@@ -207,9 +273,11 @@ export default function FolderExplorer({
                     </svg>
                 </motion.button>
             </div>
+            {/* File list scroll area — global context menu on empty scroll space */}
             <div
                 ref={scrollRef}
                 onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+                onContextMenu={onGlobalContextMenu}
                 className="flex-1 overflow-y-auto"
             >
                 <AnimatePresence mode="wait" initial={false}>
@@ -245,6 +313,8 @@ export default function FolderExplorer({
                             playingAncestorPrefix={playingAncestorPrefix}
                             onPick={playSong}
                             onEnterDir={setCurrentPath}
+                            onContextDir={onContextDir}
+                            onContextFile={onContextFile}
                             accentBg10={accent.bg10}
                             accentText400={accent.text400}
                             accentBorder500={accent.border500}
@@ -276,6 +346,14 @@ export default function FolderExplorer({
                 }}
                 className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize transition-colors max-lg:hidden"
             />
+            {contextMenu && (
+                <ContextMenu
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    items={contextMenu.items}
+                    onClose={() => setContextMenu(null)}
+                />
+            )}
         </aside>
     );
 }
@@ -289,6 +367,8 @@ function VirtualList({
     playingAncestorPrefix,
     onPick,
     onEnterDir,
+    onContextDir,
+    onContextFile,
     accentBg10,
     accentText400,
     accentBorder500,
@@ -302,6 +382,8 @@ function VirtualList({
     playingAncestorPrefix: string | null;
     onPick: (file: FileEntry) => void;
     onEnterDir: (path: string) => void;
+    onContextDir?: (e: React.MouseEvent, file: FileEntry) => void;
+    onContextFile?: (e: React.MouseEvent, file: FileEntry) => void;
     accentBg10: string;
     accentText400: string;
     accentBorder500: string;
@@ -350,6 +432,13 @@ function VirtualList({
                     <button
                         key={file.path}
                         onClick={() => file.is_dir ? onEnterDir(file.path) : onPick(file)}
+                        onContextMenu={(e) => {
+                            if (file.is_dir) {
+                                if (onContextDir) onContextDir(e, file);
+                            } else {
+                                if (onContextFile) onContextFile(e, file);
+                            }
+                        }}
                         title={titleAttr}
                         className={`w-full flex items-center gap-2.5 px-3 text-sm text-left cursor-pointer transition-colors duration-100 ${rowClass}`}
                         style={{ height: ROW_HEIGHT }}

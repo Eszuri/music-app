@@ -89,6 +89,44 @@ async fn pick_wallpaper() -> Result<Option<String>, String> {
 }
 
 #[tauri::command]
+async fn open_devtools(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        window.open_devtools();
+        Ok(())
+    } else {
+        Err("Main webview window not found".to_string())
+    }
+}
+
+#[tauri::command]
+async fn save_cover_image(cover_b64: String, mime: String) -> Result<(), String> {
+    let engine = base64::engine::general_purpose::STANDARD;
+    let data = engine.decode(&cover_b64).map_err(|e| format!("Base64 decode error: {}", e))?;
+
+    let ext = match mime.as_str() {
+        "image/jpeg" | "image/jpg" => "jpg",
+        "image/png" => "png",
+        "image/webp" => "webp",
+        "image/bmp" => "bmp",
+        "image/gif" => "gif",
+        _ => "png",
+    };
+
+    let file = rfd::AsyncFileDialog::new()
+        .set_title("Save Cover Image")
+        .set_file_name(&format!("cover.{}", ext))
+        .add_filter("Image", &[ext])
+        .save_file()
+        .await;
+
+    if let Some(path) = file {
+        fs::write(path.path(), &data).map_err(|e| format!("Failed to save file: {}", e))?;
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
 fn set_default_wallpaper_path(path: Option<String>) -> Result<(), String> {
     let mut guard = DEFAULT_WALLPAPER_PATH.lock().map_err(|e| e.to_string())?;
     *guard = path;
@@ -611,6 +649,8 @@ pub fn run() {
             clear_wallpaper,
             pick_folder,
             pick_wallpaper,
+            open_devtools,
+            save_cover_image,
             set_default_wallpaper_path,
             get_default_wallpaper_path,
             set_reset_on_close,

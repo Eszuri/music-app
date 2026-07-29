@@ -19,27 +19,27 @@ interface PlaybackControlsProps {
     accentColor: string;
 }
 
-function ShuffleIcon({ active }: { active: boolean }) {
+function ShuffleIcon() {
     return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M2 18h6l4-6H2z" opacity={active ? 1 : 0.5} />
-            <path d="M16 6h6l-4 6h-6z" opacity={active ? 1 : 0.5} />
-            <path d="m16 6 2-2 2 2" />
-            <path d="m2 18 2-2 2 2" />
-            <path d="M8 12h8" />
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="16 3 21 3 21 8" />
+            <line x1="4" y1="20" x2="21" y2="3" />
+            <polyline points="21 16 21 21 16 21" />
+            <line x1="15" y1="15" x2="21" y2="21" />
+            <line x1="4" y1="4" x2="9" y2="9" />
         </svg>
     );
 }
 
 function RepeatIcon({ mode }: { mode: 'off' | 'all' | 'one' }) {
     return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="m17 2 4 4-4 4" />
             <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
             <path d="m7 22-4-4 4-4" />
             <path d="M21 13v1a4 4 0 0 1-4 4H3" />
             {mode === 'one' && (
-                <text x="12" y="14" textAnchor="middle" fontSize="8" fill="currentColor" stroke="none" fontWeight="bold">1</text>
+                <text x="12" y="14.5" textAnchor="middle" fontSize="7.5" fill="currentColor" stroke="none" fontWeight="bold">1</text>
             )}
         </svg>
     );
@@ -67,35 +67,70 @@ export default function PlaybackControls({
         else setRepeat('off');
     };
 
+    // ─── Shuffle button styles ────────────────────────────────────────────────
+    // OFF: muted zinc, no background
+    // ON:  accent color text + tinted background + bottom dot indicator
+    const shuffleClass = shuffle
+        ? `${accent.text400} ${accent.bg15} border ${accent.border500_20}`
+        : 'text-zinc-500 hover:text-zinc-300 border border-transparent hover:border-zinc-700/40 hover:bg-zinc-800/40';
+
+    // ─── Repeat button styles ─────────────────────────────────────────────────
+    // OFF:  muted zinc, no background
+    // ALL:  accent color text + tinted background + border
+    // ONE:  stronger accent background (bg30) + accent border — visually more intense
+    const repeatClass =
+        repeat === 'off'
+            ? 'text-zinc-500 hover:text-zinc-300 border border-transparent hover:border-zinc-700/40 hover:bg-zinc-800/40'
+            : repeat === 'all'
+                ? `${accent.text400} ${accent.bg15} border ${accent.border500_20}`
+                : `${accent.text400} ${accent.bg30} border ${accent.border500_20}`;
+
+    const repeatTitle =
+        repeat === 'off'
+            ? t(lang, 'playback.repeatOff')
+            : repeat === 'all'
+                ? t(lang, 'playback.repeatAll')
+                : t(lang, 'playback.repeatOne');
+
     return (
         <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+
+            {/* ── Shuffle ─────────────────────────────────────────── */}
             <motion.button
                 onClick={() => setShuffle(!shuffle)}
                 disabled={!hasSong}
-                whileHover={hasSong ? { scale: 1.1 } : {}}
-                whileTap={hasSong ? { scale: 0.9 } : {}}
+                whileHover={hasSong ? { scale: 1.08 } : {}}
+                whileTap={hasSong ? { scale: 0.92 } : {}}
                 transition={{ duration: 0.12 }}
-                className={`w-9 h-9 rounded-lg flex items-center justify-center cursor-pointer transition-colors
-                    ${shuffle ? `${accent.text400} ${accent.bg10}` : 'text-zinc-500 hover:text-zinc-300'}
+                className={`relative w-9 h-9 rounded-lg flex items-center justify-center cursor-pointer transition-all duration-150
+                    ${shuffleClass}
                     disabled:opacity-30 disabled:cursor-default`}
                 title={shuffle ? t(lang, 'playback.shuffleOn') : t(lang, 'playback.shuffleOff')}
             >
-                <ShuffleIcon active={shuffle} />
+                <ShuffleIcon />
+                {/* Active dot indicator */}
+                {shuffle && (
+                    <span
+                        className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${accent.bg400}`}
+                    />
+                )}
             </motion.button>
 
+            {/* ── Previous ────────────────────────────────────────── */}
             <motion.button
                 onClick={playPrev}
                 disabled={!hasSong}
                 whileHover={hasSong ? { scale: 1.1 } : {}}
                 whileTap={hasSong ? { scale: 0.9 } : {}}
                 transition={{ duration: 0.12 }}
-                className="w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-100 disabled:opacity-30 cursor-pointer"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-100 disabled:opacity-30 cursor-pointer transition-colors"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
+                    <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z" />
                 </svg>
             </motion.button>
 
+            {/* ── Play / Pause ─────────────────────────────────────── */}
             <motion.button
                 onClick={togglePlayPause}
                 disabled={!hasSong}
@@ -117,32 +152,42 @@ export default function PlaybackControls({
                 )}
             </motion.button>
 
+            {/* ── Next ────────────────────────────────────────────── */}
             <motion.button
                 onClick={playNext}
                 disabled={!hasSong}
                 whileHover={hasSong ? { scale: 1.1 } : {}}
                 whileTap={hasSong ? { scale: 0.9 } : {}}
                 transition={{ duration: 0.12 }}
-                className="w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-100 disabled:opacity-30 cursor-pointer"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-100 disabled:opacity-30 cursor-pointer transition-colors"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
                 </svg>
             </motion.button>
 
+            {/* ── Repeat ──────────────────────────────────────────── */}
             <motion.button
                 onClick={cycleRepeat}
                 disabled={!hasSong}
-                whileHover={hasSong ? { scale: 1.1 } : {}}
-                whileTap={hasSong ? { scale: 0.9 } : {}}
+                whileHover={hasSong ? { scale: 1.08 } : {}}
+                whileTap={hasSong ? { scale: 0.92 } : {}}
                 transition={{ duration: 0.12 }}
-                className={`w-9 h-9 rounded-lg flex items-center justify-center cursor-pointer transition-colors
-                    ${repeat !== 'off' ? `${accent.text400} ${accent.bg10}` : 'text-zinc-500 hover:text-zinc-300'}
+                className={`relative w-9 h-9 rounded-lg flex items-center justify-center cursor-pointer transition-all duration-150
+                    ${repeatClass}
                     disabled:opacity-30 disabled:cursor-default`}
-                title={repeat === 'off' ? t(lang, 'playback.repeatOff') : repeat === 'all' ? t(lang, 'playback.repeatAll') : t(lang, 'playback.repeatOne')}
+                title={repeatTitle}
             >
                 <RepeatIcon mode={repeat} />
+                {/* Mode dot indicators */}
+                {repeat !== 'off' && (
+                    <span
+                        className={`absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full ${accent.bg400}
+                            ${repeat === 'one' ? 'w-1.5 h-1.5' : 'w-1 h-1'}`}
+                    />
+                )}
             </motion.button>
+
         </div>
     );
 }

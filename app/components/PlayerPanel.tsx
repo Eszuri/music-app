@@ -29,9 +29,10 @@ interface PlayerPanelProps {
     metadata: SongMetadata | null;
     selectedSong: FileEntry | null;
     accentColor: string;
+    onContextMenu?: (e: React.MouseEvent) => void;
 }
 
-export default function PlayerPanel({ lang, metadata, selectedSong, accentColor }: PlayerPanelProps) {
+export default function PlayerPanel({ lang, metadata, selectedSong, accentColor, onContextMenu }: PlayerPanelProps) {
     const accent = getAccent(accentColor);
     const songTitle = selectedSong
         ? (metadata?.title || selectedSong.name.replace(/\.[^/.]+$/, ''))
@@ -47,6 +48,7 @@ export default function PlayerPanel({ lang, metadata, selectedSong, accentColor 
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                 whileHover={{ scale: 1.02 }}
+                onContextMenu={onContextMenu}
                 className="w-full max-w-[360px] sm:max-w-[420px] md:max-w-[460px] max-h-[45vh] rounded-2xl overflow-hidden bg-zinc-900/80 flex items-center justify-center ring-1 ring-white/5 cursor-pointer relative shrink"
                 style={{
                     boxShadow: selectedSong

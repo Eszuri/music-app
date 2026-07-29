@@ -333,6 +333,13 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         }
     }, [volumeMode, appVolume]);
 
+    // Sinkronkan state repeat === 'one' langsung ke elemen audio agar realtime
+    useEffect(() => {
+        if (audioRef.current) {
+            audioRef.current.loop = repeat === 'one';
+        }
+    }, [repeat]);
+
     const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const v = parseFloat(e.target.value);
         if (volumeModeRef.current === 'app') {

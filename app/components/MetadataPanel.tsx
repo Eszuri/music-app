@@ -6,6 +6,7 @@ import { FileEntry } from './FolderExplorer';
 import { SongMetadata } from './PlayerPanel';
 import { getAccent } from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
+import ContextMenu, { ContextMenuItem } from './ContextMenu';
 
 interface MetadataPanelProps {
     lang: Lang;
@@ -13,6 +14,7 @@ interface MetadataPanelProps {
     metadata: SongMetadata | null;
     accentColor: string;
     resetSidebarToken: number;
+    onContextMenu?: (e: React.MouseEvent) => void;
 }
 
 const MIN_WIDTH = 200;
@@ -77,13 +79,14 @@ function channelsLabel(lang: Lang, ch: number | null): string {
     return `${ch}${t(lang, 'metadata.ch')}`;
 }
 
-export default function MetadataPanel({ lang, selectedSong, metadata, accentColor, resetSidebarToken }: MetadataPanelProps) {
+export default function MetadataPanel({ lang, selectedSong, metadata, accentColor, resetSidebarToken, onContextMenu }: MetadataPanelProps) {
     const accent = getAccent(accentColor);
     const songTitle = selectedSong
         ? (metadata?.title || selectedSong.name.replace(/\.[^/.]+$/, ''))
         : null;
 
     const [width, setWidth] = useState<number>(DEFAULT_WIDTH);
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
     const isDraggingRef = useRef(false);
     const startXRef = useRef(0);
     const startWidthRef = useRef(DEFAULT_WIDTH);
@@ -193,7 +196,32 @@ export default function MetadataPanel({ lang, selectedSong, metadata, accentColo
                 <span className="text-xs font-medium text-zinc-400 tracking-wide">{t(lang, 'metadata.heading')}</span>
             </div>
 
-            <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-4 space-y-3 md:space-y-4">
+            <div 
+                className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-4 space-y-3 md:space-y-4 select-text [&_*::selection]:bg-[var(--selection-bg)] [&_*::selection]:text-[var(--selection-color)]"
+                style={{
+                    '--selection-bg': accent.hex500 + '80',
+                    '--selection-color': '#ffffff'
+                } as React.CSSProperties}
+                onContextMenu={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const sel = window.getSelection()?.toString().trim();
+                    setContextMenu({
+                        x: e.clientX,
+                        y: e.clientY,
+                        items: [
+                            {
+                                label: t(lang, 'contextMenu.copyText'),
+                                icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
+                                onClick: () => {
+                                    if (sel) navigator.clipboard.writeText(sel);
+                                },
+                                disabled: !sel
+                            }
+                        ]
+                    });
+                }}
+            >
                 <AnimatePresence mode="wait">
                     {selectedSong ? (
                         <motion.div
@@ -204,7 +232,10 @@ export default function MetadataPanel({ lang, selectedSong, metadata, accentColo
                             transition={{ duration: 0.2 }}
                         >
                             {/* Cover art small */}
-                            <div className="w-full aspect-square max-w-[160px] mx-auto rounded-xl overflow-hidden bg-zinc-900/80 ring-1 ring-white/5 mb-4">
+                            <div
+                                onContextMenu={onContextMenu}
+                                className="w-full aspect-square max-w-[160px] mx-auto rounded-xl overflow-hidden bg-zinc-900/80 ring-1 ring-white/5 mb-4"
+                            >
                                 <AnimatePresence mode="wait">
                                     {metadata?.cover_b64 ? (
                                         <motion.img
@@ -309,6 +340,14 @@ export default function MetadataPanel({ lang, selectedSong, metadata, accentColo
                     )}
                 </AnimatePresence>
             </div>
+            {contextMenu && (
+                <ContextMenu
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    items={contextMenu.items}
+                    onClose={() => setContextMenu(null)}
+                />
+            )}
         </aside>
     );
 }

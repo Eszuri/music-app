@@ -1,7 +1,7 @@
 'use client';
 
 import {AnimatePresence, motion} from 'framer-motion';
-import type {ChangeEvent} from 'react';
+import {useCallback, useState, type ChangeEvent} from 'react';
 import FolderExplorer, {FileEntry} from '../FolderExplorer';
 import PlayerPanel, {SongMetadata} from '../PlayerPanel';
 import SeekBar from '../SeekBar';
@@ -9,7 +9,9 @@ import PlaybackControls from '../PlaybackControls';
 import VolumeControl from '../VolumeControl';
 import MetadataPanel from '../MetadataPanel';
 import {EmptyFolderState, InitSkeleton, NoFolderEmptyState} from './HomeEmptyStates';
-import type {Lang} from '../../lib/translations';
+import ContextMenu, {type ContextMenuItem} from '../ContextMenu';
+import {getTauri} from '../../lib/homeState';
+import {t, type Lang} from '../../lib/translations';
 
 interface HomePlayerAreaProps {
     lang: Lang;
@@ -48,6 +50,32 @@ interface HomePlayerAreaProps {
     setShuffle: (v: boolean) => void;
     setRepeat: (v: 'off' | 'all' | 'one') => void;
     handleVolumeChange: (e: ChangeEvent<HTMLInputElement>) => void;
+    onGlobalContextMenu: (e: React.MouseEvent) => void;
+}
+
+async function openDevTools() {
+    try {
+        const mod = await getTauri();
+        await mod.invoke('open_devtools');
+    } catch {
+        // not in Tauri
+    }
+}
+
+function appendDevTools(items: ContextMenuItem[], lang: Lang): ContextMenuItem[] {
+    return [
+        ...(items.length > 0 ? [{separator: true} as ContextMenuItem] : []),
+        {
+            label: t(lang, 'contextMenu.openDevTools'),
+            icon: (
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="16 18 22 12 16 6" />
+                    <polyline points="8 6 2 12 8 18" />
+                </svg>
+            ),
+            onClick: openDevTools,
+        },
+    ];
 }
 
 export default function HomePlayerArea({
@@ -87,6 +115,7 @@ export default function HomePlayerArea({
     setShuffle,
     setRepeat,
     handleVolumeChange,
+    onGlobalContextMenu,
 }: HomePlayerAreaProps) {
     const leftVisible = showLeftSidebar || !isCompact;
     const rightVisible = showRightSidebar || !isCompact;
@@ -96,6 +125,74 @@ export default function HomePlayerArea({
         : leftVisible !== rightVisible
             ? 'max-lg:w-1/2 max-lg:flex-none max-lg:min-w-0'
             : 'max-lg:w-[320px] max-lg:flex-none max-lg:min-w-0';
+
+    const [contextMenu, setContextMenu] = useState<{x: number; y: number; items: ContextMenuItem[]} | null>(null);
+    const hideContextMenu = useCallback(() => setContextMenu(null), []);
+
+    // Album/cover art context menu
+    const showAlbumMenu = useCallback((e: React.MouseEvent) => {
+        if (!metadata?.cover_b64) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const items: ContextMenuItem[] = [
+            {
+                label: t(lang, 'contextMenu.saveImage'),
+                icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+                onClick: async () => {
+                    try {
+                        const mod = await getTauri();
+                        await mod.invoke('save_cover_image', {coverB64: metadata.cover_b64, mime: metadata.cover_mime});
+                    } catch {
+                        // not in Tauri
+                    }
+                },
+            },
+        ];
+        setContextMenu({x: e.clientX, y: e.clientY, items: [...items, ...appendDevTools(items, lang)]});
+    }, [lang, metadata]);
+
+    // Folder context menu
+    const showFolderMenu = useCallback((e: React.MouseEvent, file: FileEntry) => {
+        if (!file.is_dir) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const items: ContextMenuItem[] = [
+            {
+                label: t(lang, 'contextMenu.openFolder'),
+                icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>,
+                onClick: () => setCurrentPath(file.path),
+            },
+        ];
+        setContextMenu({x: e.clientX, y: e.clientY, items: [...items, ...appendDevTools(items, lang)]});
+    }, [lang, setCurrentPath]);
+
+    // Audio file context menu
+    const showFileMenu = useCallback((e: React.MouseEvent, file: FileEntry) => {
+        if (file.is_dir) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const isCurrentSong = selectedSong?.path === file.path;
+        const items: ContextMenuItem[] = [
+            {
+                label: t(lang, 'contextMenu.playSong'),
+                icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>,
+                onClick: () => playSong(file),
+                disabled: isCurrentSong && isPlaying,
+            },
+            {
+                label: t(lang, 'contextMenu.copyPath'),
+                icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
+                onClick: () => {
+                    try {
+                        navigator.clipboard.writeText(file.path);
+                    } catch {
+                        // clipboard not available
+                    }
+                },
+            },
+        ];
+        setContextMenu({x: e.clientX, y: e.clientY, items: [...items, ...appendDevTools(items, lang)]});
+    }, [lang, selectedSong, isPlaying, playSong]);
 
     return (
         <div className="flex flex-1 overflow-hidden">
@@ -131,6 +228,7 @@ export default function HomePlayerArea({
                         transition={{duration: 0.25}}
                         className="flex flex-1 overflow-hidden"
                     >
+                        {/* Left sidebar — global context menu on empty areas */}
                         <AnimatePresence>
                             {(showLeftSidebar || !isCompact) && (
                                 <motion.aside
@@ -155,12 +253,19 @@ export default function HomePlayerArea({
                                         musicFolder={musicFolder}
                                         resetSidebarToken={resetSidebarToken}
                                         accentColor={accentColor}
+                                        onContextDir={showFolderMenu}
+                                        onContextFile={showFileMenu}
+                                        onGlobalContextMenu={onGlobalContextMenu}
                                     />
                                 </motion.aside>
                             )}
                         </AnimatePresence>
 
-                        <main className={`flex flex-col items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto overflow-x-hidden ${mainWidthClass} flex-1 min-w-0 h-full`}>
+                        {/* Main player area — global context menu */}
+                        <main
+                            onContextMenu={onGlobalContextMenu}
+                            className={`flex flex-col items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto overflow-x-hidden ${mainWidthClass} flex-1 min-w-0 h-full`}
+                        >
                             {files.length === 0 ? (
                                 <EmptyFolderState lang={lang} folder={displayPath} />
                             ) : (
@@ -170,6 +275,7 @@ export default function HomePlayerArea({
                                         metadata={metadata}
                                         selectedSong={selectedSong}
                                         accentColor={accentColor}
+                                        onContextMenu={showAlbumMenu}
                                     />
                                     <SeekBar
                                         lang={lang}
@@ -206,9 +312,11 @@ export default function HomePlayerArea({
                             )}
                         </main>
 
+                        {/* Right sidebar — global context menu on empty areas */}
                         <AnimatePresence>
                             {(showRightSidebar || !isCompact) && (
                                 <motion.aside
+                                    onContextMenu={onGlobalContextMenu}
                                     initial={isCompact ? {width: 0, opacity: 0} : false}
                                     animate={{width: 'auto', opacity: 1}}
                                     exit={{width: 0, opacity: 0}}
@@ -221,6 +329,7 @@ export default function HomePlayerArea({
                                         metadata={metadata}
                                         accentColor={accentColor}
                                         resetSidebarToken={resetSidebarToken}
+                                        onContextMenu={showAlbumMenu}
                                     />
                                 </motion.aside>
                             )}
@@ -228,6 +337,16 @@ export default function HomePlayerArea({
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Local context menus for specific elements (album, folder, file) */}
+            {contextMenu && (
+                <ContextMenu
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    items={contextMenu.items}
+                    onClose={hideContextMenu}
+                />
+            )}
         </div>
     );
 }
