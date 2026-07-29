@@ -14,6 +14,7 @@ interface UseKeyboardShortcutsOptions {
     volumeStepRef: React.MutableRefObject<number>;
     setAppVolume: (v: number) => void;
     setSystemVolume: (v: number) => void;
+    setSystemMuted: React.Dispatch<React.SetStateAction<boolean>>;
     volumeModeRef: React.MutableRefObject<'app' | 'system'>;
     volumeLimitRef: React.MutableRefObject<number>;
     audioRef: React.MutableRefObject<HTMLAudioElement | null>;
@@ -34,6 +35,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
         volumeStepRef,
         setAppVolume,
         setSystemVolume,
+        setSystemMuted,
         volumeModeRef,
         volumeLimitRef,
         audioRef,
@@ -106,10 +108,15 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
                         if (limit > 0 && Math.round(raw * 100) > limit) {
                             raw = limit / 100;
                         }
+                        const targetPct = Math.round(raw * 100);
                         setSystemVolume(raw);
+                        setSystemMuted(targetPct === 0);
                         if (isBrowserTauri) {
                             lastLocalVolumeSetRef.current = Date.now();
-                            getTauri().then(m => m.invoke('set_system_volume', {value: Math.round(raw * 100)})).catch(() => {});
+                            getTauri().then(async m => {
+                                await m.invoke('set_system_volume', {value: targetPct});
+                                await m.invoke('set_system_mute', {mute: targetPct === 0});
+                            }).catch(() => {});
                         }
                     }
                     break;
@@ -131,10 +138,15 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
                         }
 
                         const raw = Math.max(0, Math.round((cur - step) / step) * step);
+                        const targetPct = Math.round(raw * 100);
                         setSystemVolume(raw);
+                        setSystemMuted(targetPct === 0);
                         if (isBrowserTauri) {
                             lastLocalVolumeSetRef.current = Date.now();
-                            getTauri().then(m => m.invoke('set_system_volume', {value: Math.round(raw * 100)})).catch(() => {});
+                            getTauri().then(async m => {
+                                await m.invoke('set_system_volume', {value: targetPct});
+                                await m.invoke('set_system_mute', {mute: targetPct === 0});
+                            }).catch(() => {});
                         }
                     }
                     break;
@@ -157,6 +169,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
         volumeStepRef,
         setAppVolume,
         setSystemVolume,
+        setSystemMuted,
         volumeModeRef,
         volumeLimitRef,
         audioRef,

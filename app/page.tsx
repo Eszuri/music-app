@@ -180,6 +180,7 @@ function HomeContent() {
         volumeStepRef: settings.volumeStepRef,
         setAppVolume: settings.setAppVolume,
         setSystemVolume: settings.setSystemVolume,
+        setSystemMuted: settings.setSystemMuted,
         volumeModeRef: settings.volumeModeRef,
         volumeLimitRef: settings.volumeLimitRef,
         audioRef: player.audioRef,

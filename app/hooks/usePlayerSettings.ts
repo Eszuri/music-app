@@ -248,13 +248,23 @@ export function usePlayerSettings() {
         let cancelled = false;
         let volumeUnlisten: (() => void) | null = null;
         let focusUnlisten: (() => void) | null = null;
-        let blurUnlisten: (() => void) | null = null;
+        let registered = false;
 
         const setupVolumeCallback = async () => {
             try {
                 const m = await getTauri();
                 const {getCurrentWindow} = await import('@tauri-apps/api/window');
                 const {listen} = await import('@tauri-apps/api/event');
+
+                const registerVolumeCallback = async () => {
+                    if (registered || cancelled) return;
+                    try {
+                        await m.invoke('register_volume_callback');
+                        registered = true;
+                    } catch (err) {
+                        console.warn(t(language, 'debug.volumeCallback.registerFailed') + ':', err);
+                    }
+                };
 
                 // Initial sync
                 const initialVolume = await m.invoke<number>('get_system_volume');
@@ -306,28 +316,12 @@ export function usePlayerSettings() {
                 // Register callback when window gains focus
                 focusUnlisten = await currentWindow.onFocusChanged(async ({payload: focused}) => {
                     if (!focused || cancelled) return;
-                    
-                    try {
-                        await m.invoke('register_volume_callback');
-                    } catch (err) {
-                        console.warn(t(language, 'debug.volumeCallback.registerFailed') + ':', err);
-                    }
-                });
-
-                // Unregister callback when window loses focus (optional, to save resources)
-                blurUnlisten = await currentWindow.onFocusChanged(async ({payload: focused}) => {
-                    if (focused || cancelled) return;
-                    
-                    try {
-                        await m.invoke('unregister_volume_callback');
-                    } catch (err) {
-                        console.warn(t(language, 'debug.volumeCallback.unregisterFailed') + ':', err);
-                    }
+                    await registerVolumeCallback();
                 });
 
                 // Register immediately if window is already focused
                 if (await currentWindow.isFocused()) {
-                    await m.invoke('register_volume_callback');
+                    await registerVolumeCallback();
                 }
 
             } catch (err) {
@@ -342,16 +336,8 @@ export function usePlayerSettings() {
             cancelled = true;
             volumeUnlisten?.();
             focusUnlisten?.();
-            blurUnlisten?.();
-            
-            // Cleanup: unregister callback
-            if (isBrowserTauri) {
-                getTauri()
-                    .then(m => m.invoke('unregister_volume_callback'))
-                    .catch(() => {});
-            }
         };
-    }, [volumeMode]);
+    }, [language, volumeMode]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;

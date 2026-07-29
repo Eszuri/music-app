@@ -45,8 +45,8 @@ const en: Record<string, string> = {
     'general.stepVolume.title': 'Step Volume',
     'general.stepVolume.desc': 'Volume change amount per button press or shortcut (1–10)',
 
-    'general.pauseIfMuted.title': 'Pause if Muted / Volume 0',
-    'general.pauseIfMuted.desc': 'Automatically pause playback when volume reaches 0 or is muted',
+    'general.pauseIfMuted.title': 'Pause / Resume on Muted Volume',
+    'general.pauseIfMuted.desc': 'Pause when volume reaches 0 or is muted, then resume when sound returns',
     'general.pauseIfMuted.on': 'On',
     'general.pauseIfMuted.off': 'Off',
     'general.volumeLimit.title': 'System Volume Limit',
@@ -387,8 +387,8 @@ const id: Record<string, string> = {
     'general.stepVolume.title': 'Step Volume',
     'general.stepVolume.desc': 'Jumlah perubahan volume tiap tekan tombol +/− atau shortcut (1–10)',
 
-    'general.pauseIfMuted.title': 'Jeda jika Volume 0 / Dibisukan',
-    'general.pauseIfMuted.desc': 'Otomatis menjeda pemutaran ketika volume mencapai 0 atau dimatikan',
+    'general.pauseIfMuted.title': 'Jeda / Lanjut saat Volume Dibisukan',
+    'general.pauseIfMuted.desc': 'Jeda saat volume mencapai 0 atau dibisukan, lalu lanjut saat suara kembali',
     'general.pauseIfMuted.on': 'Aktif',
     'general.pauseIfMuted.off': 'Nonaktif',
     'general.volumeLimit.title': 'Batas Volume Sistem',

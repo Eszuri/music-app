@@ -27,6 +27,8 @@ interface UseAudioPlayerOptions {
     systemMuted: boolean;
 }
 
+const MIN_RESUME_VOLUME = 0.01;
+
 export function useAudioPlayer(options: UseAudioPlayerOptions) {
     const {
         musicFolder,
@@ -78,6 +80,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     const isMountedRef = useRef(true);
     const playTokenRef = useRef(0);
     const loadFilesTokenRef = useRef(0);
+    const autoPausedBySilenceRef = useRef(false);
 
     filesRef.current = files;
     selectedSongRef.current = selectedSong;
@@ -93,6 +96,39 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     repeatRef.current = repeat;
 
     const activeVolume = volumeMode === 'system' ? systemVolume : appVolume;
+
+    const isVolumeSilent = useCallback(() => {
+        return volumeMode === 'app'
+            ? appVolume <= 0
+            : systemMuted || systemVolume <= 0;
+    }, [appVolume, systemMuted, systemVolume, volumeMode]);
+
+    const setMinimumResumeVolume = useCallback(async () => {
+        if (volumeMode === 'app') {
+            setAppVolume(MIN_RESUME_VOLUME);
+            if (audioRef.current) {
+                audioRef.current.volume = MIN_RESUME_VOLUME;
+            }
+            return MIN_RESUME_VOLUME;
+        }
+
+        const targetPct = 1;
+        const targetVolume = targetPct / 100;
+        setSystemVolume(targetVolume);
+        setSystemMuted(false);
+        lastLocalVolumeSetRef.current = Date.now();
+
+        if (!isBrowserTauri) return targetVolume;
+
+        try {
+            const mod = await getTauri();
+            await mod.invoke('set_system_volume', {value: targetPct});
+            await mod.invoke('set_system_mute', {mute: false});
+        } catch {
+            // Keep local playback responsive even if the OS volume call fails.
+        }
+        return targetVolume;
+    }, [lastLocalVolumeSetRef, setAppVolume, setSystemMuted, setSystemVolume, volumeMode]);
 
     const loadFiles = useCallback(async (dirPath: string) => {
         const token = ++loadFilesTokenRef.current;
@@ -179,6 +215,11 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         audio.pause();
 
         try {
+            let resumeVolume: number | null = null;
+            if (pauseIfMuted && isVolumeSilent()) {
+                resumeVolume = await setMinimumResumeVolume();
+            }
+
             let src: string;
             if (isBrowserTauri) {
                 const mod = await getTauri();
@@ -187,9 +228,10 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 src = file.path;
             }
             audio.src = src;
-            audio.volume = volumeModeRef.current === 'app' ? appVolume : 1;
+            audio.volume = volumeModeRef.current === 'app' ? (resumeVolume ?? appVolume) : 1;
             audio.loop = repeatRef.current === 'one';
             await audio.play();
+            autoPausedBySilenceRef.current = false;
 
             if (token !== playTokenRef.current || !isMountedRef.current) return;
 
@@ -200,18 +242,26 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             if (e instanceof DOMException && e.name === 'AbortError') return;
             showError(`Gagal memutar: ${(e as Error).message || String(e)}`);
         }
-    }, [appVolume, loadMetadata, addLog, showError]);
+    }, [appVolume, pauseIfMuted, isVolumeSilent, setMinimumResumeVolume, loadMetadata, addLog, showError]);
 
     const togglePlayPause = useCallback(() => {
         const audio = audioRef.current;
         if (!audio || !audio.src) return;
 
         if (audio.paused) {
-            audio.play().catch(e => console.error('Gagal play:', e));
+            const resume = async () => {
+                if (pauseIfMuted && isVolumeSilent()) {
+                    await setMinimumResumeVolume();
+                }
+                await audio.play();
+                autoPausedBySilenceRef.current = false;
+            };
+            resume().catch(e => console.error('Gagal play:', e));
         } else {
+            autoPausedBySilenceRef.current = false;
             audio.pause();
         }
-    }, []);
+    }, [pauseIfMuted, isVolumeSilent, setMinimumResumeVolume]);
 
     const resetPlayer = useCallback(() => {
         if (audioRef.current) {
@@ -226,6 +276,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         setDuration(0);
         setIsPlaying(false);
         playlistRef.current = [];
+        autoPausedBySilenceRef.current = false;
         if (isBrowserTauri) {
             getTauri().then(mod => mod.invoke('clear_wallpaper')).catch(() => {});
         }
@@ -344,10 +395,36 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             ? appVolume <= 0
             : (systemMuted || systemVolume <= 0);
         if (isZero && audioRef.current) {
+            autoPausedBySilenceRef.current = true;
             audioRef.current.pause();
             setIsPlaying(false);
         }
     }, [pauseIfMuted, volumeMode, appVolume, systemVolume, systemMuted, isPlaying]);
+
+    // Resume only when the previous pause was caused by mute/volume 0.
+    useEffect(() => {
+        if (!pauseIfMuted || !autoPausedBySilenceRef.current) return;
+
+        const audio = audioRef.current;
+        if (!audio || !audio.src || !audio.paused) return;
+
+        const stillSilent = volumeMode === 'app'
+            ? appVolume <= 0
+            : (systemMuted || systemVolume <= 0);
+        if (stillSilent) return;
+
+        autoPausedBySilenceRef.current = false;
+        audio.play().catch((e) => {
+            autoPausedBySilenceRef.current = true;
+            console.error('Gagal auto resume:', e);
+        });
+    }, [pauseIfMuted, volumeMode, appVolume, systemVolume, systemMuted]);
+
+    useEffect(() => {
+        if (!pauseIfMuted) {
+            autoPausedBySilenceRef.current = false;
+        }
+    }, [pauseIfMuted]);
 
     // Sinkronkan state repeat === 'one' langsung ke elemen audio agar realtime
     useEffect(() => {
@@ -357,7 +434,9 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     }, [repeat]);
 
     const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        const v = parseFloat(e.target.value);
+        const parsed = parseFloat(e.target.value);
+        if (!Number.isFinite(parsed)) return;
+        const v = Math.max(0, Math.min(1, parsed));
         if (volumeModeRef.current === 'app') {
             setAppVolume(v);
             if (audioRef.current) {
@@ -373,12 +452,12 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             }
 
             setSystemVolume(v);
+            setSystemMuted(targetPct === 0);
             lastLocalVolumeSetRef.current = Date.now();
             if (isBrowserTauri) {
-                const sysVal = Math.round(v * 100);
                 getTauri().then(async m => {
-                    await m.invoke('set_system_volume', {value: sysVal});
-                    if (sysVal === 0) {
+                    await m.invoke('set_system_volume', {value: targetPct});
+                    if (targetPct === 0) {
                         await m.invoke('set_system_mute', {mute: true});
                         setSystemMuted(true);
                     } else {
