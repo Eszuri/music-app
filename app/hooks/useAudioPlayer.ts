@@ -457,10 +457,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             if (isBrowserTauri) {
                 getTauri().then(async m => {
                     await m.invoke('set_system_volume', {value: targetPct});
-                    if (targetPct === 0) {
-                        await m.invoke('set_system_mute', {mute: true});
-                        setSystemMuted(true);
-                    } else {
+                    if (targetPct > 0) {
                         await m.invoke('set_system_mute', {mute: false});
                         setSystemMuted(false);
                     }
@@ -476,6 +473,16 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             audioRef.current.currentTime = t;
         }
     }, []);
+
+    const toggleSystemMute = useCallback(() => {
+        if (!isBrowserTauri) return;
+        const shouldMute = !systemMuted;
+        setSystemMuted(shouldMute);
+        lastLocalVolumeSetRef.current = Date.now();
+        getTauri().then(m => {
+            m.invoke('set_system_mute', {mute: shouldMute});
+        }).catch(() => {});
+    }, [systemMuted, setSystemMuted, lastLocalVolumeSetRef]);
 
     const goUp = useCallback(() => {
         if (!currentPath || !musicFolder) return;
@@ -511,6 +518,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         playPrevRef,
         handleVolumeChange,
         handleSeek,
+        toggleSystemMute,
         goUp,
     };
 }

@@ -455,6 +455,7 @@ function HomeContent() {
                 setShuffle={settings.setShuffleState}
                 setRepeat={settings.setRepeatState}
                 handleVolumeChange={player.handleVolumeChange}
+                toggleSystemMute={player.toggleSystemMute}
                 onGlobalContextMenu={showGlobalContextMenu}
             />
 

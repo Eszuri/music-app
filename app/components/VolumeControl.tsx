@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {motion} from 'framer-motion';
 import {getAccent} from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
@@ -15,6 +15,7 @@ interface VolumeControlProps {
     volumeLimit: number;
     volumeStep: number;
     handleVolumeChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onToggleSystemMute: () => void;
     accentColor: string;
 }
 
@@ -58,6 +59,7 @@ export default function VolumeControl({
     volumeLimit,
     volumeStep,
     handleVolumeChange,
+    onToggleSystemMute,
     accentColor,
 }: VolumeControlProps) {
     const accent = getAccent(accentColor);
@@ -67,6 +69,12 @@ export default function VolumeControl({
     const isSystem = volumeMode === 'system';
     const limit = volumeLimit;
     const pct = Math.round(volume * 100);
+
+    useEffect(() => {
+        if (volume > 0 && !(isSystem && systemMuted)) {
+            setPrevVolume(volume);
+        }
+    }, [volume, isSystem, systemMuted]);
 
     // Pengkondisian terpisah untuk Aturan Batas Volume Sistem
     let isDecreaseDisabled = false;
@@ -108,7 +116,9 @@ export default function VolumeControl({
         : `${pct}%`;
 
     const toggleMute = () => {
-        if (!muted) {
+        if (isSystem) {
+            onToggleSystemMute();
+        } else if (!muted) {
             setPrevVolume(volume);
             handleVolumeChange(makeChangeEvent(0));
         } else {

@@ -51,6 +51,7 @@ interface HomePlayerAreaProps {
     setShuffle: (v: boolean) => void;
     setRepeat: (v: 'off' | 'all' | 'one') => void;
     handleVolumeChange: (e: ChangeEvent<HTMLInputElement>) => void;
+    toggleSystemMute: () => void;
     onGlobalContextMenu: (e: React.MouseEvent) => void;
 }
 
@@ -116,6 +117,7 @@ export default function HomePlayerArea({
     setShuffle,
     setRepeat,
     handleVolumeChange,
+    toggleSystemMute,
     onGlobalContextMenu,
 }: HomePlayerAreaProps) {
     const leftVisible = showLeftSidebar || !isCompact;
@@ -425,6 +427,7 @@ export default function HomePlayerArea({
                                                     systemMuted={systemMuted}
                                                     volumeLimit={volumeLimit}
                                                     handleVolumeChange={handleVolumeChange}
+                                                    onToggleSystemMute={toggleSystemMute}
                                                     accentColor={accentColor}
                                                 />
                                             </div>

@@ -110,12 +110,17 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
                         }
                         const targetPct = Math.round(raw * 100);
                         setSystemVolume(raw);
-                        setSystemMuted(targetPct === 0);
+                        if (targetPct === 0) {
+                            setSystemMuted(true);
+                        }
                         if (isBrowserTauri) {
                             lastLocalVolumeSetRef.current = Date.now();
                             getTauri().then(async m => {
                                 await m.invoke('set_system_volume', {value: targetPct});
-                                await m.invoke('set_system_mute', {mute: targetPct === 0});
+                                if (targetPct > 0) {
+                                    await m.invoke('set_system_mute', {mute: false});
+                                    setSystemMuted(false);
+                                }
                             }).catch(() => {});
                         }
                     }
@@ -140,19 +145,24 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
                         const raw = Math.max(0, Math.round((cur - step) / step) * step);
                         const targetPct = Math.round(raw * 100);
                         setSystemVolume(raw);
-                        setSystemMuted(targetPct === 0);
+                        if (targetPct === 0) {
+                            setSystemMuted(true);
+                        }
                         if (isBrowserTauri) {
                             lastLocalVolumeSetRef.current = Date.now();
                             getTauri().then(async m => {
                                 await m.invoke('set_system_volume', {value: targetPct});
-                                await m.invoke('set_system_mute', {mute: targetPct === 0});
+                                if (targetPct > 0) {
+                                    await m.invoke('set_system_mute', {mute: false});
+                                    setSystemMuted(false);
+                                }
                             }).catch(() => {});
                         }
                     }
                     break;
                 }
             }
-        };
+            };
 
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
