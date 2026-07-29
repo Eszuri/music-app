@@ -11,9 +11,8 @@ export default function AboutSection({lang}: {lang: Lang}) {
                 </div>
                 <h3 className="text-lg font-semibold text-zinc-100">{t(lang, 'about.title')}</h3>
                 <p className="text-xs text-zinc-500 mt-0.5">{t(lang, 'about.version')}</p>
-                <div className="flex items-center justify-center gap-3 mt-2 text-xs text-zinc-500">
+                <div className="flex flex-col items-center gap-1 mt-6 text-xs text-zinc-500">
                     <span>{t(lang, 'about.by')} <span className="text-zinc-400">{t(lang, 'about.author')}</span></span>
-                    <span className="text-zinc-700">{t(lang, 'about.separator')}</span>
                     <a
                         href="https://github.com/Eszuri/symvonia"
                         target="_blank"

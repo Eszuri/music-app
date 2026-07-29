@@ -109,22 +109,22 @@ export default function HomeAlerts({
                             <span className="text-xs text-zinc-400">{t(lang, 'general.updateAlert.message', {version: updateAlertInfo.version})}</span>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="grid grid-cols-3 gap-2">
                         <button
                             onClick={onUpdate}
-                            className="flex-1 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-green-600 hover:bg-green-500 transition-colors cursor-pointer"
+                            className="px-1.5 py-1.5 rounded-lg text-[11px] font-medium text-white bg-green-600 hover:bg-green-500 transition-colors cursor-pointer text-center leading-tight"
                         >
                             {t(lang, 'general.updateAlert.updateBtn')}
                         </button>
                         <button
                             onClick={onRemindLater}
-                            className="flex-1 px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700/50 transition-colors cursor-pointer"
+                            className="px-1.5 py-1.5 rounded-lg text-[11px] font-medium text-zinc-300 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700/50 transition-colors cursor-pointer text-center leading-tight"
                         >
                             {t(lang, 'general.updateAlert.remindLater')}
                         </button>
                         <button
                             onClick={onStayCurrent}
-                            className="flex-1 px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-400 bg-zinc-800/50 hover:bg-zinc-700/70 border border-zinc-700/30 transition-colors cursor-pointer"
+                            className="px-1.5 py-1.5 rounded-lg text-[11px] font-medium text-zinc-400 bg-zinc-800/50 hover:bg-zinc-700/70 border border-zinc-700/30 transition-colors cursor-pointer text-center leading-tight"
                         >
                             {t(lang, 'general.updateAlert.stayCurrent')}
                         </button>

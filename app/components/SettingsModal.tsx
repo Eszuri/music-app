@@ -203,7 +203,7 @@ export default function SettingsModal({
                                     onResetSidebarWidth={onResetSidebarWidth}
                                 />
                             )}
-                            {activeSection === 'changelog' && <ChangelogSection />}
+                            {activeSection === 'changelog' && <ChangelogSection lang={lang} />}
                             {activeSection === 'about' && <AboutSection lang={lang} />}
                             {activeSection === 'debug' && <DebugSection lang={lang} logs={logs} />}
                         </div>
