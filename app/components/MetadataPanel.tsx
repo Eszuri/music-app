@@ -8,6 +8,7 @@ import { getAccent } from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
 import ContextMenu, { ContextMenuItem } from './ContextMenu';
 import { useHoverDescription } from '../hooks/useHoverDescription';
+import { MetadataPanelSkeleton } from './Skeleton';
 
 interface MetadataPanelProps {
     lang: Lang;
@@ -228,102 +229,114 @@ export default function MetadataPanel({ lang, selectedSong, metadata, accentColo
             >
                 <AnimatePresence mode="wait">
                     {selectedSong ? (
-                        <motion.div
-                            key={selectedSong.path}
-                            initial={{ opacity: 0, y: 4 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -4 }}
-                            transition={{ duration: 0.2 }}
-                        >
-                            {/* Cover art small */}
-                            <div
-                                onContextMenu={onContextMenu}
-                                className="w-full aspect-square max-w-[160px] mx-auto rounded-xl overflow-hidden bg-zinc-900/80 ring-1 ring-white/5 mb-4"
+                        metadata ? (
+                            <motion.div
+                                key={selectedSong.path}
+                                initial={{ opacity: 0, y: 4 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -4 }}
+                                transition={{ duration: 0.2 }}
                             >
-                                <AnimatePresence mode="wait">
-                                    {metadata?.cover_b64 ? (
-                                        <motion.img
-                                            key={selectedSong.path}
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            exit={{ opacity: 0 }}
-                                            transition={{ duration: 0.2 }}
-                                            src={`data:${metadata.cover_mime};base64,${metadata.cover_b64}`}
-                                            alt={t(lang, 'metadata.cover')}
-                                            className="w-full h-full object-contain"
-                                        />
-                                    ) : (
-                                        <motion.div
-                                            key="placeholder"
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 0.12 }}
-                                            exit={{ opacity: 0 }}
-                                            className="w-full h-full flex items-center justify-center"
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">
-                                                <path d="M9 18V5l12-2v13" />
-                                                <circle cx="6" cy="18" r="3" />
-                                                <circle cx="18" cy="16" r="3" />
-                                            </svg>
-                                        </motion.div>
+                                {/* Cover art small */}
+                                <div
+                                    onContextMenu={onContextMenu}
+                                    className="w-full aspect-square max-w-[160px] mx-auto rounded-xl overflow-hidden bg-zinc-900/80 ring-1 ring-white/5 mb-4"
+                                >
+                                    <AnimatePresence mode="wait">
+                                        {metadata?.cover_b64 ? (
+                                            <motion.img
+                                                key={selectedSong.path}
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                transition={{ duration: 0.2 }}
+                                                src={`data:${metadata.cover_mime};base64,${metadata.cover_b64}`}
+                                                alt={t(lang, 'metadata.cover')}
+                                                className="w-full h-full object-contain"
+                                            />
+                                        ) : (
+                                            <motion.div
+                                                key="placeholder"
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 0.12 }}
+                                                exit={{ opacity: 0 }}
+                                                className="w-full h-full flex items-center justify-center"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">
+                                                    <path d="M9 18V5l12-2v13" />
+                                                    <circle cx="6" cy="18" r="3" />
+                                                    <circle cx="18" cy="16" r="3" />
+                                                </svg>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+
+                                <SectionTitle title={t(lang, 'metadata.songInfo')} />
+                                <div className="space-y-3 pl-1">
+                                    <MetaRow label={t(lang, 'metadata.title')} value={songTitle || '—'} />
+                                    <MetaRow label={t(lang, 'metadata.artist')} value={metadata?.artist || t(lang, 'metadata.unknownArtist')} />
+                                    {metadata?.album && <MetaRow label={t(lang, 'metadata.album')} value={metadata.album} />}
+                                    {metadata?.genre && <MetaRow label={t(lang, 'metadata.genre')} value={metadata.genre} />}
+                                    {metadata?.year != null && <MetaRow label={t(lang, 'metadata.year')} value={String(metadata.year)} />}
+                                    {trackStr && <MetaRow label={t(lang, 'metadata.track')} value={trackStr} />}
+                                    {discStr && <MetaRow label={t(lang, 'metadata.disc')} value={discStr} />}
+                                    <MetaRow label={t(lang, 'metadata.duration')} value={formatDuration(metadata?.duration ?? null)} />
+                                </div>
+
+                                <SectionTitle title={t(lang, 'metadata.techInfo')} />
+                                <div className="space-y-3 pl-1">
+                                    {metadata?.bitrate != null && (
+                                        <MetaRow label={t(lang, 'metadata.bitrate')} value={`${metadata.bitrate} kbps`} />
                                     )}
-                                </AnimatePresence>
-                            </div>
+                                    {metadata?.sample_rate != null && (
+                                        <MetaRow label={t(lang, 'metadata.sampleRate')} value={`${(metadata.sample_rate / 1000).toFixed(1)} kHz`} />
+                                    )}
+                                    {metadata?.channels != null && (
+                                        <MetaRow label={t(lang, 'metadata.channel')} value={channelsLabel(lang, metadata.channels)} />
+                                    )}
+                                    <MetaRow label={t(lang, 'metadata.format')} value={selectedSong.ext.toUpperCase()} />
+                                    <MetaRow label={t(lang, 'metadata.size')} value={formatSize(selectedSong.size)} />
+                                </div>
 
-                            <SectionTitle title={t(lang, 'metadata.songInfo')} />
-                            <div className="space-y-3 pl-1">
-                                <MetaRow label={t(lang, 'metadata.title')} value={songTitle || '—'} />
-                                <MetaRow label={t(lang, 'metadata.artist')} value={metadata?.artist || t(lang, 'metadata.unknownArtist')} />
-                                {metadata?.album && <MetaRow label={t(lang, 'metadata.album')} value={metadata.album} />}
-                                {metadata?.genre && <MetaRow label={t(lang, 'metadata.genre')} value={metadata.genre} />}
-                                {metadata?.year != null && <MetaRow label={t(lang, 'metadata.year')} value={String(metadata.year)} />}
-                                {trackStr && <MetaRow label={t(lang, 'metadata.track')} value={trackStr} />}
-                                {discStr && <MetaRow label={t(lang, 'metadata.disc')} value={discStr} />}
-                                <MetaRow label={t(lang, 'metadata.duration')} value={formatDuration(metadata?.duration ?? null)} />
-                            </div>
+                                <SectionTitle title={t(lang, 'metadata.fileInfo')} />
+                                <div className="space-y-3 pl-1">
+                                    <MetaRow label={t(lang, 'metadata.fileName')} value={selectedSong.name} />
+                                    <MetaRow label={t(lang, 'metadata.created')} value={formatDate(selectedSong.ctime)} />
+                                    <MetaRow label={t(lang, 'metadata.modified')} value={formatDate(selectedSong.mtime)} />
+                                </div>
 
-                            <SectionTitle title={t(lang, 'metadata.techInfo')} />
-                            <div className="space-y-3 pl-1">
-                                {metadata?.bitrate != null && (
-                                    <MetaRow label={t(lang, 'metadata.bitrate')} value={`${metadata.bitrate} kbps`} />
+                                {/* Comment */}
+                                {metadata?.comment && (
+                                    <>
+                                        <SectionTitle title={t(lang, 'metadata.comment')} />
+                                        <div className="pl-1">
+                                            <p className="text-sm text-zinc-300 leading-relaxed break-words">
+                                                {metadata.comment}
+                                            </p>
+                                        </div>
+                                    </>
                                 )}
-                                {metadata?.sample_rate != null && (
-                                    <MetaRow label={t(lang, 'metadata.sampleRate')} value={`${(metadata.sample_rate / 1000).toFixed(1)} kHz`} />
-                                )}
-                                {metadata?.channels != null && (
-                                    <MetaRow label={t(lang, 'metadata.channel')} value={channelsLabel(lang, metadata.channels)} />
-                                )}
-                                <MetaRow label={t(lang, 'metadata.format')} value={selectedSong.ext.toUpperCase()} />
-                                <MetaRow label={t(lang, 'metadata.size')} value={formatSize(selectedSong.size)} />
-                            </div>
 
-                            <SectionTitle title={t(lang, 'metadata.fileInfo')} />
-                            <div className="space-y-3 pl-1">
-                                <MetaRow label={t(lang, 'metadata.fileName')} value={selectedSong.name} />
-                                <MetaRow label={t(lang, 'metadata.created')} value={formatDate(selectedSong.ctime)} />
-                                <MetaRow label={t(lang, 'metadata.modified')} value={formatDate(selectedSong.mtime)} />
-                            </div>
-
-                            {/* Comment */}
-                            {metadata?.comment && (
-                                <>
-                                    <SectionTitle title={t(lang, 'metadata.comment')} />
-                                    <div className="pl-1">
-                                        <p className="text-sm text-zinc-300 leading-relaxed break-words">
-                                            {metadata.comment}
-                                        </p>
-                                    </div>
-                                </>
-                            )}
-
-                            {/* Path */}
-                            <SectionTitle title={t(lang, 'metadata.location')} />
-                            <div className="pl-1">
-                                <p className="text-xs text-zinc-500 break-all leading-relaxed font-mono">
-                                    {selectedSong.path}
-                                </p>
-                            </div>
-                        </motion.div>
+                                {/* Path */}
+                                <SectionTitle title={t(lang, 'metadata.location')} />
+                                <div className="pl-1">
+                                    <p className="text-xs text-zinc-500 break-all leading-relaxed font-mono">
+                                        {selectedSong.path}
+                                    </p>
+                                </div>
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="loading-metadata"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <MetadataPanelSkeleton accentColor={accentColor} />
+                            </motion.div>
+                        )
                     ) : (
                         <motion.div
                             key="no-song"

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FileEntry } from './FolderExplorer';
 import { getAccent } from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
+import { PlayerPanelSkeleton } from './Skeleton';
 
 export interface SongMetadata {
     title: string | null;
