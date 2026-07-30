@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getAccent } from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
+import { contentMotion } from '../lib/animations';
 import ContextMenu, { ContextMenuItem } from './ContextMenu';
 import { useHoverInfo } from '../contexts/HoverInfoContext';
 import { useHoverDescription } from '../hooks/useHoverDescription';
@@ -293,10 +294,7 @@ export default function FolderExplorer({
                     {loading ? (
                         <motion.div
                             key="skeleton"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.18 }}
+                            {...contentMotion}
                             className="py-1"
                         >
                             <SkeletonList accentHex={accent.hex400} />
@@ -304,10 +302,7 @@ export default function FolderExplorer({
                     ) : files.length === 0 ? (
                         <motion.div
                             key="empty"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.18 }}
+                            {...contentMotion}
                             className="p-4 text-zinc-600 text-center"
                         >
                             {t(lang, 'folder.empty')}
@@ -412,9 +407,7 @@ function VirtualList({
 
     return (
         <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.15 }}
+            {...contentMotion}
             className="relative"
             style={{ height: totalH }}
         >
@@ -482,10 +475,10 @@ function SkeletonList({ accentHex }: { accentHex: string }) {
                 <motion.div
                     key={i}
                     variants={{
-                        hidden: { opacity: 0, x: -6 },
-                        show: { opacity: 1, x: 0 },
+                        hidden: { opacity: 0, y: 8, scale: 0.97 },
+                        show: { opacity: 1, y: 0, scale: 1 },
                     }}
-                    transition={{ duration: 0.2 }}
+                    transition={{ duration: 0.25, ease: 'easeInOut' }}
                     className="flex items-center gap-2.5 px-3 py-2 border-l-2 border-transparent"
                 >
                     <span className="shrink-0 w-3 h-3 rounded-sm bg-zinc-800/70" />
@@ -493,11 +486,11 @@ function SkeletonList({ accentHex }: { accentHex: string }) {
                         className={`relative overflow-hidden h-3 rounded ${w} bg-zinc-800/70`}
                     >
                         <motion.span
-                            className="absolute inset-y-0 -left-1/2 w-1/2"
+                            className="absolute inset-x-0 -top-1/2 h-1/2"
                             style={{
-                                background: `linear-gradient(90deg, transparent, ${accentHex}33, transparent)`,
+                                background: `linear-gradient(0deg, transparent, ${accentHex}33, transparent)`,
                             }}
-                            animate={{ x: ['0%', '300%'] }}
+                            animate={{ y: ['0%', '300%'] }}
                             transition={{
                                 duration: 1.4,
                                 repeat: Infinity,

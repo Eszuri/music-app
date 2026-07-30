@@ -2,6 +2,7 @@
 
 import {AnimatePresence, motion} from 'framer-motion';
 import {t, type Lang} from '../../lib/translations';
+import {contentMotion} from '../../lib/animations';
 
 interface HomeAlertsProps {
     lang: Lang;
@@ -44,10 +45,7 @@ export default function HomeAlerts({
             {toastVisible && (
                 <motion.div
                     key="toast"
-                    initial={{opacity: 0, y: -12, scale: 0.95}}
-                    animate={{opacity: 1, y: 0, scale: 1}}
-                    exit={{opacity: 0, y: -12, scale: 0.95}}
-                    transition={{duration: 0.2}}
+                    {...contentMotion}
                     className="fixed top-4 right-4 z-70 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-red-900/80 border border-red-700/50 text-sm text-red-200 shadow-2xl shadow-black/40 backdrop-blur-sm"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
@@ -68,10 +66,7 @@ export default function HomeAlerts({
             {volumeLimitExceeded && (
                 <motion.div
                     key="volume-alert"
-                    initial={{opacity: 0, y: -12, scale: 0.95}}
-                    animate={{opacity: 1, y: 0, scale: 1}}
-                    exit={{opacity: 0, y: -12, scale: 0.95}}
-                    transition={{duration: 0.3}}
+                    {...contentMotion}
                     className="fixed top-4 left-1/2 -translate-x-1/2 z-70 flex items-center gap-2.5 px-5 py-3 rounded-xl bg-amber-900/90 border border-amber-600/60 text-sm text-amber-100 shadow-2xl shadow-black/40 backdrop-blur-sm"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
@@ -93,10 +88,7 @@ export default function HomeAlerts({
             {updateAlertInfo && !updateAlertDownloading && (
                 <motion.div
                     key="update-alert"
-                    initial={{opacity: 0, y: -12, scale: 0.95}}
-                    animate={{opacity: 1, y: 0, scale: 1}}
-                    exit={{opacity: 0, y: -12, scale: 0.95}}
-                    transition={{duration: 0.3}}
+                    {...contentMotion}
                     className="fixed top-4 right-4 z-70 flex flex-col gap-3 px-5 py-4 rounded-xl bg-zinc-900/90 border border-zinc-700/60 text-sm text-zinc-200 shadow-2xl shadow-black/40 backdrop-blur-sm min-w-[340px]"
                 >
                     <div className="flex items-center gap-2.5">
@@ -134,10 +126,7 @@ export default function HomeAlerts({
             {updateAlertDownloading && (
                 <motion.div
                     key="update-downloading"
-                    initial={{opacity: 0, y: -12, scale: 0.95}}
-                    animate={{opacity: 1, y: 0, scale: 1}}
-                    exit={{opacity: 0, y: -12, scale: 0.95}}
-                    transition={{duration: 0.3}}
+                    {...contentMotion}
                     className="fixed top-4 right-4 z-70 flex flex-col gap-2.5 px-5 py-4 rounded-xl bg-zinc-900/90 border border-zinc-700/60 text-sm text-zinc-200 shadow-2xl shadow-black/40 backdrop-blur-sm min-w-[260px]"
                 >
                     <div className="flex items-center gap-2.5">

@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { getAccent } from "../lib/colors";
+import { contentMotion } from "../lib/animations";
 
 interface SkeletonProps {
   accentColor?: string;
@@ -48,9 +49,9 @@ export function Skeleton({
         <motion.div
           className="absolute inset-0"
           style={{
-            background: `linear-gradient(90deg, transparent, ${accent.hex400}33, transparent)`,
+            background: `linear-gradient(0deg, transparent, ${accent.hex400}33, transparent)`,
           }}
-          animate={{ x: ["-100%", "200%"] }}
+          animate={{ y: ["-100%", "200%"] }}
           transition={{
             duration: 1.5,
             repeat: Infinity,
@@ -96,10 +97,10 @@ export function FolderExplorerSkeleton({
         <motion.div
           key={i}
           variants={{
-            hidden: { opacity: 0, x: -6 },
-            show: { opacity: 1, x: 0 },
+            hidden: { opacity: 0, y: 8, scale: 0.97 },
+            show: { opacity: 1, y: 0, scale: 1 },
           }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: 0.25, ease: "easeInOut" }}
           className="flex items-center gap-2.5 px-3 py-2 border-l-2 border-transparent"
         >
           <span className="shrink-0 w-3 h-3 rounded-sm bg-zinc-800/70" />
@@ -107,11 +108,11 @@ export function FolderExplorerSkeleton({
             className={`relative overflow-hidden h-3 rounded ${w} bg-zinc-800/70`}
           >
             <motion.span
-              className="absolute inset-y-0 -left-1/2 w-1/2"
+              className="absolute inset-x-0 -top-1/2 h-1/2"
               style={{
-                background: `linear-gradient(90deg, transparent, ${accent.hex400}33, transparent)`,
+                background: `linear-gradient(0deg, transparent, ${accent.hex400}33, transparent)`,
               }}
-              animate={{ x: ["0%", "300%"] }}
+              animate={{ y: ["0%", "300%"] }}
               transition={{
                 duration: 1.4,
                 repeat: Infinity,
@@ -138,9 +139,7 @@ export function PlayerPanelSkeleton({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
+      {...contentMotion}
       className="w-full flex flex-col items-center gap-2 sm:gap-3.5"
     >
       {!hideCover && (
@@ -181,9 +180,7 @@ export function SeekBarSkeleton({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2 }}
+      {...contentMotion}
       className="w-full"
     >
       <div className="relative w-full h-5 flex items-center">
@@ -218,9 +215,7 @@ export function PlaybackControlsSkeleton({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2 }}
+      {...contentMotion}
       className="flex items-center gap-2 sm:gap-3 md:gap-4"
     >
       <Skeleton accentColor={accentColor} variant="button" className="w-9" />
@@ -254,9 +249,7 @@ export function VolumeControlSkeleton({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2 }}
+      {...contentMotion}
       className="flex items-center gap-2 w-full justify-center"
     >
       <Skeleton
@@ -293,9 +286,7 @@ export function MetadataPanelSkeleton({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
+      {...contentMotion}
       className="space-y-4"
     >
       {/* Cover art */}
@@ -484,9 +475,7 @@ export function InitSkeleton({
       {/* Main player area */}
       <div className="flex-1 flex flex-col items-center justify-center p-6">
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
+          {...contentMotion}
           className="w-full max-w-2xl space-y-6"
         >
           <PlayerPanelSkeleton accentColor={accentColor} />
@@ -556,9 +545,7 @@ export function FullInitSkeleton() {
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.15 }}
+      {...contentMotion}
       className="h-full flex flex-col overflow-hidden bg-linear-to-b from-zinc-950 to-black text-zinc-100 select-none font-sans"
     >
       <HeaderSkeleton accentColor={accentColor} />
@@ -580,10 +567,7 @@ export function PlayerAreaSkeleton({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.3 }}
+      {...contentMotion}
       className={`flex flex-col items-center gap-2.5 sm:gap-4 w-full min-w-0 ${
         isFullScreen
           ? "mt-auto lg:max-w-2xl lg:mb-4 lg:p-4 lg:sm:p-6 bg-black/40 backdrop-blur-xl border-t border-white/10 lg:border lg:rounded-3xl p-4 sm:p-6 lg:shadow-2xl"

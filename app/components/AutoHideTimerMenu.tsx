@@ -2,6 +2,7 @@ import {useState, useEffect, useRef} from 'react';
 import {motion, AnimatePresence} from 'framer-motion';
 import {getAccent} from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
+import {contentMotion} from '../lib/animations';
 import {useHoverDescription} from '../hooks/useHoverDescription';
 
 interface AutoHideTimerMenuProps {
@@ -69,10 +70,7 @@ export default function AutoHideTimerMenu({
             <AnimatePresence>
                 {open && (
                     <motion.div
-                        initial={{opacity: 0, scale: 0.95, y: -4}}
-                        animate={{opacity: 1, scale: 1, y: 0}}
-                        exit={{opacity: 0, scale: 0.95, y: -4}}
-                        transition={{duration: 0.35, ease: [0.16, 1, 0.3, 1]}}
+                        {...contentMotion}
                         className="absolute bottom-full right-0 mb-2 w-40 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden p-1.5 flex flex-col"
                     >
                         <div className="px-2 pb-1.5 pt-0.5 border-b border-white/5 mb-1.5">

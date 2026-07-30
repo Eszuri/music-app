@@ -62,6 +62,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [filesLoadedOnce, setFilesLoadedOnce] = useState(false);
+  const [sessionRestored, setSessionRestored] = useState(false);
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [currentPath, setCurrentPath] = useState<string | null>(null);
   const [selectedSong, setSelectedSong] = useState<FileEntry | null>(null);
@@ -173,8 +174,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
   const loadFiles = useCallback(
     async (dirPath: string) => {
       const token = ++loadFilesTokenRef.current;
-      const needsMetadata = nameSourceRef.current === "title";
-      if (needsMetadata) setLoadingFiles(true);
+      setLoadingFiles(true);
       try {
         const mod = await getTauri();
         const result = await mod.invoke<FileEntry[]>("list_files", {
@@ -263,12 +263,19 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
    */
   useEffect(() => {
     // Only attempt restore once per mount and only when files have loaded
-    if (!files.length) return;
+    if (!filesLoadedOnce) return;
     if (sessionRestoreAttemptedRef.current) return;
     sessionRestoreAttemptedRef.current = true;
 
+    const done = () => {
+      if (isMountedRef.current) setSessionRestored(true);
+    };
+
     const session = loadSessionState();
-    if (!session) return;
+    if (!session || !files.length) {
+      done();
+      return;
+    }
 
     // Derive the parent folder of the saved file (handles both / and \)
     const savedParent = session.filePath.replace(/[/\\][^/\\]+$/, "");
@@ -300,6 +307,8 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
           await restoreFromFileList(result, session);
         } catch {
           saveSessionState(null);
+        } finally {
+          done();
         }
       };
       doNavAndRestore();
@@ -307,7 +316,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     }
 
     // The saved file is already in the current folder listing
-    restoreFromFileList(files, session);
+    restoreFromFileList(files, session).finally(done);
 
     async function restoreFromFileList(
       fileList: FileEntry[],
@@ -363,7 +372,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [files]);
+  }, [files, filesLoadedOnce]);
 
   // ─── playback ──────────────────────────────────────────────────────────────
 
@@ -737,6 +746,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
   return {
     files,
     filesLoadedOnce,
+    sessionRestored,
     loadingFiles,
     currentPath,
     setCurrentPath,

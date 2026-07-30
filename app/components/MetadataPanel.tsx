@@ -6,6 +6,7 @@ import { FileEntry } from './FolderExplorer';
 import { SongMetadata } from './PlayerPanel';
 import { getAccent } from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
+import { contentMotion } from '../lib/animations';
 import ContextMenu, { ContextMenuItem } from './ContextMenu';
 import { useHoverDescription } from '../hooks/useHoverDescription';
 import { MetadataPanelSkeleton } from './Skeleton';
@@ -232,10 +233,7 @@ export default function MetadataPanel({ lang, selectedSong, metadata, accentColo
                         metadata ? (
                             <motion.div
                                 key={selectedSong.path}
-                                initial={{ opacity: 0, y: 4 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -4 }}
-                                transition={{ duration: 0.2 }}
+                                {...contentMotion}
                             >
                                 {/* Cover art small */}
                                 <div
@@ -246,10 +244,7 @@ export default function MetadataPanel({ lang, selectedSong, metadata, accentColo
                                         {metadata?.cover_b64 ? (
                                             <motion.img
                                                 key={selectedSong.path}
-                                                initial={{ opacity: 0 }}
-                                                animate={{ opacity: 1 }}
-                                                exit={{ opacity: 0 }}
-                                                transition={{ duration: 0.2 }}
+                                                {...contentMotion}
                                                 src={`data:${metadata.cover_mime};base64,${metadata.cover_b64}`}
                                                 alt={t(lang, 'metadata.cover')}
                                                 className="w-full h-full object-contain"
@@ -257,9 +252,8 @@ export default function MetadataPanel({ lang, selectedSong, metadata, accentColo
                                         ) : (
                                             <motion.div
                                                 key="placeholder"
-                                                initial={{ opacity: 0 }}
-                                                animate={{ opacity: 0.12 }}
-                                                exit={{ opacity: 0 }}
+                                                {...contentMotion}
+                                                animate={{ opacity: 0.12, y: 0, scale: 1 }}
                                                 className="w-full h-full flex items-center justify-center"
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">
@@ -329,10 +323,7 @@ export default function MetadataPanel({ lang, selectedSong, metadata, accentColo
                         ) : (
                             <motion.div
                                 key="loading-metadata"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                transition={{ duration: 0.2 }}
+                                {...contentMotion}
                             >
                                 <MetadataPanelSkeleton accentColor={accentColor} />
                             </motion.div>
@@ -340,9 +331,7 @@ export default function MetadataPanel({ lang, selectedSong, metadata, accentColo
                     ) : (
                         <motion.div
                             key="no-song"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 0.2 }}
+                            {...contentMotion}
                             className="flex flex-col items-center justify-center h-full text-center pt-24"
                         >
                             <div className="w-14 h-14 rounded-2xl bg-zinc-800/50 flex items-center justify-center mb-4">

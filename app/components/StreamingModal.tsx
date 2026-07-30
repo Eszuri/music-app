@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useCallback, useState, useRef } from 'react';
 import {t, type Lang} from '../lib/translations';
+import { contentMotion, backdropMotion } from '../lib/animations';
 import {useHoverDescription} from '../hooks/useHoverDescription';
 
 interface StreamingModalProps {
@@ -332,18 +333,12 @@ export default function StreamingModal({ lang, open, onClose, accentColor }: Str
         <AnimatePresence>
             {open && (
                 <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
+                    {...backdropMotion}
                     className="fixed inset-0 z-[55] flex items-center justify-center bg-black/70 backdrop-blur-sm"
                     onClick={onClose}
                 >
                     <motion.div
-                        initial={{ scale: 0.92, opacity: 0, y: 10 }}
-                        animate={{ scale: 1, opacity: 1, y: 0 }}
-                        exit={{ scale: 0.95, opacity: 0, y: 5 }}
-                        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                        {...contentMotion}
                         onClick={(e) => e.stopPropagation()}
                         className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl w-[min(960px,95vw)] max-h-[80vh] flex flex-col overflow-hidden"
                     >

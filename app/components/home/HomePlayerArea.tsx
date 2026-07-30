@@ -19,6 +19,7 @@ import { EmptyFolderState, NoFolderEmptyState } from "./HomeEmptyStates";
 import ContextMenu, { type ContextMenuItem } from "../ContextMenu";
 import { getTauri } from "../../lib/homeState";
 import { t, type Lang } from "../../lib/translations";
+import { contentMotion } from "../../lib/animations";
 
 interface HomePlayerAreaProps {
   lang: Lang;
@@ -381,10 +382,7 @@ export default function HomePlayerArea({
         {!musicFolder ? (
           <motion.div
             key="no-folder"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.25 }}
+            {...contentMotion}
             className="flex-1"
           >
             <NoFolderEmptyState
@@ -396,10 +394,7 @@ export default function HomePlayerArea({
         ) : (
           <motion.div
             key="player-area"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.25 }}
+            {...contentMotion}
             className="flex flex-1 overflow-hidden"
           >
             {/* Left sidebar — global context menu on empty areas */}
@@ -445,10 +440,7 @@ export default function HomePlayerArea({
                   metadata?.cover_b64 &&
                   files.length > 0 && (
                     <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.5, ease: "easeInOut" }}
+                      {...contentMotion}
                       className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none"
                     >
                       <img
@@ -470,14 +462,12 @@ export default function HomePlayerArea({
                   </div>
                 ) : (
                   <motion.div
-                    layout
                     initial={false}
                     animate={{
                       y: isFullScreenAlbum && !controlsVisible ? 20 : 0,
                     }}
                     transition={{
                       y: { duration: 0.4 },
-                      layout: { duration: 0.5, type: "spring", bounce: 0.15 },
                     }}
                     onMouseEnter={() => {
                       controlsHoverRef.current = true;

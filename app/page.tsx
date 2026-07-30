@@ -649,7 +649,8 @@ function HomeContent() {
 
   const showSkeleton =
     !settings.initialized ||
-    (settings.musicFolder !== null && !player.filesLoadedOnce);
+    (settings.musicFolder !== null &&
+      (!player.filesLoadedOnce || !player.sessionRestored));
 
   if (showSkeleton) {
     return (

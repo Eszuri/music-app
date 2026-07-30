@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FileEntry } from './FolderExplorer';
 import { getAccent } from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
+import { contentMotion } from '../lib/animations';
 import { PlayerPanelSkeleton } from './Skeleton';
 
 export interface SongMetadata {
@@ -47,9 +48,7 @@ export default function PlayerPanel({ lang, metadata, selectedSong, accentColor,
             {!hideCover && (
                 <motion.div
                     key={selectedSong?.path || 'no-song'}
-                    initial={{ opacity: 0, scale: 0.96 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                    {...contentMotion}
                 whileHover={{ scale: 1.02 }}
                 onContextMenu={onContextMenu}
                 className="w-full max-w-[360px] sm:max-w-[420px] md:max-w-[460px] max-h-[45vh] rounded-2xl overflow-hidden bg-zinc-900/80 flex items-center justify-center ring-1 ring-white/5 cursor-pointer relative shrink"
@@ -63,10 +62,7 @@ export default function PlayerPanel({ lang, metadata, selectedSong, accentColor,
                     {metadata?.cover_b64 ? (
                         <motion.img
                             key={selectedSong?.path}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.25 }}
+                            {...contentMotion}
                             src={`data:${metadata.cover_mime};base64,${metadata.cover_b64}`}
                             alt={t(lang, 'player.cover')}
                             className="max-h-[45vh] max-w-full w-auto h-auto object-contain rounded-2xl"
@@ -74,10 +70,8 @@ export default function PlayerPanel({ lang, metadata, selectedSong, accentColor,
                     ) : (
                         <motion.div
                             key="placeholder"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 0.15 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.25 }}
+                            {...contentMotion}
+                            animate={{ opacity: 0.15, y: 0, scale: 1 }}
                             className="w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 max-h-[45vh] aspect-square flex items-center justify-center"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">

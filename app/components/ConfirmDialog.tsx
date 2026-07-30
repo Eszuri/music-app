@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getAccent } from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
+import { contentMotion, backdropMotion } from '../lib/animations';
 
 interface ConfirmDialogProps {
     lang?: Lang;
@@ -45,19 +46,13 @@ export default function ConfirmDialog({
             {open && (
                 <motion.div
                     key="confirm-backdrop"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.18 }}
+                    {...backdropMotion}
                     className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm"
                     onClick={onCancel}
                 >
                     <motion.div
                         key="confirm-modal"
-                        initial={{ opacity: 0, scale: 0.92, y: 10 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.92, y: 10 }}
-                        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                        {...contentMotion}
                         className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl shadow-black/50 p-6 max-w-md w-[90%] flex flex-col gap-4"
                         onClick={(e) => e.stopPropagation()}
                     >

@@ -6,6 +6,7 @@ import type {FileEntry} from '../FolderExplorer';
 import type {SongMetadata} from '../PlayerPanel';
 import {getAccent} from '../../lib/colors';
 import {t, type Lang} from '../../lib/translations';
+import {contentMotion} from '../../lib/animations';
 import ContextMenu, {type ContextMenuItem} from '../ContextMenu';
 import {getTauri} from '../../lib/homeState';
 import {useHoverDescription} from '../../hooks/useHoverDescription';
@@ -196,9 +197,7 @@ export default function HomeHeader({
                 <motion.span
                     onContextMenu={onGlobalContextMenu}
                     key={isPlaying ? 'playing' : 'stopped'}
-                    initial={{scale: 0.9, opacity: 0}}
-                    animate={{scale: 1, opacity: 1}}
-                    transition={{duration: 0.2}}
+                    {...contentMotion}
                     className={`text-[11px] font-medium px-2 sm:px-2.5 py-1 rounded-full flex items-center gap-1 sm:gap-1.5 shrink-0 ${isPlaying ? `${accent.bg15} ${accent.text400} border ${accent.border500_20}` : 'bg-zinc-800/50 text-zinc-500 border border-zinc-700/30'
                         }`}
                 >
