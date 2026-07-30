@@ -1,7 +1,13 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import type {FileEntry} from '../components/FolderExplorer';
 import type {SongMetadata} from '../components/PlayerPanel';
-import {getTauri, isBrowserTauri} from '../lib/homeState';
+import {
+    getTauri,
+    isBrowserTauri,
+    loadSessionState,
+    saveSessionState,
+    type SessionState,
+} from '../lib/homeState';
 
 interface UseAudioPlayerOptions {
     musicFolder: string | null;
@@ -66,6 +72,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const filesRef = useRef<FileEntry[]>([]);
     const selectedSongRef = useRef<FileEntry | null>(null);
+    const metadataRef = useRef<SongMetadata | null>(null);
     const playlistRef = useRef<FileEntry[]>([]);
     const volumeModeRef = useRef<'app' | 'system'>('app');
     const volumeLimitRef = useRef<number>(0);
@@ -81,9 +88,15 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     const playTokenRef = useRef(0);
     const loadFilesTokenRef = useRef(0);
     const autoPausedBySilenceRef = useRef(false);
+    // Tracks whether the currently loaded (but not yet played) track came from session restore.
+    // When true, wallpaper is deferred until the user actually hits play.
+    const restoredPendingPlayRef = useRef(false);
+    // Ensures session restore only fires once per mount, not on every re-sort
+    const sessionRestoreAttemptedRef = useRef(false);
 
     filesRef.current = files;
     selectedSongRef.current = selectedSong;
+    metadataRef.current = metadata;
     autoWallpaperRef.current = autoWallpaper;
     formatsRef.current = formats;
     volumeModeRef.current = volumeMode;
@@ -97,6 +110,8 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
     const activeVolume = volumeMode === 'system' ? systemVolume : appVolume;
 
+    // ─── helpers ───────────────────────────────────────────────────────────────
+
     const isVolumeSilent = useCallback(() => {
         return volumeMode === 'app'
             ? appVolume <= 0
@@ -106,9 +121,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     const setMinimumResumeVolume = useCallback(async () => {
         if (volumeMode === 'app') {
             setAppVolume(MIN_RESUME_VOLUME);
-            if (audioRef.current) {
-                audioRef.current.volume = MIN_RESUME_VOLUME;
-            }
+            if (audioRef.current) audioRef.current.volume = MIN_RESUME_VOLUME;
             return MIN_RESUME_VOLUME;
         }
 
@@ -130,6 +143,23 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         return targetVolume;
     }, [lastLocalVolumeSetRef, setAppVolume, setSystemMuted, setSystemVolume, volumeMode]);
 
+    /** Apply wallpaper from current metadata. No-op if autoWallpaper is off. */
+    const applyWallpaper = useCallback(async (meta: SongMetadata) => {
+        if (!isBrowserTauri || !autoWallpaperRef.current) return;
+        try {
+            const mod = await getTauri();
+            if (meta.cover_b64) {
+                await mod.invoke('set_wallpaper', {coverB64: meta.cover_b64});
+            } else {
+                await mod.invoke('clear_wallpaper');
+            }
+        } catch (e) {
+            showError(`Wallpaper error: ${String(e)}`);
+        }
+    }, [showError]);
+
+    // ─── file listing ──────────────────────────────────────────────────────────
+
     const loadFiles = useCallback(async (dirPath: string) => {
         const token = ++loadFilesTokenRef.current;
         const needsMetadata = nameSourceRef.current === 'title';
@@ -148,15 +178,21 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             setFiles(result);
         } catch (e) {
             if (token !== loadFilesTokenRef.current || !isMountedRef.current) return;
-            const msg = String(e);
-            showError(msg);
+            showError(String(e));
             setFiles([]);
         } finally {
             if (token === loadFilesTokenRef.current) setLoadingFiles(false);
         }
     }, [showError]);
 
-    const loadMetadata = useCallback(async (filePath: string) => {
+    // ─── metadata ──────────────────────────────────────────────────────────────
+
+    /**
+     * Fetch metadata for a file and update state.
+     * skipWallpaper=true is used during session restore so wallpaper is only
+     * applied when the user actually starts playback.
+     */
+    const loadMetadata = useCallback(async (filePath: string, skipWallpaper = false) => {
         const token = ++playTokenRef.current;
         try {
             const mod = await getTauri();
@@ -164,24 +200,14 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             if (token !== playTokenRef.current || !isMountedRef.current) return;
             setMetadata(result);
             if (result.duration) setDuration(result.duration);
-
-            if (isBrowserTauri && autoWallpaperRef.current) {
-                if (result.cover_b64) {
-                    mod.invoke('set_wallpaper', {
-                        coverB64: result.cover_b64,
-                    }).catch((e: unknown) => {
-                        const msg = String(e);
-                        showError(`Wallpaper error: ${msg}`);
-                    });
-                } else {
-                    mod.invoke('clear_wallpaper').catch(() => {});
-                }
-            }
+            if (!skipWallpaper) await applyWallpaper(result);
         } catch {
             if (token !== playTokenRef.current || !isMountedRef.current) return;
             setMetadata(null);
         }
-    }, [showError]);
+    }, [applyWallpaper]);
+
+    // ─── path / folder effects ─────────────────────────────────────────────────
 
     useEffect(() => {
         if (musicFolder && !currentPath) {
@@ -199,9 +225,113 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         }
     }, [currentPath, loadFiles]);
 
+    // Re-sort whenever sort settings change (does NOT reset the restore-once guard)
     useEffect(() => {
         if (currentPath) loadFiles(currentPath);
-    }, [folderSort, fileSort, sortDir, nameSource, formats, currentPath, loadFiles]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [folderSort, fileSort, sortDir, nameSource, formats]);
+
+    // ─── session restore ───────────────────────────────────────────────────────
+
+    /**
+     * Called once after the file list is first populated.
+     * If the saved file is in a sub-folder, we navigate there first then restore.
+     * Loads audio src + seeks but does NOT play and does NOT set the wallpaper.
+     */
+    useEffect(() => {
+        // Only attempt restore once per mount and only when files have loaded
+        if (!files.length) return;
+        if (sessionRestoreAttemptedRef.current) return;
+        sessionRestoreAttemptedRef.current = true;
+
+        const session = loadSessionState();
+        if (!session) return;
+
+        // Derive the parent folder of the saved file (handles both / and \)
+        const savedParent = session.filePath.replace(/[/\\][^/\\]+$/, '');
+
+        // If the saved file lives in a different folder than what's loaded,
+        // navigate to that folder. The next files update will trigger restore again —
+        // but the guard is already set, so we explicitly do it in the navigation branch.
+        if (savedParent !== currentPath) {
+            // Navigate to the file's folder; when loadFiles completes, we do the restore inline
+            const doNavAndRestore = async () => {
+                try {
+                    // Update path — this will trigger loadFiles via the currentPath effect
+                    // We need to wait for files, so we do it manually here instead
+                    const token = ++loadFilesTokenRef.current;
+                    const mod = await getTauri();
+                    const result = await mod.invoke<FileEntry[]>('list_files', {
+                        path: savedParent,
+                        folderSort: folderSortRef.current,
+                        fileSort: fileSortRef.current,
+                        sortDir: sortDirRef.current,
+                        nameSource: nameSourceRef.current,
+                        formats: formatsRef.current,
+                    });
+                    if (token !== loadFilesTokenRef.current || !isMountedRef.current) return;
+                    setFiles(result);
+                    setCurrentPath(savedParent);
+                    // Now restore using this fresh list
+                    await restoreFromFileList(result, session);
+                } catch {
+                    saveSessionState(null);
+                }
+            };
+            doNavAndRestore();
+            return;
+        }
+
+        // The saved file is already in the current folder listing
+        restoreFromFileList(files, session);
+
+        async function restoreFromFileList(fileList: FileEntry[], sess: NonNullable<ReturnType<typeof loadSessionState>>) {
+            const savedFile = fileList.find(f => !f.is_dir && f.path === sess.filePath);
+            if (!savedFile) return;
+
+            const audio = audioRef.current;
+            if (!audio) return;
+
+            try {
+                let src: string;
+                if (isBrowserTauri) {
+                    const mod = await getTauri();
+                    src = mod.convertFileSrc(savedFile.path);
+                } else {
+                    src = savedFile.path;
+                }
+
+                audio.src = src;
+                audio.volume = volumeModeRef.current === 'app' ? appVolume : 1;
+                audio.loop = repeatRef.current === 'one';
+
+                // Seek once enough data is buffered
+                const onCanPlay = () => {
+                    audio.currentTime = sess.currentTime;
+                    audio.removeEventListener('canplay', onCanPlay);
+                };
+                audio.addEventListener('canplay', onCanPlay);
+                audio.load();
+
+                setSelectedSong(savedFile);
+                setCurrentTime(sess.currentTime);
+                playlistRef.current = fileList.filter(f => !f.is_dir);
+                restoredPendingPlayRef.current = true;
+
+                // Fetch fresh metadata — skip wallpaper until user hits play
+                await loadMetadata(savedFile.path, true);
+
+                const mins = Math.floor(sess.currentTime / 60);
+                const secs = Math.floor(sess.currentTime % 60).toString().padStart(2, '0');
+                addLog('info', `Sesi dipulihkan: ${savedFile.name} pada ${mins}:${secs}`);
+            } catch {
+                saveSessionState(null);
+            }
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [files]);
+
+    // ─── playback ──────────────────────────────────────────────────────────────
 
     const playSong = useCallback(async (file: FileEntry) => {
         if (file.is_dir) return;
@@ -227,16 +357,19 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             } else {
                 src = file.path;
             }
+
             audio.src = src;
             audio.volume = volumeModeRef.current === 'app' ? (resumeVolume ?? appVolume) : 1;
             audio.loop = repeatRef.current === 'one';
             await audio.play();
             autoPausedBySilenceRef.current = false;
+            restoredPendingPlayRef.current = false;
 
             if (token !== playTokenRef.current || !isMountedRef.current) return;
 
             setSelectedSong(file);
-            loadMetadata(file.path);
+            // Full metadata load including wallpaper
+            loadMetadata(file.path, false);
             addLog('info', `Memutar: ${file.name}`);
         } catch (e) {
             if (e instanceof DOMException && e.name === 'AbortError') return;
@@ -255,13 +388,20 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 }
                 await audio.play();
                 autoPausedBySilenceRef.current = false;
+
+                // If this is the first play after a session restore, apply wallpaper now
+                if (restoredPendingPlayRef.current) {
+                    restoredPendingPlayRef.current = false;
+                    const meta = metadataRef.current;
+                    if (meta) await applyWallpaper(meta);
+                }
             };
             resume().catch(e => console.error('Gagal play:', e));
         } else {
             autoPausedBySilenceRef.current = false;
             audio.pause();
         }
-    }, [pauseIfMuted, isVolumeSilent, setMinimumResumeVolume]);
+    }, [pauseIfMuted, isVolumeSilent, setMinimumResumeVolume, applyWallpaper]);
 
     const resetPlayer = useCallback(() => {
         if (audioRef.current) {
@@ -277,6 +417,8 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         setIsPlaying(false);
         playlistRef.current = [];
         autoPausedBySilenceRef.current = false;
+        restoredPendingPlayRef.current = false;
+        saveSessionState(null);
         if (isBrowserTauri) {
             getTauri().then(mod => mod.invoke('clear_wallpaper')).catch(() => {});
         }
@@ -288,21 +430,19 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
         let nextFile: FileEntry | undefined;
         if (shuffleRef.current) {
-            const currentPath = selectedSongRef.current?.path;
-            const candidates = list.filter(f => f.path !== currentPath);
-            if (candidates.length > 0) {
-                nextFile = candidates[Math.floor(Math.random() * candidates.length)];
-            } else {
-                nextFile = list[0];
-            }
+            const curPath = selectedSongRef.current?.path;
+            const candidates = list.filter(f => f.path !== curPath);
+            nextFile = candidates.length > 0
+                ? candidates[Math.floor(Math.random() * candidates.length)]
+                : list[0];
         } else {
-            const current = selectedSongRef.current;
-            const idx = current ? list.findIndex(f => f.path === current.path) : -1;
+            const idx = selectedSongRef.current
+                ? list.findIndex(f => f.path === selectedSongRef.current!.path)
+                : -1;
             nextFile = idx >= 0 ? list[idx + 1] : list[0];
-            if (!nextFile && repeatRef.current === 'all') {
-                nextFile = list[0];
-            }
+            if (!nextFile && repeatRef.current === 'all') nextFile = list[0];
         }
+
         if (nextFile) {
             playSong(nextFile);
         } else {
@@ -316,37 +456,32 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
         let prevFile: FileEntry | undefined;
         if (shuffleRef.current) {
-            const currentPath = selectedSongRef.current?.path;
-            const candidates = list.filter(f => f.path !== currentPath);
-            if (candidates.length > 0) {
-                prevFile = candidates[Math.floor(Math.random() * candidates.length)];
-            } else {
-                prevFile = list[0];
-            }
+            const curPath = selectedSongRef.current?.path;
+            const candidates = list.filter(f => f.path !== curPath);
+            prevFile = candidates.length > 0
+                ? candidates[Math.floor(Math.random() * candidates.length)]
+                : list[0];
         } else {
-            const current = selectedSongRef.current;
-            const idx = current ? list.findIndex(f => f.path === current.path) : -1;
-            prevFile = idx > 0 ? list[idx - 1] : (repeatRef.current === 'all' ? list[list.length - 1] : undefined);
+            const idx = selectedSongRef.current
+                ? list.findIndex(f => f.path === selectedSongRef.current!.path)
+                : -1;
+            prevFile = idx > 0
+                ? list[idx - 1]
+                : (repeatRef.current === 'all' ? list[list.length - 1] : undefined);
         }
-        if (prevFile) {
-            playSong(prevFile);
-        }
+
+        if (prevFile) playSong(prevFile);
     }, [playSong]);
 
+    // Stable refs so keyboard shortcuts always call the latest version
     const playNextRef = useRef(playNext);
-    useEffect(() => {
-        playNextRef.current = playNext;
-    }, [playNext]);
-
     const playPrevRef = useRef(playPrev);
-    useEffect(() => {
-        playPrevRef.current = playPrev;
-    }, [playPrev]);
-
     const togglePlayPauseRef = useRef(togglePlayPause);
-    useEffect(() => {
-        togglePlayPauseRef.current = togglePlayPause;
-    }, [togglePlayPause]);
+    useEffect(() => { playNextRef.current = playNext; }, [playNext]);
+    useEffect(() => { playPrevRef.current = playPrev; }, [playPrev]);
+    useEffect(() => { togglePlayPauseRef.current = togglePlayPause; }, [togglePlayPause]);
+
+    // ─── audio element lifecycle ───────────────────────────────────────────────
 
     useEffect(() => {
         const audio = new Audio();
@@ -355,9 +490,27 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
         const handlePlay = () => setIsPlaying(true);
         const handlePause = () => setIsPlaying(false);
-        const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+
+        // Event-driven session save: fires on every timeupdate (no interval)
+        const handleTimeUpdate = () => {
+            const t = audio.currentTime;
+            setCurrentTime(t);
+            const song = selectedSongRef.current;
+            if (song && t > 0) {
+                const session: SessionState = {
+                    filePath: song.path,
+                    currentTime: t,
+                    timestamp: Date.now(),
+                };
+                saveSessionState(session);
+            }
+        };
+
         const handleDurationChange = () => setDuration(audio.duration || 0);
+
         const handleEnded = () => {
+            // Song finished naturally — clear session so next startup starts fresh
+            saveSessionState(null);
             playNextRef.current();
         };
 
@@ -377,7 +530,32 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             audio.src = '';
             audioRef.current = null;
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Save session on window close / page hide (belt-and-suspenders for Tauri)
+    useEffect(() => {
+        const flush = () => {
+            const song = selectedSongRef.current;
+            const audio = audioRef.current;
+            if (song && audio && audio.currentTime > 0) {
+                saveSessionState({
+                    filePath: song.path,
+                    currentTime: audio.currentTime,
+                    timestamp: Date.now(),
+                });
+            }
+        };
+        window.addEventListener('beforeunload', flush);
+        window.addEventListener('pagehide', flush);
+        return () => {
+            flush();
+            window.removeEventListener('beforeunload', flush);
+            window.removeEventListener('pagehide', flush);
+        };
+    }, []);
+
+    // ─── volume / mute sync ────────────────────────────────────────────────────
 
     useEffect(() => {
         if (!audioRef.current) return;
@@ -388,7 +566,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         }
     }, [volumeMode, appVolume]);
 
-    // Pause playback when volume reaches 0 or is muted (if enabled)
+    // Auto-pause when volume hits 0 / muted
     useEffect(() => {
         if (!pauseIfMuted || !isPlaying) return;
         const isZero = volumeMode === 'app'
@@ -401,37 +579,32 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         }
     }, [pauseIfMuted, volumeMode, appVolume, systemVolume, systemMuted, isPlaying]);
 
-    // Resume only when the previous pause was caused by mute/volume 0.
+    // Auto-resume when volume comes back after silence pause
     useEffect(() => {
         if (!pauseIfMuted || !autoPausedBySilenceRef.current) return;
-
         const audio = audioRef.current;
         if (!audio || !audio.src || !audio.paused) return;
-
         const stillSilent = volumeMode === 'app'
             ? appVolume <= 0
             : (systemMuted || systemVolume <= 0);
         if (stillSilent) return;
-
         autoPausedBySilenceRef.current = false;
-        audio.play().catch((e) => {
+        audio.play().catch(e => {
             autoPausedBySilenceRef.current = true;
             console.error('Gagal auto resume:', e);
         });
     }, [pauseIfMuted, volumeMode, appVolume, systemVolume, systemMuted]);
 
     useEffect(() => {
-        if (!pauseIfMuted) {
-            autoPausedBySilenceRef.current = false;
-        }
+        if (!pauseIfMuted) autoPausedBySilenceRef.current = false;
     }, [pauseIfMuted]);
 
-    // Sinkronkan state repeat === 'one' langsung ke elemen audio agar realtime
+    // Sync repeat='one' directly to the audio element
     useEffect(() => {
-        if (audioRef.current) {
-            audioRef.current.loop = repeat === 'one';
-        }
+        if (audioRef.current) audioRef.current.loop = repeat === 'one';
     }, [repeat]);
+
+    // ─── controls ──────────────────────────────────────────────────────────────
 
     const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const parsed = parseFloat(e.target.value);
@@ -439,18 +612,10 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         const v = Math.max(0, Math.min(1, parsed));
         if (volumeModeRef.current === 'app') {
             setAppVolume(v);
-            if (audioRef.current) {
-                audioRef.current.volume = Math.max(0, Math.min(1, v));
-            }
+            if (audioRef.current) audioRef.current.volume = v;
         } else {
-            const limit = volumeLimit;
             const targetPct = Math.round(v * 100);
-
-            // Block setting volume higher than the allowed volume limit
-            if (limit > 0 && targetPct > limit) {
-                return;
-            }
-
+            if (volumeLimit > 0 && targetPct > volumeLimit) return;
             setSystemVolume(v);
             setSystemMuted(targetPct === 0);
             lastLocalVolumeSetRef.current = Date.now();
@@ -469,9 +634,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     const handleSeek = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const t = parseFloat(e.target.value);
         setCurrentTime(t);
-        if (audioRef.current) {
-            audioRef.current.currentTime = t;
-        }
+        if (audioRef.current) audioRef.current.currentTime = t;
     }, []);
 
     const toggleSystemMute = useCallback(() => {
@@ -479,18 +642,16 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         const shouldMute = !systemMuted;
         setSystemMuted(shouldMute);
         lastLocalVolumeSetRef.current = Date.now();
-        getTauri().then(m => {
-            m.invoke('set_system_mute', {mute: shouldMute});
-        }).catch(() => {});
+        getTauri().then(m => m.invoke('set_system_mute', {mute: shouldMute})).catch(() => {});
     }, [systemMuted, setSystemMuted, lastLocalVolumeSetRef]);
 
     const goUp = useCallback(() => {
         if (!currentPath || !musicFolder) return;
         const parent = currentPath.replace(/\\/g, '/').split('/').slice(0, -1).join('\\');
-        if (parent.length >= musicFolder.length) {
-            setCurrentPath(parent);
-        }
+        if (parent.length >= musicFolder.length) setCurrentPath(parent);
     }, [currentPath, musicFolder]);
+
+    // ─── return ────────────────────────────────────────────────────────────────
 
     return {
         files,

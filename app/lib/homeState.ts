@@ -19,6 +19,7 @@ export const DEFAULT_VOLUME_STEP = 2;
 export const LANGUAGE_KEY = 'music-app-language';
 export const DEFAULT_LANGUAGE = 'en';
 export const UPDATE_SKIP_KEY = 'music-app-update-skip';
+export const SESSION_STATE_KEY = 'music-app-session-state';
 
 // Shortcut action IDs. Each maps to one key on the keyboard. The user can
 // remap any of these via Settings -> Shortcut; the binding is stored in
@@ -38,6 +39,13 @@ export const DEFAULT_FORMATS = ['mp3', 'flac', 'ogg', 'wav', 'm4a', 'wma'];
 export interface TauriCore {
     invoke: <T>(cmd: string, args?: Record<string, unknown>) => Promise<T>;
     convertFileSrc: (path: string) => string;
+}
+
+/** Persisted last-session state — only path and position, no metadata. */
+export interface SessionState {
+    filePath: string;
+    currentTime: number;
+    timestamp: number;
 }
 
 let tauriMod: TauriCore | null = null;
@@ -64,5 +72,33 @@ export function safeSetLocalStorage(key: string, value: string) {
         window.localStorage.setItem(key, value);
     } catch {
         // Quota exceeded, private browsing, or storage disabled - silently skip.
+    }
+}
+
+/** Returns the saved session or null if missing / corrupt. */
+export function loadSessionState(): SessionState | null {
+    if (typeof window === 'undefined') return null;
+    try {
+        const raw = window.localStorage.getItem(SESSION_STATE_KEY);
+        if (!raw) return null;
+        const s: SessionState = JSON.parse(raw);
+        if (!s.filePath || typeof s.currentTime !== 'number') return null;
+        return s;
+    } catch {
+        return null;
+    }
+}
+
+/** Persist current session. Pass null to clear. */
+export function saveSessionState(state: SessionState | null): void {
+    if (typeof window === 'undefined') return;
+    try {
+        if (!state) {
+            window.localStorage.removeItem(SESSION_STATE_KEY);
+        } else {
+            safeSetLocalStorage(SESSION_STATE_KEY, JSON.stringify({ ...state, timestamp: Date.now() }));
+        }
+    } catch {
+        // ignore
     }
 }

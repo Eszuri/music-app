@@ -43,7 +43,7 @@ interface HomePlayerAreaProps {
     handlePickFolder: () => void;
     goUp: () => void;
     setCurrentPath: (path: string) => void;
-    playSong: (file: FileEntry) => void;
+    playSong: (file: FileEntry, skipWallpaper?: boolean) => void;
     handleSeek: (e: ChangeEvent<HTMLInputElement>) => void;
     playPrev: () => void;
     togglePlayPause: () => void;

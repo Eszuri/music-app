@@ -30,7 +30,7 @@ interface FolderExplorerProps {
     debugError: string;
     goUp: () => void;
     setCurrentPath: (path: string) => void;
-    playSong: (file: FileEntry) => void;
+    playSong: (file: FileEntry, skipWallpaper?: boolean) => void;
     onChangeFolder: () => void;
     musicFolder: string | null;
     resetSidebarToken: number;
