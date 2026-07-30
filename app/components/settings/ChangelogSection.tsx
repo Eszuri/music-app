@@ -3,6 +3,7 @@
 import {type Lang} from '../../lib/translations';
 
 const changelogEn = [
+    {version: '0.9.0', items: ["Fixed a small display issue in the alerts box.", "Added right-click menus throughout the app, letting you copy file paths, save album covers, open developer tools, and control playback with a right click.", "Added a fullscreen mode for album art, with the player controls fading away automatically until you move your mouse.", "Added a way to customize how long it takes for the fullscreen controls to fade away, or turn that off completely.", "The volume slider now stays in sync with your computer's volume automatically, without any delay.", "Added a status bar that shows helpful hints when you hover over buttons and controls.", "Added a setting that automatically pauses your music when the volume is muted or turned all the way down.", "Music now also resumes automatically when you turn the volume back up or unmute it.", "Added a dedicated mute button, and made muting and volume control work together more smoothly."]},
     {version: '0.8.5', items: ['Responsive layout adjustments for narrow viewports', 'Header buttons no longer overlap on small screens', 'Fixed text overflow']},
     {version: '0.8.0', items: ['Pubkey removed from source config, injected via CI env var', 'Pre-build script for CI environment injection', 'Changelog section in Settings']},
     {version: '0.7.5', items: ['Auto-update notification on startup with download progress', 'Remind Later / Stay on Current Version options for updates']},
@@ -16,6 +17,7 @@ const changelogEn = [
 ];
 
 const changelogId = [
+    {version: '0.9.0', items: ["Memperbaiki tampilan kecil pada notifikasi peringatan.","Menambahkan menu klik-kanan di seluruh aplikasi, jadi bisa menyalin lokasi file, menyimpan gambar sampul album, membuka alat pengembang, dan mengatur pemutaran lagu hanya dengan klik kanan.","Menambahkan mode layar penuh untuk gambar sampul album, dengan kontrol pemutar yang otomatis menghilang sampai kursor digerakkan lagi.","Menambahkan pengaturan untuk menentukan seberapa lama kontrol player pada layar penuh menghilang, atau bisa dimatikan sepenuhnya.","Penggeser volume sekarang otomatis mengikuti volume komputer tanpa jeda.","Menambahkan bilah status yang menampilkan keterangan berguna saat kursor diarahkan ke tombol atau kontrol.","Menambahkan pengaturan yang otomatis menjeda musik saat volume dibisukan atau diturunkan sampai nol.","Musik sekarang juga otomatis lanjut diputar saat volume dinaikkan kembali atau suara dibunyikan lagi.","Memperbaiki fitur mute atau bisu."]},
     {version: '0.8.5', items: ['Penyesuaian layout responsif untuk viewport sempit', 'Tombol header tidak lagi bertumpuk di layar kecil', 'Perbaikan overflow teks ']},
     {version: '0.8.0', items: ['Pubkey dihapus dari source config, diinjeksi via env var CI', 'Script pre-build untuk injeksi environment CI', 'Bagian Changelog di Settings']},
     {version: '0.7.5', items: ['Notifikasi update otomatis saat startup dengan progress download', 'Opsi Ingatkan Nanti / Tetap di Versi Saat Ini untuk update']},
