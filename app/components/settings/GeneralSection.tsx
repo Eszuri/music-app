@@ -5,7 +5,7 @@ import {motion} from 'framer-motion';
 import type {KeyboardEvent} from 'react';
 import {getAccent} from '../../lib/colors';
 import {t, type Lang} from '../../lib/translations';
-import {SelectStub, SettingRow, ToggleStub} from './controls';
+import {SelectStub, SettingGroup, SettingRow, ToggleStub} from './controls';
 
 export default function GeneralSection({
     lang,
@@ -64,7 +64,8 @@ export default function GeneralSection({
 }) {
     const accent = getAccent(accentColor);
     return (
-        <div className="space-y-6">
+        <div className="space-y-5">
+            <SettingGroup title={t(lang, 'general.group.app')}>
             <SettingRow
                 title={t(lang, 'general.language.title')}
                 description={t(lang, 'general.language.desc')}
@@ -98,6 +99,9 @@ export default function GeneralSection({
                     </button>
                 </div>
             </SettingRow>
+            </SettingGroup>
+
+            <SettingGroup title={t(lang, 'general.group.wallpaper')}>
             <SettingRow
                 title={t(lang, 'general.autoWallpaper.title')}
                 description={t(lang, 'general.autoWallpaper.desc')}
@@ -143,6 +147,9 @@ export default function GeneralSection({
                     )}
                 </div>
             </SettingRow>
+            </SettingGroup>
+
+            <SettingGroup title={t(lang, 'general.group.volume')}>
             <SettingRow
                 title={t(lang, 'general.volumeMode.title')}
                 description={t(lang, 'general.volumeMode.desc')}
@@ -200,6 +207,9 @@ export default function GeneralSection({
                     />
                 </SettingRow>
             )}
+            </SettingGroup>
+
+            <SettingGroup title={t(lang, 'general.group.update')}>
             <SettingRow
                 title={t(lang, 'general.update.title')}
                 description={t(lang, 'general.update.desc')}
@@ -214,6 +224,7 @@ export default function GeneralSection({
                     onCheck={onCheckUpdate}
                 />
             </SettingRow>
+            </SettingGroup>
         </div>
     );
 }

@@ -3,6 +3,23 @@
 import type {ReactNode} from 'react';
 import {useHoverDescription} from '../../hooks/useHoverDescription';
 
+export function SettingGroup({
+    title,
+    children,
+}: {
+    title: string;
+    children: ReactNode;
+}) {
+    return (
+        <div className="space-y-0">
+            <h3 className="text-[11px] font-semibold tracking-wider text-zinc-500 uppercase mb-3 px-0.5">{title}</h3>
+            <div className="rounded-xl bg-zinc-900/60 border border-zinc-800/60 overflow-hidden">
+                {children}
+            </div>
+        </div>
+    );
+}
+
 export function SettingRow({
     title,
     description,
@@ -18,7 +35,7 @@ export function SettingRow({
     return (
         <div 
             {...hoverProps}
-            className={`relative flex items-start justify-between gap-4 pb-4 border-b border-zinc-800/60 last:border-0 ${className}`}
+            className={`relative flex items-start justify-between gap-4 px-4 py-3.5 border-b border-zinc-800/40 last:border-0 ${className}`}
         >
             <div className="flex-1 min-w-0">
                 <h4 className="text-sm font-medium text-zinc-100">{title}</h4>

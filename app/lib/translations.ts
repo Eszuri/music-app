@@ -16,6 +16,11 @@ const en: Record<string, string> = {
     'settings.title': 'Settings',
     'settings.close': 'Close',
 
+    'general.group.app': 'Application',
+    'general.group.wallpaper': 'Wallpaper',
+    'general.group.volume': 'Volume',
+    'general.group.update': 'Update',
+
     'general.language.title': 'Language',
     'general.language.desc': 'Application display language',
 
@@ -357,6 +362,11 @@ const id: Record<string, string> = {
 
     'settings.title': 'Pengaturan',
     'settings.close': 'Tutup',
+
+    'general.group.app': 'Aplikasi',
+    'general.group.wallpaper': 'Wallpaper',
+    'general.group.volume': 'Volume',
+    'general.group.update': 'Pembaruan',
 
     'general.language.title': 'Bahasa',
     'general.language.desc': 'Bahasa tampilan aplikasi',
