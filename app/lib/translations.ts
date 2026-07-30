@@ -194,7 +194,8 @@ const en: Record<string, string> = {
     'alert.error': 'An error occurred. Check <strong>Debug</strong> log for details.',
     'alert.volumeWarning': 'System volume exceeds the safe limit (<strong>{limit}</strong>)! Lower the volume to protect your hearing.',
 
-    'contextMenu.playPause': 'Play/Pause',
+    'contextMenu.reloadPage': 'Reload Page',
+ 'contextMenu.playPause': 'Play/Pause',
     'contextMenu.next': 'Next',
     'contextMenu.prev': 'Previous',
     'contextMenu.increaseVolume': 'Increase Volume',
@@ -541,7 +542,8 @@ const id: Record<string, string> = {
     'alert.error': 'Terjadi error. Cek <strong>Debug</strong> log untuk detail.',
     'alert.volumeWarning': 'Volume sistem melebihi batas aman (<strong>{limit}</strong>)! Turunkan volume untuk melindungi pendengaran.',
 
-    'contextMenu.playPause': 'Putar/Jeda',
+    'contextMenu.reloadPage': 'Reload Halaman',
+ 'contextMenu.playPause': 'Putar/Jeda',
     'contextMenu.next': 'Berikutnya',
     'contextMenu.prev': 'Sebelumnya',
     'contextMenu.increaseVolume': 'Naikkan Volume',
