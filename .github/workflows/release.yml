@@ -67,11 +67,16 @@ jobs:
           updaterJsonPreferNsis: true
           args: ${{ matrix.args }}
 
-      - name: Upload .sig files as workflow artifacts (debug aid)
-        if: always()
-        uses: actions/upload-artifact@v5
-        with:
-          name: tauri-sigs-${{ matrix.platform }}
-          path: |
-            src-tauri/target/**/bundle/**/*.sig
-          if-no-files-found: ignore
+      - name: Hapus file .sig dan .zip dari release draft
+        if: success()
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          gh release view $tag --json assets -q '.assets[].name' | ForEach-Object {
+            if ($_ -match '\.(sig|zip)$') {
+              Write-Host "Menghapus: $_"
+              gh release delete-asset $tag $_ --yes
+            }
+          }
