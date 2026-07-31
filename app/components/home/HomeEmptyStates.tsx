@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { getAccent } from "../../lib/colors";
 import { t, type Lang } from "../../lib/translations";
 
@@ -25,11 +24,8 @@ export function NoFolderEmptyState({
       <p className="text-sm text-zinc-500 max-w-md mb-8 leading-relaxed">
         {t(lang, "empty.welcomeDesc")}
       </p>
-      <motion.button
+      <button
         onClick={onPickFolder}
-        whileHover={{ scale: 1.04, y: -1 }}
-        whileTap={{ scale: 0.96 }}
-        transition={{ duration: 0.15 }}
         className={`flex items-center gap-2.5 px-6 py-3 ${accent.bg500} ${accent.hoverBg400} text-zinc-950 font-semibold rounded-xl cursor-pointer shadow-lg ${accent.shadow20}`}
       >
         <svg
@@ -46,7 +42,7 @@ export function NoFolderEmptyState({
           <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
         </svg>
         {t(lang, "empty.pickFolder")}
-      </motion.button>
+      </button>
     </div>
   );
 }

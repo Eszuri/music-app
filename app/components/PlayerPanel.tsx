@@ -49,7 +49,6 @@ export default function PlayerPanel({ lang, metadata, selectedSong, accentColor,
                 <motion.div
                     key={selectedSong?.path || 'no-song'}
                     {...contentMotion}
-                whileHover={{ scale: 1.02 }}
                 onContextMenu={onContextMenu}
                 className="w-full max-w-[360px] sm:max-w-[420px] md:max-w-[460px] max-h-[45vh] rounded-2xl overflow-hidden bg-zinc-900/80 flex items-center justify-center ring-1 ring-white/5 cursor-pointer relative shrink"
                 style={{
@@ -71,7 +70,7 @@ export default function PlayerPanel({ lang, metadata, selectedSong, accentColor,
                         <motion.div
                             key="placeholder"
                             {...contentMotion}
-                            animate={{ opacity: 0.15, y: 0, scale: 1 }}
+                            animate={{ opacity: 0.15, y: 0 }}
                             className="w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 max-h-[45vh] aspect-square flex items-center justify-center"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">

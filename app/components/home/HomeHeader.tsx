@@ -120,13 +120,10 @@ export default function HomeHeader({
         <>
             <header className="flex items-center px-3 sm:px-5 py-2.5 sm:py-3 border-b border-zinc-800/50 bg-zinc-950/80 backdrop-blur-sm relative gap-2">
                 <div className="flex items-center gap-1.5 shrink-0">
-                    <motion.button
+                    <button
                         {...streamingHover}
                         onClick={onOpenStreaming}
                         onContextMenu={showStreamingMenu}
-                        whileHover={{scale: 1.04}}
-                        whileTap={{scale: 0.96}}
-                        transition={{duration: 0.15}}
                         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-800/50 hover:bg-zinc-700/60 text-zinc-300 hover:text-zinc-100 text-xs font-medium cursor-pointer"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -135,14 +132,11 @@ export default function HomeHeader({
                             <circle cx="5" cy="19" r="1" />
                         </svg>
                         <span className="hidden sm:inline">{t(lang, 'header.streaming')}</span>
-                    </motion.button>
-                    <motion.button
+                    </button>
+                    <button
                         {...settingsHover}
                         onClick={onOpenSettings}
                         onContextMenu={showSettingsMenu}
-                        whileHover={{scale: 1.04}}
-                        whileTap={{scale: 0.96}}
-                        transition={{duration: 0.15}}
                         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-800/50 hover:bg-zinc-700/60 text-zinc-300 hover:text-zinc-100 text-xs font-medium cursor-pointer"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -150,15 +144,13 @@ export default function HomeHeader({
                             <circle cx="12" cy="12" r="3" />
                         </svg>
                         <span className="hidden sm:inline">{t(lang, 'header.settings')}</span>
-                    </motion.button>
+                    </button>
                     {isCompact && musicFolder && (
                         <>
                             <div className="w-px h-5 bg-zinc-800/60 mx-0.5" />
-                            <motion.button
+                            <button
                                 {...leftSidebarHover}
                                 onClick={onToggleLeftSidebar}
-                                whileHover={{scale: 1.05}}
-                                whileTap={{scale: 0.92}}
                                 className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium cursor-pointer ${showLeftSidebar ? 'bg-zinc-700/70 text-zinc-200' : 'bg-zinc-800/50 text-zinc-500 hover:text-zinc-300'}`}
                                 title={t(lang, 'header.toggleList')}
                             >
@@ -167,12 +159,10 @@ export default function HomeHeader({
                                     <path d="M8 3v18" />
                                 </svg>
                                 <span className="hidden sm:inline">{t(lang, 'header.listLabel')}</span>
-                            </motion.button>
-                            <motion.button
+                            </button>
+                            <button
                                 {...rightSidebarHover}
                                 onClick={onToggleRightSidebar}
-                                whileHover={{scale: 1.05}}
-                                whileTap={{scale: 0.92}}
                                 className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium cursor-pointer ${showRightSidebar ? 'bg-zinc-700/70 text-zinc-200' : 'bg-zinc-800/50 text-zinc-500 hover:text-zinc-300'}`}
                                 title={t(lang, 'header.toggleInfo')}
                             >
@@ -181,7 +171,7 @@ export default function HomeHeader({
                                     <path d="M12 16v-4M12 8h.01" />
                                 </svg>
                                 <span className="hidden sm:inline">{t(lang, 'header.infoLabel')}</span>
-                            </motion.button>
+                            </button>
                         </>
                     )}
                 </div>
@@ -205,7 +195,7 @@ export default function HomeHeader({
                         <>
                             <motion.span
                                 className={`inline-block w-1.5 h-1.5 rounded-full ${accent.bg400}`}
-                                animate={{scale: [1, 1.4, 1], opacity: [1, 0.5, 1]}}
+                                animate={{opacity: [1, 0.5, 1]}}
                                 transition={{duration: 1.2, repeat: Infinity, ease: 'easeInOut'}}
                             />
                             {t(lang, 'header.playing')}

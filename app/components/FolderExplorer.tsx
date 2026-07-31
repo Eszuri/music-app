@@ -197,7 +197,7 @@ export default function FolderExplorer({
                 onContextMenu={onGlobalContextMenu}
                 className="flex items-center gap-2 px-3 py-2.5 border-b border-zinc-800/30"
             >
-                <motion.button
+                <button
                     {...goUpHover}
                     onClick={goUp}
                     onContextMenu={(e: React.MouseEvent) => {
@@ -217,16 +217,13 @@ export default function FolderExplorer({
                         });
                     }}
                     title={t(lang, 'folder.goUp')}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.92 }}
-                    transition={{ duration: 0.12 }}
                     className={`flex items-center justify-center w-7 h-7 rounded-lg bg-zinc-800/50 hover:bg-zinc-700/60 
         text-zinc-400 hover:text-zinc-100 shrink-0 ${displayPath === musicFolder ? 'invisible pointer-events-none' : 'cursor-pointer'}`}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="m15 18-6-6 6-6" />
                     </svg>
-                </motion.button>
+                </button>
                 <span 
                     {...pathHover}
                     onContextMenu={(e: React.MouseEvent) => {
@@ -252,7 +249,7 @@ export default function FolderExplorer({
                 >
                     {displayPath}
                 </span>
-                <motion.button
+                <button
                     {...changeFolderHover}
                     onClick={onChangeFolder}
                     onContextMenu={(e: React.MouseEvent) => {
@@ -271,9 +268,6 @@ export default function FolderExplorer({
                         });
                     }}
                     title={t(lang, 'folder.changeFolder', {folder: musicFolder || ''})}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.92 }}
-                    transition={{ duration: 0.12 }}
                     className="flex items-center justify-center w-7 h-7 rounded-lg bg-zinc-800/50 hover:bg-zinc-700/60 
         text-zinc-400 hover:text-zinc-100 cursor-pointer shrink-0"
                 >
@@ -281,7 +275,7 @@ export default function FolderExplorer({
                         <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                         <path d="M9 12h6M12 9l3 3-3 3" />
                     </svg>
-                </motion.button>
+                </button>
             </div>
             {/* File list scroll area — global context menu on empty scroll space */}
             <div
@@ -475,8 +469,8 @@ function SkeletonList({ accentHex }: { accentHex: string }) {
                 <motion.div
                     key={i}
                     variants={{
-                        hidden: { opacity: 0, y: 8, scale: 0.97 },
-                        show: { opacity: 1, y: 0, scale: 1 },
+                        hidden: { opacity: 0, y: 8 },
+                        show: { opacity: 1, y: 0 },
                     }}
                     transition={{ duration: 0.25, ease: 'easeInOut' }}
                     className="flex items-center gap-2.5 px-3 py-2 border-l-2 border-transparent"

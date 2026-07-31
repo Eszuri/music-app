@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { getAccent } from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
 import {useHoverDescription} from '../hooks/useHoverDescription';
@@ -50,15 +49,13 @@ export default function SeekBar({ lang, currentTime, duration, handleSeek, accen
                     onChange={handleSeek}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                 />
-                <motion.div
+                <div
                     className="absolute w-3.5 h-3.5 rounded-full shadow-lg pointer-events-none"
                     style={{
                         left: `calc(${progressPct}% - 7px)`,
                         backgroundColor: accent.hex400,
                         boxShadow: `0 0 0 3px ${accent.hex500}20, 0 2px 8px ${accent.hex500}40`,
                     }}
-                    animate={{ scale: hovering ? 1.3 : 1 }}
-                    transition={{ duration: 0.15 }}
                 />
             </div>
             <div className="flex justify-between text-[11px] text-white/80 mt-1.5 tabular-nums font-medium">

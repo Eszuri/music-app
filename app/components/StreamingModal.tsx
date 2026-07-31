@@ -357,18 +357,16 @@ export default function StreamingModal({ lang, open, onClose, accentColor }: Str
                                     <p className="text-[11px] text-zinc-500">{t(lang, 'stream.subtitle')}</p>
                                 </div>
                             </div>
-                            <motion.button
+                            <button
                                 {...closeHover}
                                 onClick={onClose}
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
                                 className="w-7 h-7 rounded-lg bg-zinc-800/60 hover:bg-zinc-700/70 flex items-center justify-center text-zinc-400 hover:text-zinc-200 cursor-pointer transition-colors"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M18 6 6 18" />
                                     <path d="m6 6 12 12" />
                                 </svg>
-                            </motion.button>
+                            </button>
                         </div>
 
                         {/* Content - Two equal columns */}
@@ -378,12 +376,10 @@ export default function StreamingModal({ lang, open, onClose, accentColor }: Str
                                 <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-3 px-1">{t(lang, 'stream.platform')}</div>
                                 <div className="grid grid-cols-1 gap-2">
                                     {PLATFORMS.map((platform) => (
-                                        <motion.button
+                                        <button
                                             key={platform.id}
                                             {...streamHover}
                                             onClick={() => handlePlatformClick(platform)}
-                                            whileHover={{ scale: 1.02, y: -1 }}
-                                            whileTap={{ scale: 0.98 }}
                                             className="flex items-center gap-3 p-2.5 rounded-xl bg-zinc-800/40 hover:bg-zinc-800/70 border border-zinc-700/30 hover:border-zinc-600/50 cursor-pointer transition-colors text-left group"
                                         >
                                             <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0">
@@ -401,7 +397,7 @@ export default function StreamingModal({ lang, open, onClose, accentColor }: Str
                                                 <path d="M7 17 17 7" />
                                                 <path d="M7 7h10v10" />
                                             </svg>
-                                        </motion.button>
+                                        </button>
                                     ))}
                                 </div>
                             </div>
@@ -435,18 +431,16 @@ export default function StreamingModal({ lang, open, onClose, accentColor }: Str
                                                 </button>
                                             )}
                                         </div>
-                                        <motion.button
+                                        <button
                                             {...streamHover}
                                             onClick={handleCustomPlay}
                                             disabled={!customUrl.trim()}
-                                            whileHover={{ scale: customUrl.trim() ? 1.04 : 1 }}
-                                            whileTap={{ scale: customUrl.trim() ? 0.96 : 1 }}
                                             className={`px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer shrink-0 transition-colors ${customUrl.trim() ? 'bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-600/20' : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'}`}
                                         >
                                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                                                 <path d="M8 5v14l11-7z" />
                                             </svg>
-                                        </motion.button>
+                                        </button>
                                     </div>
                                     <p className="text-[10px] text-zinc-600 mt-1.5 px-1">{t(lang, 'stream.urlHint')}</p>
                                 </div>
@@ -458,13 +452,11 @@ export default function StreamingModal({ lang, open, onClose, accentColor }: Str
                                             {t(lang, 'stream.history')}{history.length > 0 && ` (${history.length})`}
                                         </div>
                                         {history.length > 0 && (
-                                            <motion.button
+                                            <button
                                                 onClick={() => {
                                                     clearAllHistory();
                                                     setHistory([]);
                                                 }}
-                                                whileHover={{ scale: 1.04 }}
-                                                whileTap={{ scale: 0.96 }}
                                                 className="flex items-center gap-1 px-2 py-1 rounded-lg bg-zinc-800/40 hover:bg-zinc-700/60 text-zinc-500 hover:text-red-400 text-[10px] font-medium cursor-pointer transition-colors"
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -473,7 +465,7 @@ export default function StreamingModal({ lang, open, onClose, accentColor }: Str
                                                     <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
                                                 </svg>
                                                 {t(lang, 'stream.deleteAll')}
-                                            </motion.button>
+                                            </button>
                                         )}
                                     </div>
                                             {grouped.length === 0 ? (
@@ -495,13 +487,11 @@ export default function StreamingModal({ lang, open, onClose, accentColor }: Str
                                                             <span className="text-xs font-semibold text-zinc-400">{getDomainLabel(lang, domain)}</span>
                                                             <span className="text-[10px] text-zinc-600">{entries.length}</span>
                                                         </div>
-                                                        <motion.button
+                                                        <button
                                                             onClick={() => {
                                                                 removeGroupFromHistory(domain);
                                                                 setHistory(loadHistory());
                                                             }}
-                                                            whileHover={{ scale: 1.1 }}
-                                                            whileTap={{ scale: 0.9 }}
                                                             className="w-5 h-5 rounded flex items-center justify-center text-zinc-600 hover:text-red-400 hover:bg-zinc-700/50 opacity-0 group-hover/header:opacity-100 transition-all cursor-pointer"
                                                             title={t(lang, 'stream.deleteGroup', {domain: getDomainLabel(lang, domain)})}
                                                         >
@@ -509,7 +499,7 @@ export default function StreamingModal({ lang, open, onClose, accentColor }: Str
                                                                 <path d="M3 6h18" />
                                                                 <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
                                                             </svg>
-                                                        </motion.button>
+                                                        </button>
                                                     </div>
                                                     <div className="space-y-1">
                                                         {entries.slice(0, 10).map((entry) => (
@@ -517,12 +507,11 @@ export default function StreamingModal({ lang, open, onClose, accentColor }: Str
                                                                 key={entry.url + entry.timestamp}
                                                                 className="group/entry relative"
                                                             >
-                                                                <motion.button
+                                                                <button
                                                                     onClick={() => {
                                                                         const label = 'stream-' + Date.now();
                                                                         openStream(entry.url, label, getDomainLabel(lang, domain));
                                                                     }}
-                                                                    whileTap={{ scale: 0.99 }}
                                                                     className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg bg-zinc-800/20 hover:bg-zinc-800/50 cursor-pointer text-left border border-transparent hover:border-zinc-700/30 transition-colors"
                                                                 >
                                                                     <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-600 group-hover:text-zinc-400 shrink-0 transition-colors">
@@ -535,14 +524,12 @@ export default function StreamingModal({ lang, open, onClose, accentColor }: Str
                                                                         </div>
                                                                     </div>
                                                                     <span className="text-[9px] text-zinc-600 shrink-0">{formatStreamTime(lang, entry.timestamp)}</span>
-                                                                </motion.button>
-                                                                <motion.button
+                                                                </button>
+                                                                <button
                                                                     onClick={() => {
                                                                         removeFromHistory(entry.url, entry.timestamp);
                                                                         setHistory(loadHistory());
                                                                     }}
-                                                                    whileHover={{ scale: 1.1 }}
-                                                                    whileTap={{ scale: 0.9 }}
                                                                     className="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 rounded flex items-center justify-center bg-zinc-800/80 text-zinc-500 hover:text-red-400 hover:bg-zinc-700/80 opacity-0 group-hover/entry:opacity-100 transition-all cursor-pointer shadow-sm"
                                                                     title={t(lang, 'stream.deleteEntry')}
                                                                 >
@@ -550,7 +537,7 @@ export default function StreamingModal({ lang, open, onClose, accentColor }: Str
                                                                         <path d="M18 6 6 18" />
                                                                         <path d="m6 6 12 12" />
                                                                     </svg>
-                                                                </motion.button>
+                                                                </button>
                                                             </div>
                                                         ))}
                                                     </div>

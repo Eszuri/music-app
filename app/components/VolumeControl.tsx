@@ -1,7 +1,6 @@
 'use client';
 
 import React, {useEffect, useState} from 'react';
-import {motion} from 'framer-motion';
 import {getAccent} from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
 import {useHoverDescription} from '../hooks/useHoverDescription';
@@ -182,30 +181,26 @@ export default function VolumeControl({
 
     return (
         <div className="flex items-center gap-2 w-full justify-center">
-            <motion.button
+            <button
                 {...muteHover}
                 onClick={toggleMute}
-                whileHover={{scale: 1.1}}
-                whileTap={{scale: 0.9}}
                 className="text-white/80 hover:text-white cursor-pointer flex items-center justify-center w-7 h-7 shrink-0"
             >
                 <VolumeIcon muted={muted} low={low} />
-            </motion.button>
+            </button>
 
             {/* Decrease button (-) */}
-            <motion.button
+            <button
                 {...volumeHover}
                 onClick={() => onStepButton('down')}
                 disabled={isDecreaseDisabled}
-                whileHover={isDecreaseDisabled ? undefined : {scale: 1.05}}
-                whileTap={isDecreaseDisabled ? undefined : {scale: 0.95}}
                 className={decreaseBtnClass}
                 title={isDecreaseDisabled ? t(lang, 'volume.decreaseDisabled') : t(lang, 'volume.decrease')}
             >
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M5 12h14" />
                 </svg>
-            </motion.button>
+            </button>
 
             <div
                 {...volumeHover}
@@ -225,7 +220,7 @@ export default function VolumeControl({
                                     : `linear-gradient(90deg, ${accent.hex500}, ${accent.hex400})`,
                             }}
                         />
-                        <motion.div
+                        <div
                             className="absolute w-2.5 h-2.5 rounded-full pointer-events-none"
                             style={{
                                 left: isSystem && sliderMax > 0
@@ -234,8 +229,6 @@ export default function VolumeControl({
                                 backgroundColor: isSliderDisabled ? '#71717a' : accent.hex400,
                                 boxShadow: isSliderDisabled ? 'none' : `0 0 0 2px ${accent.hex500}20`,
                             }}
-                            animate={{scale: hovering && !isSliderDisabled ? 1.3 : 1}}
-                            transition={{duration: 0.15}}
                         />
                     </>
                 )}
@@ -254,11 +247,9 @@ export default function VolumeControl({
 
             {/* Increase button (+) or Reset button */}
             {showResetButton ? (
-                <motion.button
+                <button
                     {...volumeHover}
                     onClick={onResetToLimit}
-                    whileHover={{scale: 1.1}}
-                    whileTap={{scale: 0.9}}
                     className="w-5 h-5 ml-3 -mr-3 flex items-center justify-center rounded text-amber-300 hover:text-amber-100 bg-amber-950/80 hover:bg-amber-900/90 border border-amber-600/60 cursor-pointer transition-colors shadow-xs"
                     title={t(lang, 'volume.resetToLimit', {limit})}
                 >
@@ -266,21 +257,19 @@ export default function VolumeControl({
                         <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                         <path d="M3 3v5h5" />
                     </svg>
-                </motion.button>
+                </button>
             ) : (
-                <motion.button
+                <button
                     {...volumeHover}
                     onClick={() => onStepButton('up')}
                     disabled={isIncreaseDisabled}
-                    whileHover={isIncreaseDisabled ? undefined : {scale: 1.05}}
-                    whileTap={isIncreaseDisabled ? undefined : {scale: 0.95}}
                     className={increaseBtnClass}
                     title={isIncreaseDisabled ? t(lang, 'volume.increaseDisabled') : t(lang, 'volume.increase')}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M12 5v14M5 12h14" />
                     </svg>
-                </motion.button>
+                </button>
             )}
 
             <span className="text-[11px] tabular-nums text-right text-white/50 font-medium min-w-[36px]">

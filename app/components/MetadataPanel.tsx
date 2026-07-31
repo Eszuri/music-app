@@ -253,7 +253,7 @@ export default function MetadataPanel({ lang, selectedSong, metadata, accentColo
                                             <motion.div
                                                 key="placeholder"
                                                 {...contentMotion}
-                                                animate={{ opacity: 0.12, y: 0, scale: 1 }}
+                                                animate={{ opacity: 0.12, y: 0 }}
                                                 className="w-full h-full flex items-center justify-center"
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">

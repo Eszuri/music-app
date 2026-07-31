@@ -107,13 +107,10 @@ export default function SettingsModal({
                             const isActive = s.id === activeSection;
                             const a = getAccent(accentColor);
                             return (
-                                <motion.button
+                                <button
                                     key={s.id}
                                     {...settingItemHover}
                                     onClick={() => setActiveSection(s.id)}
-                                    whileHover={{y: -2}}
-                                    whileTap={{scale: 0.97}}
-                                    transition={{duration: 0.15}}
                                     className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left cursor-pointer ${isActive
                                         ? `${a.bg15} ${a.text400} border ${a.border500_20}`
                                         : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100 border border-transparent'
@@ -121,7 +118,7 @@ export default function SettingsModal({
                                 >
                                     {s.icon}
                                     <span>{s.label}</span>
-                                </motion.button>
+                                </button>
                             );
                         })}
                     </nav>

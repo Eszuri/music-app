@@ -1,7 +1,6 @@
 'use client';
 
 import {useState} from 'react';
-import {motion} from 'framer-motion';
 import type {KeyboardEvent} from 'react';
 import {getAccent} from '../../lib/colors';
 import {t, type Lang} from '../../lib/translations';
@@ -179,11 +178,10 @@ function ShortcutRow({
                 </p>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
-                <motion.button
+                <button
                     onClick={() => setCapturing(true)}
                     onKeyDown={capturing ? handleCapture : undefined}
                     onBlur={() => setCapturing(false)}
-                    whileTap={{scale: 0.97}}
                     className={`min-w-[64px] px-3 py-1.5 rounded-lg text-xs font-mono font-medium border transition-colors cursor-pointer text-center ${capturing
                             ? `${accent.bg10} ${accent.text400} ${accent.border500_20} animate-pulse`
                             : isCustom
@@ -193,12 +191,10 @@ function ShortcutRow({
                     title={capturing ? t(lang, 'shortcut.pressKeyTitle') : t(lang, 'shortcut.clickToChange')}
                 >
                     {capturing ? t(lang, 'shortcut.pressKey') : formatKey(currentKey)}
-                </motion.button>
+                </button>
                 {isCustom && (
-                    <motion.button
+                    <button
                         onClick={onReset}
-                        whileHover={{scale: 1.05}}
-                        whileTap={{scale: 0.95}}
                         title={`${t(lang, 'shortcut.resetToDefault')} (${formatKey(defaultKey)})`}
                         className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-200 bg-zinc-800/40 hover:bg-zinc-700/60 border border-zinc-700/40 cursor-pointer"
                     >
@@ -206,7 +202,7 @@ function ShortcutRow({
                             <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                             <path d="M3 3v5h5" />
                         </svg>
-                    </motion.button>
+                    </button>
                 )}
             </div>
         </div>

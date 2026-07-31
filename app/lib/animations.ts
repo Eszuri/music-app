@@ -4,11 +4,11 @@ import type { Transition } from "framer-motion";
  * Unified animation presets for all framer-motion content transitions.
  *
  * Every content enter/exit animation in the app uses the same movement:
- * fade + slight vertical slide + slight scale.
+ * fade + slight vertical slide.
  *
  * Usage:
  *   <motion.div {...contentMotion} />
- *   <motion.div {...contentMotion} animate={{ opacity: 0.15, y: 0, scale: 1 }} /> // override
+ *   <motion.div {...contentMotion} animate={{ opacity: 0.15, y: 0 }} /> // override
  *
  * Pure overlays (modal backdrops) use `backdropMotion` — opacity only,
  * since a dimming layer should never move.
@@ -22,11 +22,11 @@ export const contentTransition: Transition = {
   ease: "easeInOut",
 };
 
-/** Standard content enter/exit: fade + rise + scale in, fade + lift + scale out. */
+/** Standard content enter/exit: fade + vertical slide. */
 export const contentMotion = {
-  initial: { opacity: 0, y: 8, scale: 0.97 },
-  animate: { opacity: 1, y: 0, scale: 1 },
-  exit: { opacity: 0, y: -8, scale: 0.97 },
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
   transition: contentTransition,
 };
 

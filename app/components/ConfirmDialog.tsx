@@ -59,24 +59,18 @@ export default function ConfirmDialog({
                         <h2 className="text-lg font-bold text-zinc-100">{title}</h2>
                         <p className="text-sm text-zinc-400 leading-relaxed">{message}</p>
                         <div className="flex justify-end gap-2 pt-2">
-                            <motion.button
+                            <button
                                 onClick={onCancel}
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.97 }}
-                                transition={{ duration: 0.15 }}
                                 className="px-4 py-2 rounded-lg text-sm font-medium text-zinc-300 bg-zinc-800/60 hover:bg-zinc-700/70 border border-zinc-700/50 cursor-pointer"
                             >
                                 {resolvedCancel}
-                            </motion.button>
-                            <motion.button
+                            </button>
+                            <button
                                 onClick={onConfirm}
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.97 }}
-                                transition={{ duration: 0.15 }}
                                 className={`px-4 py-2 rounded-lg text-sm font-medium text-white ${accent.bg600} ${accent.hoverBg400} border ${accent.border500_30} cursor-pointer`}
                             >
                                 {resolvedConfirm}
-                            </motion.button>
+                            </button>
                         </div>
                     </motion.div>
                 </motion.div>
