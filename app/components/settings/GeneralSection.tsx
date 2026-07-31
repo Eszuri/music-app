@@ -34,6 +34,7 @@ export default function GeneralSection({
     updateChecking,
     updateDownloaded,
     updateTotal,
+    onResetAllSettings,
 }: {
     lang: Lang;
     setLang: (v: Lang) => void;
@@ -61,8 +62,10 @@ export default function GeneralSection({
     updateChecking: boolean;
     updateDownloaded: number;
     updateTotal: number;
+    onResetAllSettings: () => void;
 }) {
     const accent = getAccent(accentColor);
+    const [showResetConfirm, setShowResetConfirm] = useState(false);
     return (
         <div className="space-y-5">
             <SettingGroup title={t(lang, 'general.group.app')}>
@@ -225,6 +228,47 @@ export default function GeneralSection({
                 />
             </SettingRow>
             </SettingGroup>
+
+            <SettingGroup title={t(lang, 'general.resetSettings.title')}>
+            <SettingRow
+                title={t(lang, 'general.resetSettings.title')}
+                description={t(lang, 'general.resetSettings.desc')}
+            >
+                <button
+                    onClick={() => setShowResetConfirm(true)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-red-400 bg-red-950/30 hover:bg-red-900/50 border border-red-800/40 transition-colors cursor-pointer"
+                >
+                    {t(lang, 'general.resetSettings.button')}
+                </button>
+            </SettingRow>
+            </SettingGroup>
+
+            {showResetConfirm && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                    <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-5 w-[380px] max-w-[90vw] shadow-2xl">
+                        <h3 className="text-sm font-semibold text-zinc-100 mb-2">
+                            {t(lang, 'general.resetSettings.confirmTitle')}
+                        </h3>
+                        <p className="text-xs text-zinc-400 mb-5 leading-relaxed">
+                            {t(lang, 'general.resetSettings.confirmMessage')}
+                        </p>
+                        <div className="flex justify-end gap-2">
+                            <button
+                                onClick={() => setShowResetConfirm(false)}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 bg-zinc-800/60 hover:bg-zinc-700/70 border border-zinc-700/50 transition-colors cursor-pointer"
+                            >
+                                {t(lang, 'confirm.defaultCancel')}
+                            </button>
+                            <button
+                                onClick={onResetAllSettings}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium text-white ${accent.bg500} hover:opacity-90 transition-opacity cursor-pointer border ${accent.border500}`}
+                            >
+                                {t(lang, 'general.resetSettings.confirm')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

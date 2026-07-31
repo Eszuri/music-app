@@ -614,6 +614,12 @@ function HomeContent() {
     await doPickFolder();
   }, [lang, player.isPlaying, doPickFolder, setDebugError, showError]);
 
+  const handleResetAllSettings = useCallback(() => {
+    (window as any).__symvoniaResetInProgress = true;
+    localStorage.clear();
+    window.location.reload();
+  }, []);
+
   const handlePickWallpaper = useCallback(async () => {
     if (!isBrowserTauri) {
       setDebugError(t(lang, "alert.error"));
@@ -765,6 +771,7 @@ function HomeContent() {
               customAccentHex={settings.customAccentHex}
               setCustomAccentHex={settings.setCustomAccentHexState}
               onResetSidebarWidth={() => setResetSidebarToken((t) => t + 1)}
+              onResetAllSettings={handleResetAllSettings}
               logs={logs}
               onCheckUpdate={handleCheckUpdate}
               updateStatus={updateStatus}

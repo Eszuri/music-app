@@ -59,6 +59,7 @@ export default function SettingsModal({
     customAccentHex,
     setCustomAccentHex,
     onResetSidebarWidth,
+    onResetAllSettings,
     logs,
     onCheckUpdate,
     updateStatus,
@@ -171,6 +172,7 @@ export default function SettingsModal({
                                     updateChecking={updateChecking}
                                     updateDownloaded={updateDownloaded}
                                     updateTotal={updateTotal}
+                                    onResetAllSettings={onResetAllSettings}
                                 />
                             )}
                             {activeSection === 'sort' && (

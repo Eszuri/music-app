@@ -45,6 +45,7 @@ export interface SettingsModalProps {
     customAccentHex: string;
     setCustomAccentHex: (v: string) => void;
     onResetSidebarWidth: () => void;
+    onResetAllSettings: () => void;
     logs: LogEntry[];
     onCheckUpdate: () => void;
     updateStatus: string;

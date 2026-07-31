@@ -50,6 +50,7 @@ interface HomeModalsProps {
     customAccentHex: string;
     setCustomAccentHex: (v: string) => void;
     onResetSidebarWidth: () => void;
+    onResetAllSettings: () => void;
     logs: LogEntry[];
     onCheckUpdate: () => void;
     updateStatus: string;
@@ -103,6 +104,7 @@ export default function HomeModals({
     customAccentHex,
     setCustomAccentHex,
     onResetSidebarWidth,
+    onResetAllSettings,
     logs,
     onCheckUpdate,
     updateStatus,
@@ -167,6 +169,7 @@ export default function HomeModals({
                 customAccentHex={customAccentHex}
                 setCustomAccentHex={setCustomAccentHex}
                 onResetSidebarWidth={onResetSidebarWidth}
+                onResetAllSettings={onResetAllSettings}
                 logs={logs}
                 onCheckUpdate={onCheckUpdate}
                 updateStatus={updateStatus}

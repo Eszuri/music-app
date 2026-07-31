@@ -604,6 +604,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
   // Save session on window close / page hide (belt-and-suspenders for Tauri)
   useEffect(() => {
     const flush = () => {
+      if ((window as any).__symvoniaResetInProgress) return;
       const song = selectedSongRef.current;
       const audio = audioRef.current;
       if (song && audio && audio.currentTime > 0) {
