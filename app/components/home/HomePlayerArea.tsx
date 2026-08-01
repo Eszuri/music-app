@@ -452,7 +452,7 @@ export default function HomePlayerArea({
                                                 onContextMenu={showAlbumMenu}
                                                 src={coverDataUrl ?? ''}
                                                 className="w-full h-full object-contain pointer-events-auto"
-                                                alt="Fullscreen cover"
+                                                alt={t(lang, 'player.cover')}
                                             />
                                         </motion.div>
                                     )}

@@ -97,7 +97,7 @@ export default function AutoHideTimerMenu({
                             </button>
                         ))}
                         <div className="px-2 py-2 mt-1 border-t border-white/10 flex flex-col gap-1.5">
-                            <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">Custom (ms)</span>
+                            <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">{t(lang, 'player.autoHideCustom')}</span>
                             <div className="flex items-center gap-1.5">
                                 <input
                                     type="number"

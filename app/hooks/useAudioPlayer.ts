@@ -8,8 +8,10 @@ import {
     saveSessionState,
     type SessionState,
 } from "../lib/homeState";
+import {t, type Lang} from "../lib/translations";
 
 interface UseAudioPlayerOptions {
+    lang: Lang;
     musicFolder: string | null;
     autoWallpaper: boolean;
     folderSort: string;
@@ -28,7 +30,7 @@ interface UseAudioPlayerOptions {
     showError: (msg: string) => void;
     addLog: (level: string, message: string) => void;
     setSystemMuted: React.Dispatch<React.SetStateAction<boolean>>;
-    lastLocalVolumeSetRef: React.MutableRefObject<number>;
+    lastLocalVolumeSetRef: React.RefObject<number>;
     pauseIfMuted: boolean;
     systemMuted: boolean;
 }
@@ -37,6 +39,7 @@ const MIN_RESUME_VOLUME = 0.01;
 
 export function useAudioPlayer(options: UseAudioPlayerOptions) {
     const {
+        lang,
         musicFolder,
         autoWallpaper,
         folderSort,
@@ -165,7 +168,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                     await mod.invoke("clear_wallpaper");
                 }
             } catch (e) {
-                showError(`Wallpaper error: ${String(e)}`);
+                showError(t(lang, 'log.wallpaperError', {msg: String(e)}));
             }
         },
         [showError],
@@ -360,7 +363,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                     .padStart(2, "0");
                 addLog(
                     "info",
-                    `Sesi dipulihkan: ${savedFile.name} pada ${mins}:${secs}`,
+                    t(lang, 'log.sessionRestored', {name: savedFile.name, time: `${mins}:${secs}`}),
                 );
             } catch {
                 saveSessionState(null);
@@ -412,10 +415,10 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
                 setSelectedSong(file);
                 loadMetadata(file.path, false);
-                addLog("info", `Memutar: ${file.name}`);
+                addLog("info", t(lang, 'log.playing', {name: file.name}));
             } catch (e) {
                 if (e instanceof DOMException && e.name === "AbortError") return;
-                showError(`Gagal memutar: ${(e as Error).message || String(e)}`);
+                showError(t(lang, 'log.playbackFailed', {msg: (e as Error).message || String(e)}));
             }
         },
         [
@@ -447,7 +450,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                     if (meta) applyWallpaper(meta).catch(() => {});
                 }
             };
-            resume().catch((e) => console.error("Gagal play:", e));
+            resume().catch(() => {});
         } else {
             autoPausedBySilenceRef.current = false;
             audio.pause();
@@ -656,9 +659,8 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             volumeMode === "app" ? appVolume <= 0 : systemMuted || systemVolume <= 0;
         if (stillSilent) return;
         autoPausedBySilenceRef.current = false;
-        audio.play().catch((e) => {
+        audio.play().catch(() => {
             autoPausedBySilenceRef.current = true;
-            console.error("Gagal auto resume:", e);
         });
     }, [pauseIfMuted, volumeMode, appVolume, systemVolume, systemMuted]);
 

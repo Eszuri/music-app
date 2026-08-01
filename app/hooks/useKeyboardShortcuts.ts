@@ -2,23 +2,23 @@ import {useEffect} from 'react';
 import {getTauri, isBrowserTauri, type ShortcutAction} from '../lib/homeState';
 
 interface UseKeyboardShortcutsOptions {
-    shortcutsRef: React.MutableRefObject<Record<ShortcutAction, string>>;
-    settingsOpenRef: React.MutableRefObject<boolean>;
-    streamingOpenRef: React.MutableRefObject<boolean>;
-    pendingFolderChangeRef: React.MutableRefObject<boolean>;
-    togglePlayPauseRef: React.MutableRefObject<() => void>;
-    playNextRef: React.MutableRefObject<() => void>;
-    playPrevRef: React.MutableRefObject<() => void>;
-    appVolumeRef: React.MutableRefObject<number>;
-    systemVolumeRef: React.MutableRefObject<number>;
-    volumeStepRef: React.MutableRefObject<number>;
+    shortcutsRef: React.RefObject<Record<ShortcutAction, string>>;
+    settingsOpenRef: React.RefObject<boolean>;
+    streamingOpenRef: React.RefObject<boolean>;
+    pendingFolderChangeRef: React.RefObject<boolean>;
+    togglePlayPauseRef: React.RefObject<() => void>;
+    playNextRef: React.RefObject<() => void>;
+    playPrevRef: React.RefObject<() => void>;
+    appVolumeRef: React.RefObject<number>;
+    systemVolumeRef: React.RefObject<number>;
+    volumeStepRef: React.RefObject<number>;
     setAppVolume: (v: number) => void;
     setSystemVolume: (v: number) => void;
     setSystemMuted: React.Dispatch<React.SetStateAction<boolean>>;
-    volumeModeRef: React.MutableRefObject<'app' | 'system'>;
-    volumeLimitRef: React.MutableRefObject<number>;
-    audioRef: React.MutableRefObject<HTMLAudioElement | null>;
-    lastLocalVolumeSetRef: React.MutableRefObject<number>;
+    volumeModeRef: React.RefObject<'app' | 'system'>;
+    volumeLimitRef: React.RefObject<number>;
+    audioRef: React.RefObject<HTMLAudioElement | null>;
+    lastLocalVolumeSetRef: React.RefObject<number>;
 }
 
 export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {

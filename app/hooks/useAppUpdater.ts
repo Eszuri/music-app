@@ -80,7 +80,7 @@ export function useAppUpdater(options: UseAppUpdaterOptions) {
         } catch (e) {
             const msg = String(e);
             setUpdateStatus(t(lang, 'general.update.error', {msg: msg.slice(0, 80)}));
-            addLog('error', `Update check failed: ${msg}`);
+            addLog('error', t(lang, 'log.updateCheckFailed', {msg: msg.slice(0, 80)}));
         } finally {
             setUpdateChecking(false);
             setUpdateDownloaded(0);
@@ -159,7 +159,7 @@ export function useAppUpdater(options: UseAppUpdaterOptions) {
             }
         } catch (e) {
             const msg = String(e);
-            addLog('error', `Auto update download failed: ${msg}`);
+            addLog('error', t(lang, 'log.autoUpdateFailed', {msg: msg.slice(0, 80)}));
             setAutoUpdateDownloading(false);
             setAutoUpdateInfo(null);
             setAutoUpdateShown(false);

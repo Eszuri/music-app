@@ -1,6 +1,6 @@
 'use client';
 
-import React, {memo, useCallback, useEffect, useRef, useState} from 'react';
+import {memo, useCallback, useEffect, useRef, useState} from 'react';
 import {motion, AnimatePresence} from 'framer-motion';
 import {FileEntry} from './FolderExplorer';
 import {SongMetadata} from './PlayerPanel';
@@ -9,6 +9,7 @@ import {t, type Lang} from '../lib/translations';
 import {contentMotion} from '../lib/animations';
 import ContextMenu, {ContextMenuItem} from './ContextMenu';
 import {useHoverDescription} from '../hooks/useHoverDescription';
+import {useHoverInfo} from '../contexts/HoverInfoContext';
 import {MetadataPanelSkeleton} from './Skeleton';
 
 interface MetadataPanelProps {
@@ -117,7 +118,7 @@ function MetadataPanel({lang, selectedSong, metadata, accentColor, coverDataUrl,
     const hComment = useHoverDescription(selectedSong ? t(lang, 'status.meta.comment') : null);
     const hLocation = useHoverDescription(selectedSong ? t(lang, 'status.meta.location') : null);
     const hCoverArt = useHoverDescription(selectedSong ? t(lang, 'status.meta.cover') : null);
-    const hResize = useHoverDescription(t(lang, 'status.resizeHandle'));
+    const {setHoverInfo} = useHoverInfo();
 
     useEffect(() => {
         setWidth(loadSavedWidth());
@@ -210,11 +211,11 @@ function MetadataPanel({lang, selectedSong, metadata, accentColor, coverDataUrl,
                 onMouseDown={onMouseDown}
                 onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = accent.hex400 + '40';
-                    hResize.onMouseEnter?.(e as unknown as React.MouseEvent<HTMLElement>);
+                    setHoverInfo(t(lang, 'status.resizeHandle'));
                 }}
                 onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = '';
-                    hResize.onMouseLeave?.(e as unknown as React.MouseEvent<HTMLElement>);
+                    setHoverInfo(null);
                 }}
                 className="absolute top-0 left-0 h-full w-1.5 cursor-col-resize transition-colors z-10 max-lg:hidden"
             />

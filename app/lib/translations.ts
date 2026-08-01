@@ -268,6 +268,7 @@ const en: Record<string, string> = {
     'player.cover': 'Cover',
     'player.autoHideTimer': 'Controls auto-hide delay',
     'player.autoHideNever': 'Never',
+    'player.autoHideCustom': 'Custom (ms)',
 
     'playback.shuffleOn': 'Shuffle: ON',
     'playback.shuffleOff': 'Shuffle: OFF',
@@ -364,7 +365,7 @@ const en: Record<string, string> = {
     'status.songTitle': 'Song title',
     'status.songArtist': 'Artist',
     'status.songAlbum': 'Album',
-    'status.headerTitle': 'Now playing',
+    'status.headerTitle': 'Title',
     'status.playStatus': 'Playback status',
     'status.metaItem': 'Right-click to copy',
     'status.meta.title': 'Song title',
@@ -390,6 +391,12 @@ const en: Record<string, string> = {
 
     'notification.coverSaved': 'Cover art saved',
     'notification.volumeLimit': 'Volume exceeds safe limit ({limit}%)',
+
+    'log.sessionRestored': 'Session restored: {name} at {time}',
+    'log.playbackFailed': 'Playback failed: {msg}',
+    'log.wallpaperError': 'Wallpaper error: {msg}',
+    'log.updateCheckFailed': 'Update check failed: {msg}',
+    'log.autoUpdateFailed': 'Auto update download failed: {msg}',
 };
 
 const id: Record<string, string> = {
@@ -659,6 +666,7 @@ const id: Record<string, string> = {
     'player.cover': 'Cover',
     'player.autoHideTimer': 'Jeda Sembunyi Kontrol',
     'player.autoHideNever': 'Tidak pernah',
+    'player.autoHideCustom': 'Kustom (ms)',
 
     'playback.shuffleOn': 'Acak: AKTIF',
     'playback.shuffleOff': 'Acak: NONAKTIF',
@@ -755,7 +763,7 @@ const id: Record<string, string> = {
     'status.songTitle': 'Judul lagu',
     'status.songArtist': 'Artis',
     'status.songAlbum': 'Album',
-    'status.headerTitle': 'Sedang diputar',
+    'status.headerTitle': 'Judul',
     'status.playStatus': 'Status pemutaran',
     'status.metaItem': 'Klik kanan untuk menyalin',
     'status.meta.title': 'Judul lagu',
@@ -781,6 +789,13 @@ const id: Record<string, string> = {
 
     'notification.coverSaved': 'Cover art berhasil disimpan',
     'notification.volumeLimit': 'Volume melebihi batas aman ({limit}%)',
+
+    'log.playing': 'Memutar: {name}',
+    'log.sessionRestored': 'Sesi dipulihkan: {name} pada {time}',
+    'log.playbackFailed': 'Gagal memutar: {msg}',
+    'log.wallpaperError': 'Gagal mengatur wallpaper: {msg}',
+    'log.updateCheckFailed': 'Pembaruan gagal diperiksa: {msg}',
+    'log.autoUpdateFailed': 'Download pembaruan otomatis gagal: {msg}',
 };
 
 const all: Record<Lang, Record<string, string>> = {en, id};

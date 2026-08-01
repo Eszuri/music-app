@@ -201,7 +201,7 @@ function formatStreamTime(lang: Lang, ts: number): string {
     if (diff < 60000) return t(lang, 'stream.justNow');
     if (diff < 3600000) return t(lang, 'stream.minutesAgo', {n: Math.floor(diff / 60000)});
     if (diff < 86400000) return t(lang, 'stream.hoursAgo', {n: Math.floor(diff / 3600000)});
-    return date.toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'});
+    return date.toLocaleDateString(undefined, {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'});
 }
 
 function isBrowserTauri(): boolean {
@@ -280,8 +280,7 @@ export default function StreamingModal({lang, open, onClose}: StreamingModalProp
         try {
             const {invoke} = await import('@tauri-apps/api/core');
             await invoke('open_webview_stream', {url, label, title});
-        } catch (e) {
-            console.error('Failed to open stream webview:', e);
+        } catch {
             window.open(url, '_blank');
         }
     }, []);

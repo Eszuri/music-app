@@ -260,8 +260,8 @@ export function usePlayerSettings() {
                     try {
                         await m.invoke('register_volume_callback');
                         registered = true;
-                    } catch (err) {
-                        console.warn(t(language, 'debug.volumeCallback.registerFailed') + ':', err);
+                    } catch {
+                        // register failed silently — will retry on focus
                     }
                 };
 
@@ -320,8 +320,7 @@ export function usePlayerSettings() {
                     await registerVolumeCallback();
                 }
 
-            } catch (err) {
-                console.error(t(language, 'debug.volumeCallback.setupFailed') + ':', err);
+            } catch {
                 if (!cancelled) setSystemVolumeSynced(true);
             }
         };

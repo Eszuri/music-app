@@ -214,6 +214,7 @@ function HomeContent() {
     }, [settings.volumeLimitExceeded, settings.volumeLimit, showStatusNotif]);
 
     const player = useAudioPlayer({
+        lang,
         musicFolder: settings.musicFolder,
         autoWallpaper: settings.autoWallpaper,
         folderSort: settings.folderSort,
@@ -621,7 +622,6 @@ function HomeContent() {
             }
         } catch (e) {
             const msg = String(e);
-            console.error("pick_folder error:", e);
             setDebugError(`${t(lang, "alert.error")}: ${msg}`);
             showError(`${t(lang, "alert.error")}: ${msg}`);
         }
@@ -660,7 +660,6 @@ function HomeContent() {
             }
         } catch (e) {
             const msg = String(e);
-            console.error("pick_wallpaper error:", e);
             setDebugError(`${t(lang, "alert.error")}: ${msg}`);
             showError(`${t(lang, "alert.error")}: ${msg}`);
         }

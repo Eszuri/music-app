@@ -12,7 +12,7 @@ export function useAppLogging() {
     const addLog = useCallback((level: string, message: string) => {
         const id = ++logIdRef.current;
         const now = new Date();
-        const time = now.toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit', second: '2-digit'});
+        const time = now.toLocaleTimeString(undefined, {hour: '2-digit', minute: '2-digit', second: '2-digit'});
         const entry: LogEntry = {id, time, level, message};
         setLogs(prev => [...prev.slice(-499), entry]);
         if (level === 'error') {
