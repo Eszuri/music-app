@@ -101,6 +101,14 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
   const restoredPendingPlayRef = useRef(false);
   // Ensures session restore only fires once per mount, not on every re-sort
   const sessionRestoreAttemptedRef = useRef(false);
+  // Tracks which folder the active playlist was built from.
+  // Playlist is only rebuilt when user explicitly plays a new song —
+  // sidebar navigation to a different folder must NOT overwrite this.
+  const playlistFolderRef = useRef<string | null>(null);
+  // When true, the next files-change-triggered playlist rebuild is suppressed.
+  // Set when folderSort or nameSource changes reload the file list — those
+  // settings don't affect file playlist order so the rebuild should be skipped.
+  const skipPlaylistRebuildRef = useRef(false);
 
   filesRef.current = files;
   selectedSongRef.current = selectedSong;
@@ -261,6 +269,30 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [folderSort, fileSort, sortDir, nameSource, formats]);
 
+  // folderSort and nameSource don't change file order in the playlist,
+  // so suppress the next playlist rebuild when either triggers a file reload.
+  useEffect(() => {
+    skipPlaylistRebuildRef.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [folderSort, nameSource]);
+
+  // Rebuild the active playlist whenever the file list changes AND the displayed
+  // folder matches the active playlist folder (e.g. fileSort/sortDir/formats changed).
+  // Skipped when the reload was caused by folderSort or nameSource (those don't
+  // affect playlist order). Also skipped when sidebar shows a different folder.
+  useEffect(() => {
+    if (skipPlaylistRebuildRef.current) {
+      skipPlaylistRebuildRef.current = false;
+      return;
+    }
+    if (!playlistFolderRef.current) return;
+    if (currentPath !== playlistFolderRef.current) return;
+    const freshFiles = files.filter((f) => !f.is_dir);
+    if (freshFiles.length === 0) return;
+    playlistRef.current = freshFiles;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [files]);
+
   // ─── session restore ───────────────────────────────────────────────────────
 
   /**
@@ -361,6 +393,9 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         setSelectedSong(savedFile);
         setCurrentTime(sess.currentTime);
         playlistRef.current = fileList.filter((f) => !f.is_dir);
+        // Lock the playlist folder immediately on restore so next/prev works
+        // correctly without waiting for the user to press play first.
+        playlistFolderRef.current = savedFile.path.replace(/[/\\][^/\\]+$/, "");
         restoredPendingPlayRef.current = true;
 
         // Fetch fresh metadata — skip wallpaper until user hits play
@@ -390,7 +425,16 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
       const audio = audioRef.current;
       if (!audio) return;
 
-      playlistRef.current = filesRef.current.filter((f) => !f.is_dir);
+      // Only rebuild the playlist when the played file belongs to a different
+      // folder than the current active playlist (i.e. user picked a new song
+      // from the sidebar, not an auto-next/prev from the same album).
+      // This prevents sidebar navigation to a different folder from corrupting
+      // the playlist mid-playback.
+      const fileFolder = file.path.replace(/[/\\][^/\\]+$/, "");
+      if (fileFolder !== playlistFolderRef.current) {
+        playlistRef.current = filesRef.current.filter((f) => !f.is_dir);
+        playlistFolderRef.current = fileFolder;
+      }
 
       const token = ++playTokenRef.current;
       audio.pause();
