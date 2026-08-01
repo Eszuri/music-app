@@ -355,6 +355,9 @@ const en: Record<string, string> = {
     'status.closeSettings': 'Close settings window',
     'status.closeStreaming': 'Close streaming web browser',
     'status.settingItem': 'Configure setting option',
+
+    'notification.coverSaved': 'Cover art saved',
+    'notification.volumeLimit': 'Volume exceeds safe limit ({limit}%)',
 };
 
 const id: Record<string, string> = {
@@ -711,6 +714,9 @@ const id: Record<string, string> = {
     'status.closeSettings': 'Tutup jendela pengaturan',
     'status.closeStreaming': 'Tutup peramban web streaming',
     'status.settingItem': 'Konfigurasi opsi pengaturan',
+
+    'notification.coverSaved': 'Cover art berhasil disimpan',
+    'notification.volumeLimit': 'Volume melebihi batas aman ({limit}%)',
 };
 
 const all: Record<Lang, Record<string, string>> = {en, id};

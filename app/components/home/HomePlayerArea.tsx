@@ -60,6 +60,7 @@ interface HomePlayerAreaProps {
   handleVolumeChange: (e: ChangeEvent<HTMLInputElement>) => void;
   toggleSystemMute: () => void;
   onGlobalContextMenu: (e: React.MouseEvent) => void;
+  onCoverSaved: () => void;
 }
 
 async function openDevTools() {
@@ -139,6 +140,7 @@ export default function HomePlayerArea({
   handleVolumeChange,
   toggleSystemMute,
   onGlobalContextMenu,
+  onCoverSaved,
 }: HomePlayerAreaProps) {
   const leftVisible = showLeftSidebar || !isCompact;
   const rightVisible = showRightSidebar || !isCompact;
@@ -263,6 +265,7 @@ export default function HomePlayerArea({
                 coverB64: metadata.cover_b64,
                 mime: metadata.cover_mime,
               });
+              onCoverSaved();
             } catch {
               // not in Tauri
             }

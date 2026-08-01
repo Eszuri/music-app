@@ -7,10 +7,7 @@ import {contentMotion} from '../../lib/animations';
 interface HomeAlertsProps {
     lang: Lang;
     toastVisible: boolean;
-    volumeLimitExceeded: boolean;
-    volumeLimit: number;
     onCloseToast: () => void;
-    onCloseVolumeAlert: () => void;
     updateAlertInfo: {version: string} | null;
     updateAlertDownloading: boolean;
     updateAlertProgress: number;
@@ -23,10 +20,7 @@ interface HomeAlertsProps {
 export default function HomeAlerts({
     lang,
     toastVisible,
-    volumeLimitExceeded,
-    volumeLimit,
     onCloseToast,
-    onCloseVolumeAlert,
     updateAlertInfo,
     updateAlertDownloading,
     updateAlertProgress,
@@ -39,7 +33,6 @@ export default function HomeAlerts({
         updateAlertDownloading && updateAlertTotal > 0
             ? Math.min(updateAlertProgress / updateAlertTotal, 1)
             : 0;
-
     return (
         <AnimatePresence>
             {toastVisible && (
@@ -56,28 +49,6 @@ export default function HomeAlerts({
                     <button
                         onClick={onCloseToast}
                         className="ml-2 w-5 h-5 rounded flex items-center justify-center text-red-300 hover:text-red-100 hover:bg-red-800/60 cursor-pointer"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M18 6 6 18M6 6l12 12" />
-                        </svg>
-                    </button>
-                </motion.div>
-            )}
-            {volumeLimitExceeded && (
-                <motion.div
-                    key="volume-alert"
-                    {...contentMotion}
-                    className="fixed top-4 left-1/2 -translate-x-1/2 z-70 flex items-center gap-2.5 px-5 py-3 rounded-xl bg-amber-900/90 border border-amber-600/60 text-sm text-amber-100 shadow-2xl shadow-black/40 backdrop-blur-sm"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                        <line x1="12" y1="9" x2="12" y2="13" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
-                    <span dangerouslySetInnerHTML={{__html: t(lang, 'alert.volumeWarning', {limit: volumeLimit})}} />
-                    <button
-                        onClick={onCloseVolumeAlert}
-                        className="ml-2 w-5 h-5 rounded flex items-center justify-center text-amber-300 hover:text-amber-100 hover:bg-amber-800/60 cursor-pointer"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M18 6 6 18M6 6l12 12" />

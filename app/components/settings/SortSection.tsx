@@ -55,7 +55,7 @@ export default function SortSection({
                 description={t(lang, 'sort.folderSort.desc')}
             >
                 <SelectStub
-                    options={[[ 'name', t(lang, 'sort.folder.name') ], [ 'mtime', t(lang, 'sort.folder.mtime') ], [ 'ctime', t(lang, 'sort.folder.ctime') ]]}
+                    options={[['name', t(lang, 'sort.folder.name')], ['mtime', t(lang, 'sort.folder.mtime')], ['ctime', t(lang, 'sort.folder.ctime')]]}
                     value={folderSort}
                     onChange={setFolderSort}
                 />
@@ -65,7 +65,7 @@ export default function SortSection({
                 description={t(lang, 'sort.fileSort.desc')}
             >
                 <SelectStub
-                    options={[[ 'name', t(lang, 'sort.file.name') ], [ 'mtime', t(lang, 'sort.file.mtime') ], [ 'size', t(lang, 'sort.file.size') ], [ 'ext', t(lang, 'sort.file.ext') ], [ 'ctime', t(lang, 'sort.file.ctime') ]]}
+                    options={[['name', t(lang, 'sort.file.name')], ['mtime', t(lang, 'sort.file.mtime')], ['size', t(lang, 'sort.file.size')], ['ext', t(lang, 'sort.file.ext')], ['ctime', t(lang, 'sort.file.ctime')]]}
                     value={fileSort}
                     onChange={setFileSort}
                 />
@@ -73,16 +73,16 @@ export default function SortSection({
             <SettingRow
                 title={t(lang, 'sort.nameSource.title')}
                 description={t(lang, 'sort.nameSource.desc')}
-                className="pb-20"
+                className="pb-22"
             >
 
                 <SelectStub
-                    options={[[ 'filename', t(lang, 'sort.name.filenameLabel') ], [ 'title', t(lang, 'sort.name.titleLabel') ]]}
+                    options={[['filename', t(lang, 'sort.name.filenameLabel')], ['title', t(lang, 'sort.name.titleLabel')]]}
                     value={nameSource}
                     onChange={setNameSource}
                 />
                 <div className='absolute -bottom-16 inset-x-0 w-full h-full'>
-                    <div className={`flex items-start gap-2 px-3 py-2 rounded-lg text-[11px] leading-relaxed -mt-3 ${nameSource === 'title' ? 'bg-amber-900/20 text-amber-300/90 border border-amber-700/30' : 'bg-zinc-800/30 text-zinc-500 border border-zinc-700/30'}`}>
+                    <div className={`flex items-start gap-2 px-3 py-2 rounded-lg text-[11px] leading-relaxed mt-3 ${nameSource === 'title' ? 'bg-amber-900/20 text-amber-300/90 border border-amber-700/30' : 'bg-zinc-800/30 text-zinc-500 border border-zinc-700/30'}`}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
                             {nameSource === 'title' ? (
                                 <>
@@ -113,7 +113,7 @@ export default function SortSection({
                 description={t(lang, 'sort.sortDir.desc')}
             >
                 <SelectStub
-                    options={[[ 'asc', t(lang, 'sort.dir.asc') ], [ 'desc', t(lang, 'sort.dir.desc') ]]}
+                    options={[['asc', t(lang, 'sort.dir.asc')], ['desc', t(lang, 'sort.dir.desc')]]}
                     value={sortDir}
                     onChange={setSortDir}
                 />

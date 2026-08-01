@@ -179,6 +179,44 @@ function HomeContent() {
   const settings = usePlayerSettings();
   const lang = settings.language;
 
+  // ── Status bar notification ──────────────────────────────────────────────
+  // type: 'cover-saved' = 3s auto-dismiss | 'volume-limit' = persistent (no timeout)
+  const [statusNotif, setStatusNotif] = useState<{
+    type: 'cover-saved' | 'volume-limit';
+    msgKey: string;
+    vars?: Record<string, string | number>;
+  } | null>(null);
+  const notifTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showStatusNotif = useCallback(
+    (type: 'cover-saved' | 'volume-limit', vars?: Record<string, string | number>) => {
+      if (notifTimerRef.current) clearTimeout(notifTimerRef.current);
+      setStatusNotif({
+        type,
+        msgKey: type === 'cover-saved' ? 'notification.coverSaved' : 'notification.volumeLimit',
+        vars,
+      });
+      if (type === 'cover-saved') {
+        notifTimerRef.current = setTimeout(() => {
+          setStatusNotif((prev) => prev?.type === 'cover-saved' ? null : prev);
+        }, 3000);
+      }
+    },
+    [],
+  );
+
+  // Show/clear volume-limit notification reactively
+  const prevVolumeLimitExceeded = useRef(false);
+  useEffect(() => {
+    const exceeded = settings.volumeLimitExceeded;
+    if (exceeded && !prevVolumeLimitExceeded.current) {
+      showStatusNotif('volume-limit', { limit: settings.volumeLimit });
+    } else if (!exceeded && prevVolumeLimitExceeded.current) {
+      setStatusNotif((prev) => prev?.type === 'volume-limit' ? null : prev);
+    }
+    prevVolumeLimitExceeded.current = exceeded;
+  }, [settings.volumeLimitExceeded, settings.volumeLimit, showStatusNotif]);
+
   const player = useAudioPlayer({
     musicFolder: settings.musicFolder,
     autoWallpaper: settings.autoWallpaper,
@@ -724,6 +762,7 @@ function HomeContent() {
               handleVolumeChange={player.handleVolumeChange}
               toggleSystemMute={player.toggleSystemMute}
               onGlobalContextMenu={showGlobalContextMenu}
+              onCoverSaved={() => showStatusNotif('cover-saved')}
             />
 
             <HomeModals
@@ -786,10 +825,7 @@ function HomeContent() {
             <HomeAlerts
               lang={lang}
               toastVisible={toastVisible}
-              volumeLimitExceeded={settings.volumeLimitExceeded}
-              volumeLimit={settings.volumeLimit}
               onCloseToast={() => setToastVisible(false)}
-              onCloseVolumeAlert={() => settings.setVolumeLimitExceeded(false)}
               updateAlertInfo={autoUpdateInfo}
               updateAlertDownloading={autoUpdateDownloading}
               updateAlertProgress={autoUpdateProgress}
@@ -813,6 +849,28 @@ function HomeContent() {
               <div className="flex-1 min-w-0 overflow-hidden relative">
                 {hoverInfo && <StatusBarText text={hoverInfo} />}
               </div>
+              {/* Notification slot — between hover text and version */}
+              {statusNotif && (
+                <div
+                  className={`shrink-0 flex items-center gap-1.5 px-2 mx-2 rounded text-[10px] font-semibold whitespace-nowrap ${
+                    statusNotif.type === 'volume-limit'
+                      ? 'text-amber-300'
+                      : 'text-emerald-400'
+                  }`}
+                >
+                  {statusNotif.type === 'volume-limit' ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  )}
+                  <span>{t(lang, statusNotif.msgKey, statusNotif.vars)}</span>
+                </div>
+              )}
               <div className="flex items-center gap-3 shrink-0 text-zinc-600 text-[10px] uppercase tracking-wider font-semibold ml-3">
                 <span>v0.9.5</span>
                 <span className="h-2.5 w-px bg-zinc-800" />
