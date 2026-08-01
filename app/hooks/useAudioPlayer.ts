@@ -71,6 +71,11 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
+  // Stable cover art data URL — recomputed only when cover changes, not every render
+  const coverDataUrl = metadata?.cover_b64 && metadata?.cover_mime
+    ? `data:${metadata.cover_mime};base64,${metadata.cover_b64}`
+    : null;
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const filesRef = useRef<FileEntry[]>([]);
   const selectedSongRef = useRef<FileEntry | null>(null);
@@ -90,6 +95,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
   const playTokenRef = useRef(0);
   const loadFilesTokenRef = useRef(0);
   const autoPausedBySilenceRef = useRef(false);
+  const lastSessionSaveRef = useRef(0);
   // Tracks whether the currently loaded (but not yet played) track came from session restore.
   // When true, wallpaper is deferred until the user actually hits play.
   const restoredPendingPlayRef = useRef(false);
@@ -565,12 +571,16 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
       setCurrentTime(t);
       const song = selectedSongRef.current;
       if (song && t > 0) {
-        const session: SessionState = {
-          filePath: song.path,
-          currentTime: t,
-          timestamp: Date.now(),
-        };
-        saveSessionState(session);
+        const now = Date.now();
+        if (now - lastSessionSaveRef.current >= 1000) {
+          lastSessionSaveRef.current = now;
+          const session: SessionState = {
+            filePath: song.path,
+            currentTime: t,
+            timestamp: now,
+          };
+          saveSessionState(session);
+        }
       }
     };
 
@@ -755,6 +765,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     setSelectedSong,
     metadata,
     setMetadata,
+    coverDataUrl,
     isPlaying,
     setIsPlaying,
     currentTime,

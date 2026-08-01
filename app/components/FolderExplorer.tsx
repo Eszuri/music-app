@@ -90,6 +90,7 @@ export default function FolderExplorer({
     const isDraggingRef = useRef(false);
     const startXRef = useRef(0);
     const startWidthRef = useRef(DEFAULT_WIDTH);
+    const widthPendingRef = useRef<number | null>(null);
 
     const scrollRef = useRef<HTMLDivElement | null>(null);
     const [scrollTop, setScrollTop] = useState(0);
@@ -129,11 +130,6 @@ export default function FolderExplorer({
     }, [resetSidebarToken]);
 
     useEffect(() => {
-        if (width === DEFAULT_WIDTH) return;
-        window.localStorage.setItem(STORAGE_KEY, String(width));
-    }, [width]);
-
-    useEffect(() => {
         const handleWindowResize = () => {
             const currentWinW = window.innerWidth;
             const metaWidth = typeof window !== 'undefined'
@@ -158,6 +154,9 @@ export default function FolderExplorer({
         const effectiveMax = Math.min(MAX_WIDTH, maxAllowed);
         const next = Math.min(effectiveMax, Math.max(MIN_WIDTH, startWidthRef.current + delta));
         setWidth(next);
+        // Persist immediately so the resize handle feels responsive.
+        // Full localStorage write is also done on mouseup as a belt-and-suspenders.
+        widthPendingRef.current = next;
     }, []);
 
     const onMouseUp = useCallback(() => {
@@ -165,6 +164,11 @@ export default function FolderExplorer({
         isDraggingRef.current = false;
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
+        // Write to localStorage once on release instead of every frame
+        if (widthPendingRef.current !== null) {
+            window.localStorage.setItem(STORAGE_KEY, String(widthPendingRef.current));
+            widthPendingRef.current = null;
+        }
         window.removeEventListener('mousemove', onMouseMove);
         window.removeEventListener('mouseup', onMouseUp);
     }, [onMouseMove]);

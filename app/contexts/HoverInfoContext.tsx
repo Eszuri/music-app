@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useMemo, useState } from 'react';
 
 interface HoverInfoContextProps {
     hoverInfo: string | null;
@@ -10,8 +10,10 @@ const HoverInfoContext = createContext<HoverInfoContextProps | undefined>(undefi
 export function HoverInfoProvider({ children }: { children: React.ReactNode }) {
     const [hoverInfo, setHoverInfo] = useState<string | null>(null);
 
+    const value = useMemo(() => ({ hoverInfo, setHoverInfo }), [hoverInfo]);
+
     return (
-        <HoverInfoContext.Provider value={{ hoverInfo, setHoverInfo }}>
+        <HoverInfoContext.Provider value={value}>
             {children}
         </HoverInfoContext.Provider>
     );

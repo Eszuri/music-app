@@ -695,6 +695,7 @@ function HomeContent() {
               loadingFiles={player.loadingFiles}
               selectedSong={player.selectedSong}
               metadata={player.metadata}
+              coverDataUrl={player.coverDataUrl}
               displayPath={displayPath}
               debugError={debugError}
               currentTime={player.currentTime}

@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { FileEntry } from './FolderExplorer';
 import { getAccent } from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
@@ -45,7 +46,7 @@ function RepeatIcon({ mode }: { mode: 'off' | 'all' | 'one' }) {
     );
 }
 
-export default function PlaybackControls({
+function PlaybackControls({
     lang,
     selectedSong,
     isPlaying,
@@ -187,3 +188,5 @@ export default function PlaybackControls({
         </div>
     );
 }
+
+export default memo(PlaybackControls);

@@ -1,5 +1,6 @@
 'use client';
 
+import {memo} from 'react';
 import {motion} from 'framer-motion';
 import {useCallback, useState} from 'react';
 import type {FileEntry} from '../FolderExplorer';
@@ -53,7 +54,7 @@ function appendDevTools(items: ContextMenuItem[], lang: Lang): ContextMenuItem[]
     ];
 }
 
-export default function HomeHeader({
+function HomeHeader({
     lang,
     isCompact,
     musicFolder,
@@ -220,3 +221,4 @@ export default function HomeHeader({
         </>
     );
 }
+export default memo(HomeHeader);

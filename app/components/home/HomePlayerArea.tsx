@@ -31,6 +31,7 @@ interface HomePlayerAreaProps {
   loadingFiles: boolean;
   selectedSong: FileEntry | null;
   metadata: SongMetadata | null;
+  coverDataUrl: string | null;
   displayPath: string;
   debugError: string;
   currentTime: number;
@@ -109,6 +110,7 @@ export default function HomePlayerArea({
   loadingFiles,
   selectedSong,
   metadata,
+  coverDataUrl,
   displayPath,
   debugError,
   currentTime,
@@ -445,7 +447,7 @@ export default function HomePlayerArea({
                     >
                       <img
                         onContextMenu={showAlbumMenu}
-                        src={`data:${metadata.cover_mime};base64,${metadata.cover_b64}`}
+                        src={coverDataUrl ?? ''}
                         className="w-full h-full object-contain pointer-events-auto"
                         alt="Fullscreen cover"
                       />
@@ -510,6 +512,7 @@ export default function HomePlayerArea({
                         metadata={metadata}
                         selectedSong={selectedSong}
                         accentColor={accentColor}
+                        coverDataUrl={coverDataUrl}
                         onContextMenu={showAlbumMenu}
                         hideCover={isFullScreenAlbum}
                       />
@@ -573,6 +576,7 @@ export default function HomePlayerArea({
                     selectedSong={selectedSong}
                     metadata={metadata}
                     accentColor={accentColor}
+                    coverDataUrl={coverDataUrl}
                     resetSidebarToken={resetSidebarToken}
                     onContextMenu={showAlbumMenu}
                   />

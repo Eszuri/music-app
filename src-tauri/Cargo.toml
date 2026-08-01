@@ -39,3 +39,9 @@ windows-core = "0.58"
 rfd = "0.15"
 tauri-plugin-updater = "2"
 tauri-plugin-single-instance = "2"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true

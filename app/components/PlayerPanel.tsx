@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileEntry } from './FolderExplorer';
 import { getAccent } from '../lib/colors';
@@ -31,11 +32,12 @@ interface PlayerPanelProps {
     metadata: SongMetadata | null;
     selectedSong: FileEntry | null;
     accentColor: string;
+    coverDataUrl: string | null;
     onContextMenu?: (e: React.MouseEvent) => void;
     hideCover?: boolean;
 }
 
-export default function PlayerPanel({ lang, metadata, selectedSong, accentColor, onContextMenu, hideCover }: PlayerPanelProps) {
+function PlayerPanel({ lang, metadata, selectedSong, accentColor, coverDataUrl, onContextMenu, hideCover }: PlayerPanelProps) {
     const accent = getAccent(accentColor);
     const songTitle = selectedSong
         ? (metadata?.title || selectedSong.name.replace(/\.[^/.]+$/, ''))
@@ -62,7 +64,7 @@ export default function PlayerPanel({ lang, metadata, selectedSong, accentColor,
                         <motion.img
                             key={selectedSong?.path}
                             {...contentMotion}
-                            src={`data:${metadata.cover_mime};base64,${metadata.cover_b64}`}
+                            src={coverDataUrl ?? ''}
                             alt={t(lang, 'player.cover')}
                             className="max-h-[45vh] max-w-full w-auto h-auto object-contain rounded-2xl"
                         />
@@ -98,3 +100,4 @@ export default function PlayerPanel({ lang, metadata, selectedSong, accentColor,
         </div>
     );
 }
+export default memo(PlayerPanel);

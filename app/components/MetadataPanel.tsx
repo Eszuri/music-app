@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileEntry } from './FolderExplorer';
 import { SongMetadata } from './PlayerPanel';
@@ -16,6 +16,7 @@ interface MetadataPanelProps {
     selectedSong: FileEntry | null;
     metadata: SongMetadata | null;
     accentColor: string;
+    coverDataUrl: string | null;
     resetSidebarToken: number;
     onContextMenu?: (e: React.MouseEvent) => void;
 }
@@ -82,7 +83,7 @@ function channelsLabel(lang: Lang, ch: number | null): string {
     return `${ch}${t(lang, 'metadata.ch')}`;
 }
 
-export default function MetadataPanel({ lang, selectedSong, metadata, accentColor, resetSidebarToken, onContextMenu }: MetadataPanelProps) {
+function MetadataPanel({ lang, selectedSong, metadata, accentColor, coverDataUrl, resetSidebarToken, onContextMenu }: MetadataPanelProps) {
     const accent = getAccent(accentColor);
     const songTitle = selectedSong
         ? (metadata?.title || selectedSong.name.replace(/\.[^/.]+$/, ''))
@@ -93,6 +94,7 @@ export default function MetadataPanel({ lang, selectedSong, metadata, accentColo
     const isDraggingRef = useRef(false);
     const startXRef = useRef(0);
     const startWidthRef = useRef(DEFAULT_WIDTH);
+    const widthPendingRef = useRef<number | null>(null);
 
     const metaHover = useHoverDescription(t(lang, 'status.songDetails'));
 
@@ -105,11 +107,6 @@ export default function MetadataPanel({ lang, selectedSong, metadata, accentColo
         setWidth(DEFAULT_WIDTH);
         window.localStorage.removeItem(STORAGE_KEY);
     }, [resetSidebarToken]);
-
-    useEffect(() => {
-        if (width === DEFAULT_WIDTH) return;
-        window.localStorage.setItem(STORAGE_KEY, String(width));
-    }, [width]);
 
     useEffect(() => {
         const handleWindowResize = () => {
@@ -136,6 +133,7 @@ export default function MetadataPanel({ lang, selectedSong, metadata, accentColo
         const effectiveMax = Math.min(MAX_WIDTH, maxAllowed);
         const next = Math.min(effectiveMax, Math.max(MIN_WIDTH, startWidthRef.current + delta));
         setWidth(next);
+        widthPendingRef.current = next;
     }, []);
 
     const onMouseUp = useCallback(() => {
@@ -143,6 +141,11 @@ export default function MetadataPanel({ lang, selectedSong, metadata, accentColo
         isDraggingRef.current = false;
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
+        // Write to localStorage once on release instead of every frame
+        if (widthPendingRef.current !== null) {
+            window.localStorage.setItem(STORAGE_KEY, String(widthPendingRef.current));
+            widthPendingRef.current = null;
+        }
         window.removeEventListener('mousemove', onMouseMove);
         window.removeEventListener('mouseup', onMouseUp);
     }, [onMouseMove]);
@@ -245,7 +248,7 @@ export default function MetadataPanel({ lang, selectedSong, metadata, accentColo
                                             <motion.img
                                                 key={selectedSong.path}
                                                 {...contentMotion}
-                                                src={`data:${metadata.cover_mime};base64,${metadata.cover_b64}`}
+                                                src={coverDataUrl ?? ''}
                                                 alt={t(lang, 'metadata.cover')}
                                                 className="w-full h-full object-contain"
                                             />
@@ -357,3 +360,4 @@ export default function MetadataPanel({ lang, selectedSong, metadata, accentColo
         </aside>
     );
 }
+export default memo(MetadataPanel);

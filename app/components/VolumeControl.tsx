@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useEffect, useState} from 'react';
+import React, {memo, useEffect, useState} from 'react';
 import {getAccent} from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
 import {useHoverDescription} from '../hooks/useHoverDescription';
@@ -49,7 +49,7 @@ function makeChangeEvent(value: number): React.ChangeEvent<HTMLInputElement> {
     return {target: {value: String(value)}} as React.ChangeEvent<HTMLInputElement>;
 }
 
-export default function VolumeControl({
+function VolumeControl({
     lang,
     volume,
     volumeMode,
@@ -278,3 +278,4 @@ export default function VolumeControl({
         </div>
     );
 }
+export default memo(VolumeControl);
