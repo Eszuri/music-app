@@ -227,7 +227,8 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         if (token !== playTokenRef.current || !isMountedRef.current) return;
         setMetadata(result);
         if (result.duration) setDuration(result.duration);
-        if (!skipWallpaper) await applyWallpaper(result);
+        // Fire-and-forget — wallpaper update must never block metadata state update
+        if (!skipWallpaper) applyWallpaper(result).catch(() => {});
       } catch {
         if (token !== playTokenRef.current || !isMountedRef.current) return;
         setMetadata(null);
@@ -450,11 +451,13 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         await audio.play();
         autoPausedBySilenceRef.current = false;
 
-        // If this is the first play after a session restore, apply wallpaper now
+        // If this is the first play after a session restore, apply wallpaper now.
+        // Fire-and-forget — do NOT await, so the UI stays responsive immediately
+        // after play is pressed. The wallpaper update happens in the background.
         if (restoredPendingPlayRef.current) {
           restoredPendingPlayRef.current = false;
           const meta = metadataRef.current;
-          if (meta) await applyWallpaper(meta);
+          if (meta) applyWallpaper(meta).catch(() => {});
         }
       };
       resume().catch((e) => console.error("Gagal play:", e));

@@ -411,14 +411,17 @@ fn apply_wallpaper(bmp_path: &Path) -> Result<(), String> {
 
     const SPI_SETDESKWALLPAPER: u32 = 0x0014;
     const SPIF_UPDATEINIFILE: u32 = 0x01;
-    const SPIF_SENDCHANGE: u32 = 0x02;
+    // SPIF_SENDCHANGE removed — it broadcasts WM_SETTINGCHANGE to all windows
+    // synchronously, causing a system-wide stall that freezes the Tauri webview
+    // for ~200-500ms. SPIF_UPDATEINIFILE alone persists the setting without the
+    // broadcast penalty. The wallpaper will still change immediately on-screen.
 
     let result = unsafe {
         SystemParametersInfoW(
             SPI_SETDESKWALLPAPER,
             0,
             path_wide.as_ptr(),
-            SPIF_UPDATEINIFILE | SPIF_SENDCHANGE,
+            SPIF_UPDATEINIFILE,
         )
     };
 
@@ -445,8 +448,12 @@ fn clear_wallpaper_internal() -> Result<(), String> {
 }
 
 #[tauri::command]
-fn clear_wallpaper() -> Result<(), String> {
-    clear_wallpaper_internal()
+async fn clear_wallpaper() -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        clear_wallpaper_internal()
+    })
+    .await
+    .map_err(|e| format!("Task error: {}", e))?
 }
 
 #[cfg(windows)]
@@ -640,20 +647,24 @@ fn unregister_volume_callback() -> Result<(), String> {
 }
 
 #[tauri::command]
-fn set_wallpaper(cover_b64: String) -> Result<(), String> {
-    let engine = base64::engine::general_purpose::STANDARD;
-    let data = engine.decode(&cover_b64).map_err(|e| format!("Base64 decode error: {}", e))?;
+async fn set_wallpaper(cover_b64: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let engine = base64::engine::general_purpose::STANDARD;
+        let data = engine.decode(&cover_b64).map_err(|e| format!("Base64 decode error: {}", e))?;
 
-    let img = image::load_from_memory(&data)
-        .map_err(|e| format!("Failed to decode image: {}", e))?;
+        let img = image::load_from_memory(&data)
+            .map_err(|e| format!("Failed to decode image: {}", e))?;
 
-    let temp_dir = std::env::temp_dir();
-    let bmp_path = temp_dir.join("mw-cover.bmp");
+        let temp_dir = std::env::temp_dir();
+        let bmp_path = temp_dir.join("mw-cover.bmp");
 
-    img.save_with_format(&bmp_path, image::ImageFormat::Bmp)
-        .map_err(|e| format!("Gagal save BMP: {}", e))?;
+        img.save_with_format(&bmp_path, image::ImageFormat::Bmp)
+            .map_err(|e| format!("Gagal save BMP: {}", e))?;
 
-    apply_wallpaper(&bmp_path)
+        apply_wallpaper(&bmp_path)
+    })
+    .await
+    .map_err(|e| format!("Task error: {}", e))?
 }
 
 #[tauri::command]
