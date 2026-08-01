@@ -5,6 +5,22 @@ import {type Lang} from '../../lib/translations';
 
 const changelogEn = [
     {
+        version: '1.0.0',
+        items: [
+            'Full bilingual support — all UI text, notifications, and messages now follow the selected language.',
+            'Added per-field hover descriptions throughout the app for a clearer, more informative experience.',
+            'Status bar now shows contextual notifications: cover art saved confirmation and volume limit warnings.',
+            'Cover art size is now displayed in the metadata panel.',
+            'Playlist now correctly stays in the original folder when navigating the file explorer during playback.',
+            'Playlist automatically updates when sort or format settings change.',
+            'Session is now fully restored on startup — next/prev works immediately without needing to press play first.',
+            'Wallpaper updates are now non-blocking, eliminating the brief freeze after pressing play.',
+            'Right-click menu is now available across all interactive areas of the app.',
+            'Significant performance improvements: reduced re-renders, faster startup, and lower resource usage.',
+            'Improved skeleton loading screens.',
+        ],
+    },
+    {
         version: '0.9.5',
         items: [
             'Smoother, more consistent animations throughout the app.',
@@ -119,6 +135,22 @@ const changelogEn = [
 ];
 
 const changelogId = [
+    {
+        version: '1.0.0',
+        items: [
+            'Dukungan dua bahasa penuh — semua teks UI, notifikasi, dan pesan kini mengikuti bahasa yang dipilih.',
+            'Deskripsi hover per-field di seluruh aplikasi untuk pengalaman yang lebih jelas dan informatif.',
+            'Status bar kini menampilkan notifikasi: konfirmasi cover art tersimpan dan peringatan batas volume.',
+            'Ukuran cover art kini ditampilkan di panel metadata.',
+            'Playlist kini tetap di folder asal saat menjelajahi file explorer selama pemutaran.',
+            'Playlist otomatis diperbarui saat pengaturan sort atau format berubah.',
+            'Sesi kini dipulihkan sepenuhnya saat startup — next/prev langsung berfungsi tanpa perlu menekan play terlebih dahulu.',
+            'Pembaruan wallpaper kini tidak memblokir antarmuka, menghilangkan jeda singkat setelah menekan play.',
+            'Menu klik kanan kini tersedia di semua area interaktif aplikasi.',
+            'Peningkatan performa signifikan: render lebih sedikit, startup lebih cepat, dan penggunaan sumber daya lebih rendah.',
+            'Tampilan loading skeleton yang lebih halus.',
+        ],
+    },
     {
         version: '0.9.5',
         items: [
