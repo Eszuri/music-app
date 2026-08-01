@@ -202,7 +202,7 @@ const en: Record<string, string> = {
     'alert.volumeWarning': 'System volume exceeds the safe limit (<strong>{limit}</strong>)! Lower the volume to protect your hearing.',
 
     'contextMenu.reloadPage': 'Reload Page',
- 'contextMenu.playPause': 'Play/Pause',
+    'contextMenu.playPause': 'Play/Pause',
     'contextMenu.next': 'Next',
     'contextMenu.prev': 'Previous',
     'contextMenu.increaseVolume': 'Increase Volume',
@@ -252,6 +252,7 @@ const en: Record<string, string> = {
     'metadata.ch': 'ch',
     'metadata.format': 'Format',
     'metadata.size': 'Size',
+    'metadata.coverSize': 'Cover Size',
     'metadata.fileInfo': 'File Info',
     'metadata.fileName': 'File Name',
     'metadata.created': 'Created',
@@ -557,7 +558,7 @@ const id: Record<string, string> = {
     'alert.volumeWarning': 'Volume sistem melebihi batas aman (<strong>{limit}</strong>)! Turunkan volume untuk melindungi pendengaran.',
 
     'contextMenu.reloadPage': 'Reload Halaman',
- 'contextMenu.playPause': 'Putar/Jeda',
+    'contextMenu.playPause': 'Putar/Jeda',
     'contextMenu.next': 'Berikutnya',
     'contextMenu.prev': 'Sebelumnya',
     'contextMenu.increaseVolume': 'Naikkan Volume',
@@ -607,6 +608,7 @@ const id: Record<string, string> = {
     'metadata.ch': ' ch',
     'metadata.format': 'Format',
     'metadata.size': 'Ukuran',
+    'metadata.coverSize': 'Ukuran Cover Art',
     'metadata.fileInfo': 'Info File',
     'metadata.fileName': 'Nama File',
     'metadata.created': 'Dibuat',

@@ -294,6 +294,12 @@ function MetadataPanel({ lang, selectedSong, metadata, accentColor, coverDataUrl
                                     )}
                                     <MetaRow label={t(lang, 'metadata.format')} value={selectedSong.ext.toUpperCase()} />
                                     <MetaRow label={t(lang, 'metadata.size')} value={formatSize(selectedSong.size)} />
+                                    {metadata?.cover_b64 && (
+                                        <MetaRow
+                                            label={t(lang, 'metadata.coverSize')}
+                                            value={formatSize(Math.round(metadata.cover_b64.length * 3 / 4))}
+                                        />
+                                    )}
                                 </div>
 
                                 <SectionTitle title={t(lang, 'metadata.fileInfo')} />
