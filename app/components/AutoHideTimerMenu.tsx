@@ -4,6 +4,7 @@ import {getAccent} from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
 import {contentMotion} from '../lib/animations';
 import {useHoverDescription} from '../hooks/useHoverDescription';
+import {useHoverInfo} from '../contexts/HoverInfoContext';
 
 interface AutoHideTimerMenuProps {
     lang: Lang;
@@ -19,6 +20,7 @@ export default function AutoHideTimerMenu({
     accentColor
 }: AutoHideTimerMenuProps) {
     const accent = getAccent(accentColor);
+    const {setHoverInfo} = useHoverInfo();
     const [open, setOpen] = useState(false);
     const [customValue, setCustomValue] = useState(hideDelayMs.toString());
     const menuRef = useRef<HTMLDivElement>(null);
@@ -35,7 +37,6 @@ export default function AutoHideTimerMenu({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [open]);
 
-    // Update custom value if prop changes externally
     useEffect(() => {
         setCustomValue(hideDelayMs.toString());
     }, [hideDelayMs]);
@@ -81,6 +82,10 @@ export default function AutoHideTimerMenu({
                         {options.map(opt => (
                             <button
                                 key={opt}
+                                onMouseEnter={() => setHoverInfo(
+                                    t(lang, 'status.autoHideOption', {value: opt === 0 ? t(lang, 'player.autoHideNever') : `${opt}ms`})
+                                )}
+                                onMouseLeave={() => setHoverInfo(null)}
                                 onClick={() => {
                                     setHideDelayMs(opt);
                                     setOpen(false);
@@ -105,7 +110,7 @@ export default function AutoHideTimerMenu({
                                             setOpen(false);
                                         }
                                     }}
-                                    className="w-full bg-black/50 text-xs px-2 py-1.5 rounded-md outline-none border border-transparent focus:border-[var(--accent)] text-zinc-200 transition-colors"
+                                    className="w-full bg-black/50 text-xs px-2 py-1.5 rounded-md outline-none border border-transparent focus:border-(--accent) text-zinc-200 transition-colors"
                                     style={{'--accent': accent.hex500} as any}
                                     min="500"
                                     step="500"

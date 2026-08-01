@@ -1,15 +1,15 @@
 'use client';
 
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FileEntry } from './FolderExplorer';
-import { SongMetadata } from './PlayerPanel';
-import { getAccent } from '../lib/colors';
+import React, {memo, useCallback, useEffect, useRef, useState} from 'react';
+import {motion, AnimatePresence} from 'framer-motion';
+import {FileEntry} from './FolderExplorer';
+import {SongMetadata} from './PlayerPanel';
+import {getAccent} from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
-import { contentMotion } from '../lib/animations';
-import ContextMenu, { ContextMenuItem } from './ContextMenu';
-import { useHoverDescription } from '../hooks/useHoverDescription';
-import { MetadataPanelSkeleton } from './Skeleton';
+import {contentMotion} from '../lib/animations';
+import ContextMenu, {ContextMenuItem} from './ContextMenu';
+import {useHoverDescription} from '../hooks/useHoverDescription';
+import {MetadataPanelSkeleton} from './Skeleton';
 
 interface MetadataPanelProps {
     lang: Lang;
@@ -61,9 +61,9 @@ function formatDuration(seconds: number | null): string {
     return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-function MetaRow({ label, value }: { label: string; value: string }) {
+function MetaRow({label, value, hoverProps}: {label: string; value: string; hoverProps?: Record<string, unknown>}) {
     return (
-        <div className="flex flex-col gap-0.5 min-w-0">
+        <div className="flex flex-col gap-0.5 min-w-0" {...(hoverProps ?? {})}>
             <span className="text-[10px] font-medium tracking-wider text-zinc-500 uppercase truncate">{label}</span>
             <span className={`text-sm ${value === '—' ? 'text-zinc-600' : 'text-zinc-200'} break-all`} title={value}>
                 {value}
@@ -72,7 +72,7 @@ function MetaRow({ label, value }: { label: string; value: string }) {
     );
 }
 
-function SectionTitle({ title }: { title: string }) {
+function SectionTitle({title}: {title: string}) {
     return <h4 className="text-[11px] font-semibold tracking-wider text-zinc-400 uppercase mt-5 first:mt-0 mb-2.5">{title}</h4>;
 }
 
@@ -83,20 +83,41 @@ function channelsLabel(lang: Lang, ch: number | null): string {
     return `${ch}${t(lang, 'metadata.ch')}`;
 }
 
-function MetadataPanel({ lang, selectedSong, metadata, accentColor, coverDataUrl, resetSidebarToken, onContextMenu }: MetadataPanelProps) {
+function MetadataPanel({lang, selectedSong, metadata, accentColor, coverDataUrl, resetSidebarToken, onContextMenu}: MetadataPanelProps) {
     const accent = getAccent(accentColor);
     const songTitle = selectedSong
         ? (metadata?.title || selectedSong.name.replace(/\.[^/.]+$/, ''))
         : null;
 
     const [width, setWidth] = useState<number>(DEFAULT_WIDTH);
-    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
+    const [contextMenu, setContextMenu] = useState<{x: number; y: number; items: ContextMenuItem[]} | null>(null);
     const isDraggingRef = useRef(false);
     const startXRef = useRef(0);
     const startWidthRef = useRef(DEFAULT_WIDTH);
     const widthPendingRef = useRef<number | null>(null);
 
-    const metaHover = useHoverDescription(t(lang, 'status.songDetails'));
+    // Per-field hover descriptions — specific label shown in status bar per item
+    const hTitle = useHoverDescription(selectedSong ? t(lang, 'status.meta.title') : null);
+    const hArtist = useHoverDescription(selectedSong ? t(lang, 'status.meta.artist') : null);
+    const hAlbum = useHoverDescription(selectedSong ? t(lang, 'status.meta.album') : null);
+    const hGenre = useHoverDescription(selectedSong ? t(lang, 'status.meta.genre') : null);
+    const hYear = useHoverDescription(selectedSong ? t(lang, 'status.meta.year') : null);
+    const hTrack = useHoverDescription(selectedSong ? t(lang, 'status.meta.track') : null);
+    const hDisc = useHoverDescription(selectedSong ? t(lang, 'status.meta.disc') : null);
+    const hDuration = useHoverDescription(selectedSong ? t(lang, 'status.meta.duration') : null);
+    const hBitrate = useHoverDescription(selectedSong ? t(lang, 'status.meta.bitrate') : null);
+    const hSample = useHoverDescription(selectedSong ? t(lang, 'status.meta.sampleRate') : null);
+    const hChannel = useHoverDescription(selectedSong ? t(lang, 'status.meta.channel') : null);
+    const hFormat = useHoverDescription(selectedSong ? t(lang, 'status.meta.format') : null);
+    const hSize = useHoverDescription(selectedSong ? t(lang, 'status.meta.size') : null);
+    const hCoverSz = useHoverDescription(selectedSong ? t(lang, 'status.meta.coverSize') : null);
+    const hFileName = useHoverDescription(selectedSong ? t(lang, 'status.meta.fileName') : null);
+    const hCreated = useHoverDescription(selectedSong ? t(lang, 'status.meta.created') : null);
+    const hModified = useHoverDescription(selectedSong ? t(lang, 'status.meta.modified') : null);
+    const hComment = useHoverDescription(selectedSong ? t(lang, 'status.meta.comment') : null);
+    const hLocation = useHoverDescription(selectedSong ? t(lang, 'status.meta.location') : null);
+    const hCoverArt = useHoverDescription(selectedSong ? t(lang, 'status.meta.cover') : null);
+    const hResize = useHoverDescription(t(lang, 'status.resizeHandle'));
 
     useEffect(() => {
         setWidth(loadSavedWidth());
@@ -182,16 +203,18 @@ function MetadataPanel({ lang, selectedSong, metadata, accentColor, coverDataUrl
 
     return (
         <aside
-            style={{ width }}
+            style={{width}}
             className="relative flex shrink-0 flex-col border-l border-zinc-800/50 bg-zinc-950/40 max-lg:flex-1 max-lg:min-w-0 overflow-hidden"
         >
             <div
                 onMouseDown={onMouseDown}
                 onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = accent.hex400 + '40';
+                    hResize.onMouseEnter?.(e as unknown as React.MouseEvent<HTMLElement>);
                 }}
                 onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = '';
+                    hResize.onMouseLeave?.(e as unknown as React.MouseEvent<HTMLElement>);
                 }}
                 className="absolute top-0 left-0 h-full w-1.5 cursor-col-resize transition-colors z-10 max-lg:hidden"
             />
@@ -204,9 +227,8 @@ function MetadataPanel({ lang, selectedSong, metadata, accentColor, coverDataUrl
                 <span className="text-xs font-medium text-zinc-400 tracking-wide">{t(lang, 'metadata.heading')}</span>
             </div>
 
-            <div 
-                {...metaHover}
-                className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-4 space-y-3 md:space-y-4 select-text [&_*::selection]:bg-[var(--selection-bg)] [&_*::selection]:text-[var(--selection-color)]"
+            <div
+                className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-4 space-y-3 md:space-y-4 select-text [&_*::selection]:bg-(--selection-bg) [&_*::selection]:text-(--selection-color)"
                 style={{
                     '--selection-bg': accent.hex500 + '80',
                     '--selection-color': '#ffffff'
@@ -221,7 +243,7 @@ function MetadataPanel({ lang, selectedSong, metadata, accentColor, coverDataUrl
                         items: [
                             {
                                 label: t(lang, 'contextMenu.copyText'),
-                                icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
+                                icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>,
                                 onClick: () => {
                                     if (sel) navigator.clipboard.writeText(sel);
                                 },
@@ -240,8 +262,9 @@ function MetadataPanel({ lang, selectedSong, metadata, accentColor, coverDataUrl
                             >
                                 {/* Cover art small */}
                                 <div
+                                    {...hCoverArt}
                                     onContextMenu={onContextMenu}
-                                    className="w-full aspect-square max-w-[160px] mx-auto rounded-xl overflow-hidden bg-zinc-900/80 ring-1 ring-white/5 mb-4"
+                                    className="w-full aspect-square max-w-40 mx-auto rounded-xl overflow-hidden bg-zinc-900/80 ring-1 ring-white/5 mb-4"
                                 >
                                     <AnimatePresence mode="wait">
                                         {metadata?.cover_b64 ? (
@@ -256,7 +279,7 @@ function MetadataPanel({ lang, selectedSong, metadata, accentColor, coverDataUrl
                                             <motion.div
                                                 key="placeholder"
                                                 {...contentMotion}
-                                                animate={{ opacity: 0.12, y: 0 }}
+                                                animate={{opacity: 0.12, y: 0}}
                                                 className="w-full h-full flex items-center justify-center"
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">
@@ -271,50 +294,50 @@ function MetadataPanel({ lang, selectedSong, metadata, accentColor, coverDataUrl
 
                                 <SectionTitle title={t(lang, 'metadata.songInfo')} />
                                 <div className="space-y-3 pl-1">
-                                    <MetaRow label={t(lang, 'metadata.title')} value={songTitle || '—'} />
-                                    <MetaRow label={t(lang, 'metadata.artist')} value={metadata?.artist || t(lang, 'metadata.unknownArtist')} />
-                                    {metadata?.album && <MetaRow label={t(lang, 'metadata.album')} value={metadata.album} />}
-                                    {metadata?.genre && <MetaRow label={t(lang, 'metadata.genre')} value={metadata.genre} />}
-                                    {metadata?.year != null && <MetaRow label={t(lang, 'metadata.year')} value={String(metadata.year)} />}
-                                    {trackStr && <MetaRow label={t(lang, 'metadata.track')} value={trackStr} />}
-                                    {discStr && <MetaRow label={t(lang, 'metadata.disc')} value={discStr} />}
-                                    <MetaRow label={t(lang, 'metadata.duration')} value={formatDuration(metadata?.duration ?? null)} />
+                                    <MetaRow label={t(lang, 'metadata.title')} value={songTitle || '—'} hoverProps={hTitle} />
+                                    <MetaRow label={t(lang, 'metadata.artist')} value={metadata?.artist || t(lang, 'metadata.unknownArtist')} hoverProps={hArtist} />
+                                    {metadata?.album && <MetaRow label={t(lang, 'metadata.album')} value={metadata.album} hoverProps={hAlbum} />}
+                                    {metadata?.genre && <MetaRow label={t(lang, 'metadata.genre')} value={metadata.genre} hoverProps={hGenre} />}
+                                    {metadata?.year != null && <MetaRow label={t(lang, 'metadata.year')} value={String(metadata.year)} hoverProps={hYear} />}
+                                    {trackStr && <MetaRow label={t(lang, 'metadata.track')} value={trackStr} hoverProps={hTrack} />}
+                                    {discStr && <MetaRow label={t(lang, 'metadata.disc')} value={discStr} hoverProps={hDisc} />}
+                                    <MetaRow label={t(lang, 'metadata.duration')} value={formatDuration(metadata?.duration ?? null)} hoverProps={hDuration} />
                                 </div>
 
                                 <SectionTitle title={t(lang, 'metadata.techInfo')} />
                                 <div className="space-y-3 pl-1">
                                     {metadata?.bitrate != null && (
-                                        <MetaRow label={t(lang, 'metadata.bitrate')} value={`${metadata.bitrate} kbps`} />
+                                        <MetaRow label={t(lang, 'metadata.bitrate')} value={`${metadata.bitrate} kbps`} hoverProps={hBitrate} />
                                     )}
                                     {metadata?.sample_rate != null && (
-                                        <MetaRow label={t(lang, 'metadata.sampleRate')} value={`${(metadata.sample_rate / 1000).toFixed(1)} kHz`} />
+                                        <MetaRow label={t(lang, 'metadata.sampleRate')} value={`${(metadata.sample_rate / 1000).toFixed(1)} kHz`} hoverProps={hSample} />
                                     )}
                                     {metadata?.channels != null && (
-                                        <MetaRow label={t(lang, 'metadata.channel')} value={channelsLabel(lang, metadata.channels)} />
+                                        <MetaRow label={t(lang, 'metadata.channel')} value={channelsLabel(lang, metadata.channels)} hoverProps={hChannel} />
                                     )}
-                                    <MetaRow label={t(lang, 'metadata.format')} value={selectedSong.ext.toUpperCase()} />
-                                    <MetaRow label={t(lang, 'metadata.size')} value={formatSize(selectedSong.size)} />
+                                    <MetaRow label={t(lang, 'metadata.format')} value={selectedSong.ext.toUpperCase()} hoverProps={hFormat} />
+                                    <MetaRow label={t(lang, 'metadata.size')} value={formatSize(selectedSong.size)} hoverProps={hSize} />
                                     {metadata?.cover_b64 && (
                                         <MetaRow
                                             label={t(lang, 'metadata.coverSize')}
                                             value={formatSize(Math.round(metadata.cover_b64.length * 3 / 4))}
+                                            hoverProps={hCoverSz}
                                         />
                                     )}
                                 </div>
 
                                 <SectionTitle title={t(lang, 'metadata.fileInfo')} />
                                 <div className="space-y-3 pl-1">
-                                    <MetaRow label={t(lang, 'metadata.fileName')} value={selectedSong.name} />
-                                    <MetaRow label={t(lang, 'metadata.created')} value={formatDate(selectedSong.ctime)} />
-                                    <MetaRow label={t(lang, 'metadata.modified')} value={formatDate(selectedSong.mtime)} />
+                                    <MetaRow label={t(lang, 'metadata.fileName')} value={selectedSong.name} hoverProps={hFileName} />
+                                    <MetaRow label={t(lang, 'metadata.created')} value={formatDate(selectedSong.ctime)} hoverProps={hCreated} />
+                                    <MetaRow label={t(lang, 'metadata.modified')} value={formatDate(selectedSong.mtime)} hoverProps={hModified} />
                                 </div>
 
-                                {/* Comment */}
                                 {metadata?.comment && (
                                     <>
                                         <SectionTitle title={t(lang, 'metadata.comment')} />
-                                        <div className="pl-1">
-                                            <p className="text-sm text-zinc-300 leading-relaxed break-words">
+                                        <div className="pl-1" {...hComment}>
+                                            <p className="text-sm text-zinc-300 leading-relaxed wrap-break-word">
                                                 {metadata.comment}
                                             </p>
                                         </div>
@@ -323,7 +346,7 @@ function MetadataPanel({ lang, selectedSong, metadata, accentColor, coverDataUrl
 
                                 {/* Path */}
                                 <SectionTitle title={t(lang, 'metadata.location')} />
-                                <div className="pl-1">
+                                <div className="pl-1" {...hLocation}>
                                     <p className="text-xs text-zinc-500 break-all leading-relaxed font-mono">
                                         {selectedSong.path}
                                     </p>

@@ -60,7 +60,7 @@ export default function HomeAlerts({
                 <motion.div
                     key="update-alert"
                     {...contentMotion}
-                    className="fixed top-4 right-4 z-70 flex flex-col gap-3 px-5 py-4 rounded-xl bg-zinc-900/90 border border-zinc-700/60 text-sm text-zinc-200 shadow-2xl shadow-black/40 backdrop-blur-sm min-w-[340px]"
+                    className="fixed top-4 right-4 z-70 flex flex-col gap-3 px-5 py-4 rounded-xl bg-zinc-900/90 border border-zinc-700/60 text-sm text-zinc-200 shadow-2xl shadow-black/40 backdrop-blur-sm min-w-85"
                 >
                     <div className="flex items-center gap-2.5">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
@@ -98,7 +98,7 @@ export default function HomeAlerts({
                 <motion.div
                     key="update-downloading"
                     {...contentMotion}
-                    className="fixed top-4 right-4 z-70 flex flex-col gap-2.5 px-5 py-4 rounded-xl bg-zinc-900/90 border border-zinc-700/60 text-sm text-zinc-200 shadow-2xl shadow-black/40 backdrop-blur-sm min-w-[260px]"
+                    className="fixed top-4 right-4 z-70 flex flex-col gap-2.5 px-5 py-4 rounded-xl bg-zinc-900/90 border border-zinc-700/60 text-sm text-zinc-200 shadow-2xl shadow-black/40 backdrop-blur-sm min-w-65"
                 >
                     <div className="flex items-center gap-2.5">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">

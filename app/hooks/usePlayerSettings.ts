@@ -59,7 +59,7 @@ export function usePlayerSettings() {
     const [customAccentHex, setCustomAccentHexState] = useState('#22c55e');
     const [defaultWallpaper, setDefaultWallpaperState] = useState<string | null>(null);
     const [shortcuts, setShortcutsState] = useState<Record<ShortcutAction, string>>(DEFAULT_SHORTCUTS);
-    const [pauseIfMuted, setPauseIfMutedState] = useState(true); // default on
+    const [pauseIfMuted, setPauseIfMutedState] = useState(true);
 
     const shortcutsRef = useRef<Record<ShortcutAction, string>>(DEFAULT_SHORTCUTS);
     const volumeLimitRef = useRef<number>(0);
@@ -238,7 +238,6 @@ export function usePlayerSettings() {
         safeSetLocalStorage(VOLUME_MODE_KEY, volumeMode);
     }, [volumeMode]);
 
-    // Event-driven system volume listener (triggered by Windows COM callback)
     useEffect(() => {
         if (!isBrowserTauri || volumeMode !== 'system') {
             setSystemVolumeSynced(false);
@@ -269,7 +268,7 @@ export function usePlayerSettings() {
                 // Initial sync
                 const initialVolume = await m.invoke<number>('get_system_volume');
                 const initialMuted = await m.invoke<boolean>('get_system_mute').catch(() => false);
-                
+
                 if (!cancelled) {
                     setSystemVolumeState(initialVolume / 100);
                     systemVolumeRef.current = initialVolume / 100;
@@ -301,7 +300,6 @@ export function usePlayerSettings() {
                             setVolumeLimitExceeded(false);
                         }
 
-                        // Delay sync if user recently changed volume locally
                         if (Date.now() - lastLocalVolumeSetRef.current < 300) return;
 
                         if (Math.abs(v - systemVolumeRef.current) > 0.001) {
@@ -313,13 +311,11 @@ export function usePlayerSettings() {
 
                 const currentWindow = getCurrentWindow();
 
-                // Register callback when window gains focus
                 focusUnlisten = await currentWindow.onFocusChanged(async ({payload: focused}) => {
                     if (!focused || cancelled) return;
                     await registerVolumeCallback();
                 });
 
-                // Register immediately if window is already focused
                 if (await currentWindow.isFocused()) {
                     await registerVolumeCallback();
                 }

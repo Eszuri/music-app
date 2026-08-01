@@ -42,10 +42,6 @@ export default function ShortcutSection({
     };
 
     const [confirmResetOpen, setConfirmResetOpen] = useState(false);
-
-    // Reset button is meaningful only when at least one shortcut has been
-    // customised. While everything is at default, disable the button so
-    // the user doesn't waste a click (and confirm) on a no-op.
     const hasCustom = actions.some(
         (a) => (shortcuts[a.id] ?? a.defaultKey) !== a.defaultKey
     );
@@ -72,8 +68,8 @@ export default function ShortcutSection({
                     disabled={!hasCustom}
                     title={hasCustom ? t(lang, 'shortcut.resetTitle') : t(lang, 'shortcut.resetDefaultTitle')}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${hasCustom
-                            ? 'text-zinc-300 bg-zinc-800/60 hover:bg-zinc-700/70 border-zinc-700/50 cursor-pointer'
-                            : 'text-zinc-600 bg-zinc-900/60 border-zinc-800/40 cursor-not-allowed'
+                        ? 'text-zinc-300 bg-zinc-800/60 hover:bg-zinc-700/70 border-zinc-700/50 cursor-pointer'
+                        : 'text-zinc-600 bg-zinc-900/60 border-zinc-800/40 cursor-not-allowed'
                         }`}
                 >
                     {t(lang, 'shortcut.resetAll')}
@@ -182,11 +178,11 @@ function ShortcutRow({
                     onClick={() => setCapturing(true)}
                     onKeyDown={capturing ? handleCapture : undefined}
                     onBlur={() => setCapturing(false)}
-                    className={`min-w-[64px] px-3 py-1.5 rounded-lg text-xs font-mono font-medium border transition-colors cursor-pointer text-center ${capturing
-                            ? `${accent.bg10} ${accent.text400} ${accent.border500_20} animate-pulse`
-                            : isCustom
-                                ? `bg-amber-900/15 text-amber-300 border-amber-700/30 hover:bg-amber-900/25`
-                                : 'bg-zinc-800/60 text-zinc-300 border-zinc-700/50 hover:bg-zinc-700/70'
+                    className={`min-w-16 px-3 py-1.5 rounded-lg text-xs font-mono font-medium border transition-colors cursor-pointer text-center ${capturing
+                        ? `${accent.bg10} ${accent.text400} ${accent.border500_20} animate-pulse`
+                        : isCustom
+                            ? `bg-amber-900/15 text-amber-300 border-amber-700/30 hover:bg-amber-900/25`
+                            : 'bg-zinc-800/60 text-zinc-300 border-zinc-700/50 hover:bg-zinc-700/70'
                         }`}
                     title={capturing ? t(lang, 'shortcut.pressKeyTitle') : t(lang, 'shortcut.clickToChange')}
                 >

@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { getAccent } from '../lib/colors';
+import {useEffect} from 'react';
+import {AnimatePresence, motion} from 'framer-motion';
+import {getAccent} from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
-import { contentMotion, backdropMotion } from '../lib/animations';
+import {contentMotion, backdropMotion} from '../lib/animations';
 
 interface ConfirmDialogProps {
     lang?: Lang;
@@ -47,7 +47,7 @@ export default function ConfirmDialog({
                 <motion.div
                     key="confirm-backdrop"
                     {...backdropMotion}
-                    className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+                    className="fixed inset-0 z-60 flex items-center justify-center bg-black/70 backdrop-blur-sm"
                     onClick={onCancel}
                 >
                     <motion.div

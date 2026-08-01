@@ -7,7 +7,7 @@ import {useHoverDescription} from '../hooks/useHoverDescription';
 
 interface VolumeControlProps {
     lang: Lang;
-    volume: number; // 0.0 to 1.0 (appVolume or systemVolume depending on volumeMode)
+    volume: number;
     volumeMode: 'app' | 'system';
     systemVolumeSynced: boolean;
     systemMuted: boolean;
@@ -62,7 +62,6 @@ function VolumeControl({
     accentColor,
 }: VolumeControlProps) {
     const accent = getAccent(accentColor);
-    const [hovering, setHovering] = useState(false);
     const [prevVolume, setPrevVolume] = useState(volume);
 
     const isSystem = volumeMode === 'system';
@@ -75,25 +74,21 @@ function VolumeControl({
         }
     }, [volume, isSystem, systemMuted]);
 
-    // Pengkondisian terpisah untuk Aturan Batas Volume Sistem
     let isDecreaseDisabled = false;
     let isIncreaseDisabled = false;
     let isSliderDisabled = false;
 
     if (isSystem && limit > 0) {
-        // Kondisi 1: Nilai volume sistem LEBIH BESAR dari batas suara
         if (pct > limit) {
             isDecreaseDisabled = true;
             isIncreaseDisabled = true;
             isSliderDisabled = true;
         }
-        // Kondisi 2: Nilai volume sistem SAMA DENGAN batas suara
         else if (pct === limit) {
             isDecreaseDisabled = false;
             isIncreaseDisabled = true;
             isSliderDisabled = false;
         }
-        // Kondisi 3: Nilai volume sistem DI BAWAH batas suara
         else {
             isDecreaseDisabled = false;
             isIncreaseDisabled = false;
@@ -189,7 +184,6 @@ function VolumeControl({
                 <VolumeIcon muted={muted} low={low} />
             </button>
 
-            {/* Decrease button (-) */}
             <button
                 {...volumeHover}
                 onClick={() => onStepButton('down')}
@@ -204,10 +198,7 @@ function VolumeControl({
 
             <div
                 {...volumeHover}
-                className="relative flex-1 min-w-[56px] max-w-40 h-5 flex items-center"
-                onMouseEnter={() => setHovering(true)}
-                onMouseLeave={() => setHovering(false)}
-            >
+                className="relative flex-1 min-w-14 max-w-40 h-5 flex items-center">
                 <div className="absolute inset-x-0 h-1 rounded-full bg-zinc-800/80" />
                 {showSlider && (
                     <>
@@ -245,7 +236,6 @@ function VolumeControl({
                 />
             </div>
 
-            {/* Increase button (+) or Reset button */}
             {showResetButton ? (
                 <button
                     {...volumeHover}
@@ -272,7 +262,7 @@ function VolumeControl({
                 </button>
             )}
 
-            <span className="text-[11px] tabular-nums text-right text-white/50 font-medium min-w-[36px]">
+            <span className="text-[11px] tabular-nums text-right text-white/50 font-medium min-w-9">
                 {label}
             </span>
         </div>

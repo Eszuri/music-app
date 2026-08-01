@@ -46,7 +46,6 @@ export default function SortSection({
         }
         setCustomInput('');
     };
-    // Collect all unique formats for display (predefined first, then custom)
     const displayedFormats = [...new Set([...allFormats, ...formats])];
     return (
         <div className="space-y-6">
@@ -123,7 +122,7 @@ export default function SortSection({
                 description={t(lang, 'sort.format.desc')}
             >
                 <div className="space-y-2">
-                    <div className="flex flex-wrap gap-1.5 max-w-[260px]">
+                    <div className="flex flex-wrap gap-1.5 max-w-65">
                         {displayedFormats.map((fmt) => {
                             const active = formats.includes(fmt);
                             const isCustom = !allFormats.includes(fmt);

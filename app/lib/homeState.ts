@@ -21,9 +21,6 @@ export const DEFAULT_LANGUAGE = 'en';
 export const UPDATE_SKIP_KEY = 'music-app-update-skip';
 export const SESSION_STATE_KEY = 'music-app-session-state';
 
-// Shortcut action IDs. Each maps to one key on the keyboard. The user can
-// remap any of these via Settings -> Shortcut; the binding is stored in
-// localStorage as `{ [actionId]: KeyboardEvent['key'] }`.
 export type ShortcutAction = 'playPause' | 'next' | 'prev' | 'volumeUp' | 'volumeDown';
 
 export const DEFAULT_SHORTCUTS: Record<ShortcutAction, string> = {
@@ -41,7 +38,6 @@ export interface TauriCore {
     convertFileSrc: (path: string) => string;
 }
 
-/** Persisted last-session state — only path and position, no metadata. */
 export interface SessionState {
     filePath: string;
     currentTime: number;
@@ -71,11 +67,9 @@ export function safeSetLocalStorage(key: string, value: string) {
     try {
         window.localStorage.setItem(key, value);
     } catch {
-        // Quota exceeded, private browsing, or storage disabled - silently skip.
     }
 }
 
-/** Returns the saved session or null if missing / corrupt. */
 export function loadSessionState(): SessionState | null {
     if (typeof window === 'undefined') return null;
     try {
@@ -89,14 +83,13 @@ export function loadSessionState(): SessionState | null {
     }
 }
 
-/** Persist current session. Pass null to clear. */
 export function saveSessionState(state: SessionState | null): void {
     if (typeof window === 'undefined') return;
     try {
         if (!state) {
             window.localStorage.removeItem(SESSION_STATE_KEY);
         } else {
-            safeSetLocalStorage(SESSION_STATE_KEY, JSON.stringify({ ...state, timestamp: Date.now() }));
+            safeSetLocalStorage(SESSION_STATE_KEY, JSON.stringify({...state, timestamp: Date.now()}));
         }
     } catch {
         // ignore

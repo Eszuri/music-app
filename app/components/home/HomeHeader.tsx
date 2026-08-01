@@ -116,6 +116,8 @@ function HomeHeader({
     const settingsHover = useHoverDescription(t(lang, 'status.settings'));
     const leftSidebarHover = useHoverDescription(t(lang, 'status.toggleLeftSidebar'));
     const rightSidebarHover = useHoverDescription(t(lang, 'status.toggleRightSidebar'));
+    const titleHover = useHoverDescription(t(lang, 'status.headerTitle'));
+    const playStatusHover = useHoverDescription(t(lang, 'status.playStatus'));
 
     return (
         <>
@@ -178,6 +180,7 @@ function HomeHeader({
                 </div>
                 {/* Title & status — show global context menu on right-click */}
                 <h1
+                    {...titleHover}
                     onContextMenu={onGlobalContextMenu}
                     className="flex-1 text-center text-base sm:text-lg font-bold tracking-tight text-zinc-100 truncate min-w-0 cursor-default"
                 >
@@ -186,6 +189,7 @@ function HomeHeader({
                         : t(lang, 'about.title')}
                 </h1>
                 <motion.span
+                    {...playStatusHover}
                     onContextMenu={onGlobalContextMenu}
                     key={isPlaying ? 'playing' : 'stopped'}
                     {...contentMotion}

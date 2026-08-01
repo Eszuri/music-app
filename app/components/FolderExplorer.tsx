@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { getAccent } from '../lib/colors';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {AnimatePresence, motion} from 'framer-motion';
+import {getAccent} from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
-import { contentMotion } from '../lib/animations';
-import ContextMenu, { ContextMenuItem } from './ContextMenu';
-import { useHoverInfo } from '../contexts/HoverInfoContext';
-import { useHoverDescription } from '../hooks/useHoverDescription';
+import {contentMotion} from '../lib/animations';
+import ContextMenu, {ContextMenuItem} from './ContextMenu';
+import {useHoverInfo} from '../contexts/HoverInfoContext';
+import {useHoverDescription} from '../hooks/useHoverDescription';
 
 export interface FileEntry {
     name: string;
@@ -45,7 +45,6 @@ function isAncestorOf(folderPath: string, targetPath: string): boolean {
     const f = folderPath.toLowerCase();
     const t = targetPath.toLowerCase();
     if (f === t) return false;
-    // target is inside folder (or its sub-tree) if it starts with `folder\` or `folder/`
     return t.startsWith(f + '\\') || t.startsWith(f + '/');
 }
 
@@ -86,7 +85,8 @@ export default function FolderExplorer({
 }: FolderExplorerProps) {
     const accent = getAccent(accentColor);
     const [width, setWidth] = useState<number>(DEFAULT_WIDTH);
-    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
+    const {setHoverInfo} = useHoverInfo();
+    const [contextMenu, setContextMenu] = useState<{x: number; y: number; items: ContextMenuItem[]} | null>(null);
     const isDraggingRef = useRef(false);
     const startXRef = useRef(0);
     const startWidthRef = useRef(DEFAULT_WIDTH);
@@ -111,7 +111,6 @@ export default function FolderExplorer({
     }, []);
 
     useEffect(() => {
-        // Reset scroll when the file list reference itself changes (folder/sort swap).
         if (lastFilesRef.current !== files) {
             lastFilesRef.current = files;
             if (scrollRef.current) scrollRef.current.scrollTop = 0;
@@ -154,8 +153,6 @@ export default function FolderExplorer({
         const effectiveMax = Math.min(MAX_WIDTH, maxAllowed);
         const next = Math.min(effectiveMax, Math.max(MIN_WIDTH, startWidthRef.current + delta));
         setWidth(next);
-        // Persist immediately so the resize handle feels responsive.
-        // Full localStorage write is also done on mouseup as a belt-and-suspenders.
         widthPendingRef.current = next;
     }, []);
 
@@ -164,7 +161,6 @@ export default function FolderExplorer({
         isDraggingRef.current = false;
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
-        // Write to localStorage once on release instead of every frame
         if (widthPendingRef.current !== null) {
             window.localStorage.setItem(STORAGE_KEY, String(widthPendingRef.current));
             widthPendingRef.current = null;
@@ -193,7 +189,7 @@ export default function FolderExplorer({
 
     return (
         <aside
-            style={{ width }}
+            style={{width}}
             className="relative flex shrink-0 flex-col border-r border-zinc-800/50 bg-black/30 max-lg:flex-1 max-lg:min-w-0 overflow-hidden"
         >
             {/* Toolbar header */}
@@ -213,7 +209,7 @@ export default function FolderExplorer({
                             items: [
                                 {
                                     label: t(lang, 'folder.goUp'),
-                                    icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>,
+                                    icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>,
                                     onClick: goUp,
                                     disabled: displayPath === musicFolder
                                 }
@@ -228,7 +224,7 @@ export default function FolderExplorer({
                         <path d="m15 18-6-6 6-6" />
                     </svg>
                 </button>
-                <span 
+                <span
                     {...pathHover}
                     onContextMenu={(e: React.MouseEvent) => {
                         e.preventDefault();
@@ -239,7 +235,7 @@ export default function FolderExplorer({
                             items: [
                                 {
                                     label: t(lang, 'contextMenu.copyPath'),
-                                    icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
+                                    icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>,
                                     onClick: () => {
                                         if (displayPath) navigator.clipboard.writeText(displayPath);
                                     },
@@ -248,7 +244,7 @@ export default function FolderExplorer({
                             ]
                         });
                     }}
-                    className="text-xs text-zinc-500 truncate flex-1 cursor-default" 
+                    className="text-xs text-zinc-500 truncate flex-1 cursor-default"
                     title={displayPath}
                 >
                     {displayPath}
@@ -265,7 +261,7 @@ export default function FolderExplorer({
                             items: [
                                 {
                                     label: t(lang, 'folder.changeFolder', {folder: musicFolder || ''}),
-                                    icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 12h6M12 9l3 3-3 3"/></svg>,
+                                    icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><path d="M9 12h6M12 9l3 3-3 3" /></svg>,
                                     onClick: onChangeFolder
                                 }
                             ]
@@ -327,10 +323,10 @@ export default function FolderExplorer({
                 <AnimatePresence>
                     {debugError && (
                         <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.2 }}
+                            initial={{opacity: 0, height: 0}}
+                            animate={{opacity: 1, height: 'auto'}}
+                            exit={{opacity: 0, height: 0}}
+                            transition={{duration: 0.2}}
                             className="p-2 text-[10px] text-red-400/70 border-t border-zinc-800/30 truncate overflow-hidden"
                         >
                             {debugError}
@@ -342,9 +338,11 @@ export default function FolderExplorer({
                 onMouseDown={onMouseDown}
                 onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = accent.hex400 + '40';
+                    setHoverInfo(t(lang, 'status.resizeHandle'));
                 }}
                 onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = '';
+                    setHoverInfo(null);
                 }}
                 className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize transition-colors max-lg:hidden"
             />
@@ -391,7 +389,7 @@ function VirtualList({
     accentBorder500: string;
     accentBg30: string;
 }) {
-    const { setHoverInfo } = useHoverInfo();
+    const {setHoverInfo} = useHoverInfo();
     const totalH = files.length * ROW_HEIGHT;
     const visibleCount = viewportH > 0 ? Math.ceil(viewportH / ROW_HEIGHT) : 20;
     let startIdx = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - VIRTUAL_BUFFER);
@@ -407,13 +405,11 @@ function VirtualList({
         <motion.div
             {...contentMotion}
             className="relative"
-            style={{ height: totalH }}
+            style={{height: totalH}}
         >
-            <div style={{ height: topPad }} />
+            <div style={{height: topPad}} />
             {slice.map((file) => {
                 const isSelected = selectedPath === file.path;
-                // Folder that contains the currently playing song in its sub-tree.
-                // Stays highlighted even after the user navigates out of it.
                 const isPlayingAncestor =
                     file.is_dir &&
                     !isSelected &&
@@ -444,7 +440,7 @@ function VirtualList({
                         }}
                         title={titleAttr}
                         className={`w-full flex items-center gap-2.5 px-3 text-sm text-left cursor-pointer transition-colors duration-100 ${rowClass}`}
-                        style={{ height: ROW_HEIGHT }}
+                        style={{height: ROW_HEIGHT}}
                     >
                         <span className="shrink-0 text-[10px]">
                             {file.is_dir ? (isPlayingAncestor ? '▶' : '📁') : isSelected ? '▶' : '🎵'}
@@ -453,12 +449,12 @@ function VirtualList({
                     </button>
                 );
             })}
-            <div style={{ height: Math.max(0, bottomPad) }} />
+            <div style={{height: Math.max(0, bottomPad)}} />
         </motion.div>
     );
 }
 
-function SkeletonList({ accentHex }: { accentHex: string }) {
+function SkeletonList({accentHex}: {accentHex: string}) {
     const widths = ['w-10/12', 'w-8/12', 'w-11/12', 'w-9/12', 'w-7/12', 'w-10/12', 'w-9/12', 'w-8/12'];
     return (
         <motion.div
@@ -466,17 +462,17 @@ function SkeletonList({ accentHex }: { accentHex: string }) {
             animate="show"
             variants={{
                 hidden: {},
-                show: { transition: { staggerChildren: 0.04 } },
+                show: {transition: {staggerChildren: 0.04}},
             }}
         >
             {widths.map((w, i) => (
                 <motion.div
                     key={i}
                     variants={{
-                        hidden: { opacity: 0, y: 8 },
-                        show: { opacity: 1, y: 0 },
+                        hidden: {opacity: 0, y: 8},
+                        show: {opacity: 1, y: 0},
                     }}
-                    transition={{ duration: 0.25, ease: 'easeInOut' }}
+                    transition={{duration: 0.25, ease: 'easeInOut'}}
                     className="flex items-center gap-2.5 px-3 py-2 border-l-2 border-transparent"
                 >
                     <span className="shrink-0 w-3 h-3 rounded-sm bg-zinc-800/70" />
@@ -488,7 +484,7 @@ function SkeletonList({ accentHex }: { accentHex: string }) {
                             style={{
                                 background: `linear-gradient(0deg, transparent, ${accentHex}33, transparent)`,
                             }}
-                            animate={{ y: ['0%', '300%'] }}
+                            animate={{y: ['0%', '300%']}}
                             transition={{
                                 duration: 1.4,
                                 repeat: Infinity,
