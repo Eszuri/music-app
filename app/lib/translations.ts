@@ -392,6 +392,7 @@ const en: Record<string, string> = {
     'notification.coverSaved': 'Cover art saved',
     'notification.volumeLimit': 'Volume exceeds safe limit ({limit}%)',
 
+    'log.playing': 'Playing: {name}',
     'log.sessionRestored': 'Session restored: {name} at {time}',
     'log.playbackFailed': 'Playback failed: {msg}',
     'log.wallpaperError': 'Wallpaper error: {msg}',
