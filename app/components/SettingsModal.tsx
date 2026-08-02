@@ -128,16 +128,6 @@ export default function SettingsModal({
                             <h2 className="text-lg font-semibold text-zinc-100">
                                 {sections.find((s) => s.id === activeSection)?.label}
                             </h2>
-                            <button
-                                onClick={onClose}
-                                {...closeHover}
-                                className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60 transition-colors cursor-pointer"
-                                aria-label={t(lang, 'settings.close')}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M18 6 6 18M6 6l12 12" />
-                                </svg>
-                            </button>
                         </header>
                         <div className="flex-1 overflow-y-auto p-4 md:p-6">
                             {activeSection === 'general' && (

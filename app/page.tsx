@@ -163,6 +163,77 @@ function HomeContent() {
     pendingFolderChangeRef.current = pendingFolderChange;
     equalizerOpenRef.current = equalizerOpen;
 
+    // ── Seamless URL path synchronization (/equalizer, /setting, /streaming) ──
+    const openEqualizer = useCallback(() => {
+        setEqualizerOpen(true);
+        if (typeof window !== 'undefined' && window.location.pathname !== '/equalizer') {
+            window.history.pushState({modal: 'equalizer'}, '', '/equalizer');
+        }
+    }, []);
+
+    const closeEqualizer = useCallback(() => {
+        setEqualizerOpen(false);
+        if (typeof window !== 'undefined' && window.location.pathname.includes('/equalizer')) {
+            window.history.pushState(null, '', '/');
+        }
+    }, []);
+
+    const openSettings = useCallback(() => {
+        setSettingsOpen(true);
+        if (typeof window !== 'undefined' && window.location.pathname !== '/setting') {
+            window.history.pushState({modal: 'setting'}, '', '/setting');
+        }
+    }, []);
+
+    const closeSettings = useCallback(() => {
+        setSettingsOpen(false);
+        if (typeof window !== 'undefined' && (window.location.pathname.includes('/setting'))) {
+            window.history.pushState(null, '', '/');
+        }
+    }, []);
+
+    const openStreaming = useCallback(() => {
+        setStreamingOpen(true);
+        if (typeof window !== 'undefined' && window.location.pathname !== '/streaming') {
+            window.history.pushState({modal: 'streaming'}, '', '/streaming');
+        }
+    }, []);
+
+    const closeStreaming = useCallback(() => {
+        setStreamingOpen(false);
+        if (typeof window !== 'undefined' && window.location.pathname.includes('/streaming')) {
+            window.history.pushState(null, '', '/');
+        }
+    }, []);
+
+    useEffect(() => {
+        const syncModalFromUrl = () => {
+            const path = window.location.pathname.toLowerCase();
+            if (path.includes('/equalizer')) {
+                setEqualizerOpen(true);
+                setSettingsOpen(false);
+                setStreamingOpen(false);
+            } else if (path.includes('/setting')) {
+                setSettingsOpen(true);
+                setEqualizerOpen(false);
+                setStreamingOpen(false);
+            } else if (path.includes('/streaming')) {
+                setStreamingOpen(true);
+                setEqualizerOpen(false);
+                setSettingsOpen(false);
+            } else if (path === '/' || path === '') {
+                setEqualizerOpen(false);
+                setSettingsOpen(false);
+                setStreamingOpen(false);
+            }
+        };
+
+        syncModalFromUrl();
+
+        window.addEventListener('popstate', syncModalFromUrl);
+        return () => window.removeEventListener('popstate', syncModalFromUrl);
+    }, []);
+
     // Global context menu state
     const [globalContextMenu, setGlobalContextMenu] = useState<{
         x: number;
@@ -708,9 +779,9 @@ function HomeContent() {
                 showLeftSidebar={showLeftSidebar}
                 showRightSidebar={showRightSidebar}
                 accentColor={settings.accentColor}
-                onOpenStreaming={() => setStreamingOpen(true)}
-                onOpenSettings={() => setSettingsOpen(true)}
-                onOpenEqualizer={() => setEqualizerOpen(true)}
+                onOpenStreaming={openStreaming}
+                onOpenSettings={openSettings}
+                onOpenEqualizer={openEqualizer}
                 onToggleLeftSidebar={() => setShowLeftSidebar((v) => !v)}
                 onToggleRightSidebar={() => setShowRightSidebar((v) => !v)}
                 onGlobalContextMenu={showGlobalContextMenu}
@@ -770,7 +841,7 @@ function HomeContent() {
                 onConfirmFolderChange={confirmFolderChange}
                 onCancelFolderChange={() => setPendingFolderChange(false)}
                 settingsOpen={settingsOpen}
-                onCloseSettings={() => setSettingsOpen(false)}
+                onCloseSettings={closeSettings}
                 musicFolder={settings.musicFolder}
                 onChangeFolder={handlePickFolder}
                 autoWallpaper={settings.autoWallpaper}
@@ -817,12 +888,12 @@ function HomeContent() {
                 updateDownloaded={updateDownloaded}
                 updateTotal={updateTotal}
                 streamingOpen={streamingOpen}
-                onCloseStreaming={() => setStreamingOpen(false)}
+                onCloseStreaming={closeStreaming}
             />
 
             <EqualizerModal
                 isOpen={equalizerOpen}
-                onClose={() => setEqualizerOpen(false)}
+                onClose={closeEqualizer}
                 equalizer={player.equalizer}
                 accentColor={settings.accentColor}
                 lang={lang}

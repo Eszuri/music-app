@@ -5,7 +5,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {getAccent} from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
 import {modalContentMotion, backdropMotion} from '../lib/animations';
-import {EQIcon, PowerIcon, ResetIcon, XIcon} from './icons';
+import {EQIcon, PowerIcon, ResetIcon, ZoomInIcon, ZoomOutIcon} from './icons';
 import {
     type EQBandMode,
     type EQPresetKey,
@@ -66,6 +66,7 @@ function EqualizerModal({
         preampDb,
         preset,
         gains,
+        zoomLevel,
         frequencies,
         autoPreamp,
         toggleEnabled,
@@ -74,6 +75,7 @@ function EqualizerModal({
         setPreampDb,
         setPreset,
         setBandGain,
+        setZoomLevel,
         resetFlat,
     } = equalizer;
 
@@ -127,31 +129,24 @@ function EqualizerModal({
                             <PowerIcon />
                             <span>{enabled ? t(lang, 'equalizer.on') : t(lang, 'equalizer.off')}</span>
                         </button>
-
-                        {/* Close Button */}
-                        <button
-                            onClick={onClose}
-                            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/80 transition-colors cursor-pointer"
-                        >
-                            <XIcon />
-                        </button>
                     </div>
                 </div>
 
-                {/* Control Bar: Band Mode, Preamp, Presets & Reset */}
-                <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3 border-b border-zinc-800/50 bg-zinc-900/20 text-xs">
-                    <div className="flex flex-wrap items-center gap-4">
+                {/* Control Bar: Band Mode, Presets, Auto Headroom Guard, Zoom & Reset */}
+                <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3.5 border-b border-zinc-800/60 bg-zinc-900/30 text-xs">
+                    {/* Left Group: Band Mode & Preset Selectors */}
+                    <div className="flex flex-wrap items-center gap-3">
                         {/* Band Mode Dropdown */}
-                        <div className="flex items-center gap-2">
-                            <label className="text-zinc-400 font-medium">{t(lang, 'equalizer.bandMode')}:</label>
+                        <div className="flex items-center gap-2 bg-zinc-900/80 border border-zinc-800 rounded-xl px-3 py-1">
+                            <span className="text-zinc-400 font-medium text-[11px] uppercase tracking-wider">{t(lang, 'equalizer.bandMode')}:</span>
                             <select
                                 value={bandMode}
                                 onChange={(e) => setBandMode(parseInt(e.target.value) as EQBandMode)}
                                 disabled={!enabled}
-                                className="px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700/80 text-zinc-200 font-medium focus:outline-none focus:border-zinc-500 disabled:opacity-50 cursor-pointer"
+                                className="bg-transparent text-zinc-100 font-semibold focus:outline-none disabled:opacity-50 cursor-pointer text-xs"
                             >
                                 {BAND_MODE_OPTIONS.map((bm) => (
-                                    <option key={bm} value={bm}>
+                                    <option key={bm} value={bm} className="bg-zinc-900 text-zinc-200">
                                         {t(lang, `equalizer.bandMode.${bm}` as any)}
                                     </option>
                                 ))}
@@ -159,16 +154,16 @@ function EqualizerModal({
                         </div>
 
                         {/* Preset Dropdown */}
-                        <div className="flex items-center gap-2">
-                            <label className="text-zinc-400 font-medium">{t(lang, 'equalizer.preset')}:</label>
+                        <div className="flex items-center gap-2 bg-zinc-900/80 border border-zinc-800 rounded-xl px-3 py-1">
+                            <span className="text-zinc-400 font-medium text-[11px] uppercase tracking-wider">{t(lang, 'equalizer.preset')}:</span>
                             <select
                                 value={preset}
                                 onChange={(e) => setPreset(e.target.value as EQPresetKey)}
                                 disabled={!enabled}
-                                className="px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700/80 text-zinc-200 font-medium focus:outline-none focus:border-zinc-500 disabled:opacity-50 cursor-pointer"
+                                className="bg-transparent text-zinc-100 font-semibold focus:outline-none disabled:opacity-50 cursor-pointer text-xs"
                             >
                                 {PRESET_OPTIONS.map((key) => (
-                                    <option key={key} value={key}>
+                                    <option key={key} value={key} className="bg-zinc-900 text-zinc-200">
                                         {t(lang, `equalizer.preset.${key}` as any)}
                                     </option>
                                 ))}
@@ -180,31 +175,61 @@ function EqualizerModal({
                             onClick={toggleAutoPreamp}
                             disabled={!enabled}
                             title={t(lang, 'equalizer.autoPreampTip')}
-                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors cursor-pointer disabled:opacity-50 ${
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all cursor-pointer disabled:opacity-50 ${
                                 autoPreamp
-                                    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
-                                    : 'bg-zinc-900 text-zinc-400 border-zinc-700/80 hover:text-zinc-200'
+                                    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40 shadow-xs shadow-emerald-950/40'
+                                    : 'bg-zinc-900/80 text-zinc-400 border-zinc-800 hover:text-zinc-200 hover:bg-zinc-800/60'
                             }`}
                         >
-                            <span className={`w-1.5 h-1.5 rounded-full ${autoPreamp ? 'bg-emerald-400' : 'bg-zinc-500'}`} />
+                            <span className={`w-2 h-2 rounded-full transition-colors ${autoPreamp ? 'bg-emerald-400 shadow-xs shadow-emerald-400' : 'bg-zinc-600'}`} />
                             <span>{t(lang, 'equalizer.autoPreamp')}</span>
                         </button>
                     </div>
 
-                    <button
-                        onClick={resetFlat}
-                        disabled={!enabled}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800/80 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700/60 transition-colors disabled:opacity-50 cursor-pointer ml-auto"
-                    >
-                        <ResetIcon size={14} />
-                        <span>{t(lang, 'equalizer.reset')}</span>
-                    </button>
+                    {/* Right Group: Zoom Controls & Reset Button */}
+                    <div className="flex items-center gap-3">
+                        {/* Zoom Level Controls */}
+                        <div className="flex items-center gap-1 bg-zinc-900/80 border border-zinc-800 rounded-xl px-1.5 py-1">
+                            <button
+                                onClick={() => setZoomLevel(Math.max(1, +(zoomLevel - 0.25).toFixed(2)))}
+                                disabled={!enabled || zoomLevel <= 1}
+                                title="Zoom Out Sliders"
+                                className="p-1 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 disabled:opacity-30 cursor-pointer transition-colors"
+                            >
+                                <ZoomOutIcon size={14} />
+                            </button>
+                            <span className="text-[11px] font-bold text-zinc-300 px-1.5 tabular-nums">
+                                {Math.round(zoomLevel * 100)}%
+                            </span>
+                            <button
+                                onClick={() => setZoomLevel(Math.min(2, +(zoomLevel + 0.25).toFixed(2)))}
+                                disabled={!enabled || zoomLevel >= 2}
+                                title="Zoom In Sliders"
+                                className="p-1 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 disabled:opacity-30 cursor-pointer transition-colors"
+                            >
+                                <ZoomInIcon size={14} />
+                            </button>
+                        </div>
+
+                        {/* Reset Button */}
+                        <button
+                            onClick={resetFlat}
+                            disabled={!enabled}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 transition-colors disabled:opacity-50 cursor-pointer font-medium"
+                        >
+                            <ResetIcon size={14} />
+                            <span>{t(lang, 'equalizer.reset')}</span>
+                        </button>
+                    </div>
                 </div>
 
                 {/* Main Sliders View: Preamp + N-Band Grid */}
                 <div className={`p-6 flex gap-6 transition-opacity duration-200 ${enabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
                     {/* Preamp Column */}
-                    <div className="flex flex-col items-center shrink-0 pr-4 border-r border-zinc-800/80 h-56">
+                    <div
+                        className="flex flex-col items-center shrink-0 pr-4 border-r border-zinc-800/80 transition-all duration-200"
+                        style={{height: `${Math.round(224 * zoomLevel)}px`}}
+                    >
                         <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider mb-2">
                             {t(lang, 'equalizer.preamp')}
                         </span>
@@ -221,12 +246,12 @@ function EqualizerModal({
                         </span>
 
                         <div
-                            className="relative flex-1 w-3.5 bg-zinc-900 rounded-full border border-zinc-800/90 flex items-end overflow-hidden cursor-pointer"
+                            className={`relative flex-1 ${zoomLevel >= 1.5 ? 'w-7' : 'w-5.5'} bg-zinc-900 rounded-md border border-zinc-800/90 flex items-end overflow-hidden cursor-pointer transition-all duration-200`}
                             onDoubleClick={() => setPreampDb(0)}
                             title={`Preamp: ${preampDb > 0 ? '+' : ''}${preampDb} dB (Double-click to reset)`}
                         >
                             <div
-                                className="w-full rounded-full transition-all duration-75"
+                                className="w-full rounded-sm transition-all duration-75"
                                 style={{
                                     height: `${((preampDb + 12) / 24) * 100}%`,
                                     background:
@@ -245,9 +270,9 @@ function EqualizerModal({
                                 value={preampDb}
                                 onChange={(e) => setPreampDb(parseFloat(e.target.value))}
                                 style={{
-                                    writingMode: 'bt-lr',
-                                    WebkitAppearance: 'slider-vertical',
-                                } as any}
+                                    writingMode: 'vertical-lr',
+                                    direction: 'rtl',
+                                }}
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                             />
                         </div>
@@ -259,7 +284,14 @@ function EqualizerModal({
 
                     {/* Band Sliders Container (Scrollable for 31 bands) */}
                     <div className="relative flex-1 overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-zinc-800">
-                        <div className="relative flex items-center justify-between gap-1.5 h-56 min-w-full px-2" style={{minWidth: bandMode === 31 ? '850px' : 'auto'}}>
+                        <div
+                            className="relative flex items-center justify-between min-w-full px-2 transition-all duration-200"
+                            style={{
+                                height: `${Math.round(224 * zoomLevel)}px`,
+                                gap: `${Math.round(8 * zoomLevel)}px`,
+                                minWidth: bandMode === 31 ? `${Math.round(1100 * zoomLevel)}px` : 'auto',
+                            }}
+                        >
                             {/* Reference lines: +12dB, 0dB, -12dB */}
                             <div className="absolute inset-x-2 top-0 h-px bg-zinc-800/60 pointer-events-none" />
                             <div className="absolute inset-x-2 top-1/2 h-px bg-zinc-700/50 border-t border-dashed border-zinc-600/40 pointer-events-none" />
@@ -270,10 +302,10 @@ function EqualizerModal({
                                 const fillPct = Math.max(0, Math.min(100, ((db + 12) / 24) * 100));
 
                                 return (
-                                    <div key={`${bandMode}-${freqHz}`} className="relative flex-1 flex flex-col items-center h-full z-10 min-w-3">
+                                    <div key={`${bandMode}-${freqHz}`} className="relative flex-1 flex flex-col items-center h-full z-10 min-w-5">
                                         {/* dB Badge */}
                                         <span
-                                            className={`tabular-nums font-semibold mb-2 ${isCompactMode ? 'text-[9px]' : 'text-[10px]'} ${
+                                            className={`tabular-nums font-semibold mb-2 ${isCompactMode && zoomLevel <= 1.25 ? 'text-[9px]' : 'text-[10px]'} ${
                                                 db > 0
                                                     ? 'text-emerald-400'
                                                     : db < 0
@@ -284,14 +316,18 @@ function EqualizerModal({
                                             {db > 0 ? `+${db}` : `${db}`}
                                         </span>
 
-                                        {/* Vertical Slider Track */}
+                                        {/* Vertical Slider Track (Wider squarish track) */}
                                         <div
-                                            className={`relative flex-1 ${isCompactMode ? 'w-2.5' : 'w-3.5'} bg-zinc-900 rounded-full border border-zinc-800/90 flex items-end overflow-hidden cursor-pointer group`}
+                                            className={`relative flex-1 ${
+                                                isCompactMode
+                                                    ? (zoomLevel >= 1.5 ? 'w-5.5' : 'w-4')
+                                                    : (zoomLevel >= 1.5 ? 'w-8' : 'w-6')
+                                            } bg-zinc-900 rounded-md border border-zinc-800/90 flex items-end overflow-hidden cursor-pointer group transition-all duration-200`}
                                             onDoubleClick={() => setBandGain(index, 0)}
                                             title={`${formatFreqLabel(freqHz)} Hz: ${db > 0 ? '+' : ''}${db} dB (Double-click to reset)`}
                                         >
                                             <div
-                                                className="w-full rounded-full transition-all duration-75"
+                                                className="w-full rounded-sm transition-all duration-75"
                                                 style={{
                                                     height: `${fillPct}%`,
                                                     background:
@@ -310,15 +346,15 @@ function EqualizerModal({
                                                 value={db}
                                                 onChange={(e) => setBandGain(index, parseFloat(e.target.value))}
                                                 style={{
-                                                    writingMode: 'bt-lr',
-                                                    WebkitAppearance: 'slider-vertical',
-                                                } as any}
+                                                    writingMode: 'vertical-lr',
+                                                    direction: 'rtl',
+                                                }}
                                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                             />
                                         </div>
 
                                         {/* Frequency Label */}
-                                        <span className={`font-medium text-zinc-400 mt-2.5 truncate max-w-full ${isCompactMode ? 'text-[9px]' : 'text-[11px]'}`}>
+                                        <span className={`font-medium text-zinc-400 mt-2.5 truncate max-w-full ${isCompactMode && zoomLevel <= 1.25 ? 'text-[9px]' : 'text-[11px]'}`}>
                                             {formatFreqLabel(freqHz)}
                                         </span>
                                     </div>
@@ -331,12 +367,6 @@ function EqualizerModal({
                 {/* Footer Tip */}
                 <div className="px-6 py-3 border-t border-zinc-800/60 bg-zinc-900/30 flex items-center justify-between text-[11px] text-zinc-500">
                     <span>{t(lang, 'equalizer.tip')}</span>
-                    <button
-                        onClick={onClose}
-                        className="px-4 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium transition-colors cursor-pointer"
-                    >
-                        {t(lang, 'equalizer.done')}
-                    </button>
                 </div>
                     </motion.div>
                 </motion.div>

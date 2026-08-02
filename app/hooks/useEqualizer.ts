@@ -104,6 +104,7 @@ export interface EqualizerState {
     autoPreamp: boolean; // Auto-attenuate preamp to prevent distortion
     preset: EQPresetKey;
     gains: number[]; // N values for current bandMode
+    zoomLevel: number; // 1.0 to 2.0
 }
 
 const DEFAULT_STATE: EqualizerState = {
@@ -113,6 +114,7 @@ const DEFAULT_STATE: EqualizerState = {
     autoPreamp: true,
     preset: 'flat',
     gains: new Array(10).fill(0),
+    zoomLevel: 1,
 };
 
 function loadSavedEqualizer(): EqualizerState {
@@ -131,8 +133,9 @@ function loadSavedEqualizer(): EqualizerState {
         const gains = Array.isArray(parsed.gains) && parsed.gains.length === bandMode
             ? parsed.gains.map((v: number) => Math.max(-12, Math.min(12, Number(v) || 0)))
             : getPresetGains(bandMode, preset);
+        const zoomLevel = Math.max(1, Math.min(2, Number(parsed.zoomLevel) || 1));
 
-        return {enabled, bandMode, preampDb, autoPreamp, preset, gains};
+        return {enabled, bandMode, preampDb, autoPreamp, preset, gains, zoomLevel};
     } catch {
         return DEFAULT_STATE;
     }
@@ -207,6 +210,11 @@ export function useEqualizer() {
         });
     }, []);
 
+    const setZoomLevel = useCallback((zoomLevel: number) => {
+        const clamped = Math.max(1, Math.min(2, zoomLevel));
+        setState((prev) => ({...prev, zoomLevel: clamped}));
+    }, []);
+
     const resetFlat = useCallback(() => {
         setState((prev) => ({
             ...prev,
@@ -223,6 +231,7 @@ export function useEqualizer() {
         autoPreamp: state.autoPreamp,
         preset: state.preset,
         gains: state.gains,
+        zoomLevel: state.zoomLevel,
         frequencies: EQ_BAND_FREQUENCIES[state.bandMode],
         setEnabled,
         toggleEnabled,
@@ -232,6 +241,7 @@ export function useEqualizer() {
         setPreampDb,
         setPreset,
         setBandGain,
+        setZoomLevel,
         resetFlat,
         stateRef,
     };
