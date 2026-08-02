@@ -1,5 +1,6 @@
 "use client";
 
+import {useEffect, useState} from "react";
 import {getAccent} from "../lib/colors";
 
 interface SkeletonProps {
@@ -40,6 +41,7 @@ export function Skeleton({
         >
             {animate && (
                 <span
+                    suppressHydrationWarning
                     className="absolute inset-0 pointer-events-none"
                     style={{
                         background: `linear-gradient(0deg, transparent, ${accent.hex400}33, transparent)`,
@@ -78,6 +80,7 @@ export function FolderExplorerSkeleton({
                     <span className="shrink-0 w-3 h-3 rounded-sm bg-zinc-800/70" />
                     <span className={`relative overflow-hidden h-3 rounded ${w} bg-zinc-800/70`}>
                         <span
+                            suppressHydrationWarning
                             className="absolute inset-x-0 -top-1/2 h-1/2 pointer-events-none"
                             style={{
                                 background: `linear-gradient(0deg, transparent, ${accent.hex400}33, transparent)`,
@@ -266,10 +269,16 @@ export function InitSkeleton({accentColor = "violet"}: {accentColor?: string}) {
 }
 
 export function FullInitSkeleton() {
-    const accentColor =
-        typeof window !== "undefined"
-            ? window.localStorage.getItem("music-app-accent") || "green"
-            : "green";
+    const [accentColor, setAccentColor] = useState<string>("green");
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const saved = window.localStorage.getItem("music-app-accent");
+            if (saved) {
+                setAccentColor(saved);
+            }
+        }
+    }, []);
 
     return (
         <div className="h-full flex flex-col overflow-hidden bg-linear-to-b from-zinc-950 to-black text-zinc-100 select-none font-sans">

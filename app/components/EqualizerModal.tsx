@@ -109,7 +109,9 @@ function EqualizerModal({
         preset,
         gains,
         frequencies,
+        autoPreamp,
         toggleEnabled,
+        toggleAutoPreamp,
         setBandMode,
         setPreampDb,
         setPreset,
@@ -214,6 +216,21 @@ function EqualizerModal({
                                 ))}
                             </select>
                         </div>
+
+                        {/* Auto Headroom Guard Toggle */}
+                        <button
+                            onClick={toggleAutoPreamp}
+                            disabled={!enabled}
+                            title={t(lang, 'equalizer.autoPreampTip')}
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors cursor-pointer disabled:opacity-50 ${
+                                autoPreamp
+                                    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+                                    : 'bg-zinc-900 text-zinc-400 border-zinc-700/80 hover:text-zinc-200'
+                            }`}
+                        >
+                            <span className={`w-1.5 h-1.5 rounded-full ${autoPreamp ? 'bg-emerald-400' : 'bg-zinc-500'}`} />
+                            <span>{t(lang, 'equalizer.autoPreamp')}</span>
+                        </button>
                     </div>
 
                     <button

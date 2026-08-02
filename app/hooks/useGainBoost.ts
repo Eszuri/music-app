@@ -1,35 +1,37 @@
 import {useCallback, useEffect, useRef, useState} from "react";
 import {safeSetLocalStorage} from "../lib/homeState";
 
-export const GAIN_BOOST_KEY = "music-app-gain-boost";
-export const MIN_GAIN = 1;   // 100% — sama seperti volume native, tidak ada boost
-export const MAX_GAIN = 3;   // 300% — batas atas supaya tidak terlalu mudah clipping
+const GAIN_BOOST_KEY = "music-app-gain-boost";
+const DEFAULT_GAIN = 1; // 100%
+const MIN_GAIN = 1; // 100%
+const MAX_GAIN = 3; // 300%
 
 function loadSavedGain(): number {
-    if (typeof window === "undefined") return MIN_GAIN;
+    if (typeof window === "undefined") return DEFAULT_GAIN;
     try {
-        const raw = window.localStorage.getItem(GAIN_BOOST_KEY);
-        if (!raw) return MIN_GAIN;
-        const parsed = parseFloat(raw);
-        if (!Number.isFinite(parsed)) return MIN_GAIN;
-        return Math.max(MIN_GAIN, Math.min(MAX_GAIN, parsed));
+        const saved = window.localStorage.getItem(GAIN_BOOST_KEY);
+        if (!saved) return DEFAULT_GAIN;
+        const val = parseFloat(saved);
+        if (isNaN(val)) return DEFAULT_GAIN;
+        return Math.max(MIN_GAIN, Math.min(MAX_GAIN, val));
     } catch {
-        return MIN_GAIN;
+        return DEFAULT_GAIN;
     }
 }
 
-/**
- * Menempelkan Web Audio API GainNode ke elemen <audio> yang sudah ada,
- * supaya volumenya bisa di-boost melebihi batas native 0–1 (sampai 300%).
- *
- * AudioContext + MediaElementSource dibuat secara lazy (browser memblokir
- * pembuatan AudioContext sebelum ada user gesture, dan createMediaElementSource
- * hanya boleh dipanggil sekali per elemen audio).
- */
+/** Get optimal Q factor according to number of EQ bands to prevent filter overlap distortion */
+function getQFactorForBands(bandCount: number): number {
+    if (bandCount <= 5) return 0.85;
+    if (bandCount <= 10) return 1.414;
+    if (bandCount <= 15) return 2.1;
+    return 4.31; // ISO 1/3 Octave standard Q for 31-band EQ
+}
+
 export interface EqualizerAudioState {
     enabled: boolean;
     bandMode: number;
     preampDb: number;
+    autoPreamp?: boolean;
     gains: number[];
     frequencies: number[];
 }
@@ -45,6 +47,7 @@ export function useGainBoost(
     const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
     const preampNodeRef = useRef<GainNode | null>(null);
     const gainNodeRef = useRef<GainNode | null>(null);
+    const limiterNodeRef = useRef<DynamicsCompressorNode | null>(null);
     const filtersRef = useRef<BiquadFilterNode[]>([]);
     const attachedElementRef = useRef<HTMLAudioElement | null>(null);
 
@@ -55,6 +58,7 @@ export function useGainBoost(
     eqRef.current = equalizer;
 
     const rebuildEqFilters = useCallback((ctx: AudioContext, freqs: number[], eq?: EqualizerAudioState): BiquadFilterNode[] => {
+        const qVal = getQFactorForBands(freqs.length);
         return freqs.map((freq, i) => {
             const filter = ctx.createBiquadFilter();
             if (i === 0) {
@@ -63,7 +67,7 @@ export function useGainBoost(
                 filter.type = 'highshelf';
             } else {
                 filter.type = 'peaking';
-                filter.Q.value = 1.4;
+                filter.Q.value = qVal;
             }
             filter.frequency.value = freq;
 
@@ -77,16 +81,18 @@ export function useGainBoost(
         const source = sourceNodeRef.current;
         const preamp = preampNodeRef.current;
         const gainNode = gainNodeRef.current;
+        const limiter = limiterNodeRef.current;
         const filters = filtersRef.current;
-        if (!source || !preamp || !gainNode) return;
+        if (!source || !preamp || !gainNode || !limiter || !ctxRef.current) return;
 
         try {
             source.disconnect();
             preamp.disconnect();
             filters.forEach((f) => f.disconnect());
             gainNode.disconnect();
+            limiter.disconnect();
 
-            // Connect: source ➔ preamp ➔ filter[0] ➔ ... ➔ filter[N-1] ➔ gainNode ➔ destination
+            // Connect: source ➔ preamp ➔ filter[0] ➔ ... ➔ filter[N-1] ➔ gainNode ➔ limiter ➔ destination
             let lastNode: AudioNode = source;
             lastNode.connect(preamp);
             lastNode = preamp;
@@ -97,7 +103,8 @@ export function useGainBoost(
             });
 
             lastNode.connect(gainNode);
-            gainNode.connect(ctxRef.current!.destination);
+            gainNode.connect(limiter);
+            limiter.connect(ctxRef.current.destination);
         } catch (e) {
             console.warn("useGainBoost: failed to connect audio graph", e);
         }
@@ -107,7 +114,6 @@ export function useGainBoost(
         const audio = audioRef.current;
         if (!audio) return null;
 
-        // Sudah tersambung ke elemen audio yang sama, tidak perlu diulang.
         if (attachedElementRef.current === audio && gainNodeRef.current) {
             return gainNodeRef.current;
         }
@@ -128,19 +134,36 @@ export function useGainBoost(
             const source = ctx.createMediaElementSource(audio);
             sourceNodeRef.current = source;
 
+            // Preamp Gain Node
             const preamp = ctx.createGain();
             const eq = eqRef.current;
-            const preampLinear = eq?.enabled ? Math.pow(10, (eq.preampDb ?? 0) / 20) : 1;
+            const maxBoost = eq?.enabled ? Math.max(0, ...(eq.gains ?? [])) : 0;
+            const autoPreamp = eq?.autoPreamp !== false;
+            const effectivePreampDb = eq?.enabled
+                ? (autoPreamp ? (eq.preampDb ?? 0) - maxBoost : (eq.preampDb ?? 0))
+                : 0;
+            const preampLinear = Math.pow(10, effectivePreampDb / 20);
             preamp.gain.value = preampLinear;
             preampNodeRef.current = preamp;
 
+            // Equalizer BiquadFilterNodes
             const freqs = eq?.frequencies ?? [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
             const filters = rebuildEqFilters(ctx, freqs, eq);
             filtersRef.current = filters;
 
+            // Main Gain Boost Node
             const gainNode = ctx.createGain();
             gainNode.gain.value = gainRef.current;
             gainNodeRef.current = gainNode;
+
+            // Anti-Clipping Soft Peak Limiter Node
+            const limiter = ctx.createDynamicsCompressor();
+            limiter.threshold.value = -0.5; // Limiting threshold at -0.5 dBFS
+            limiter.knee.value = 3;         // Soft knee
+            limiter.ratio.value = 20;       // Limiter compression ratio
+            limiter.attack.value = 0.003;   // Instant 3ms attack
+            limiter.release.value = 0.1;    // 100ms smooth release
+            limiterNodeRef.current = limiter;
 
             attachedElementRef.current = audio;
             connectGraph();
@@ -153,7 +176,7 @@ export function useGainBoost(
         }
     }, [audioRef, rebuildEqFilters, connectGraph]);
 
-    // Sambungkan graph saat audio mulai diputar
+    // Connect graph on audio playback
     useEffect(() => {
         let attachedAudio: HTMLAudioElement | null = null;
 
@@ -184,40 +207,46 @@ export function useGainBoost(
         };
     }, [audioRef, ensureGraph]);
 
-    // Sinkronkan GainNode setiap kali state gain berubah
+    // Sync GainNode state
     useEffect(() => {
-        if (gainNodeRef.current) {
-            gainNodeRef.current.gain.value = gain;
+        if (gainNodeRef.current && ctxRef.current) {
+            gainNodeRef.current.gain.setTargetAtTime(gain, ctxRef.current.currentTime, 0.015);
         }
         safeSetLocalStorage(GAIN_BOOST_KEY, String(gain));
     }, [gain]);
 
-    // Sinkronkan Equalizer & Preamp setiap kali state equalizer berubah
+    // Sync Equalizer & Preamp state live without clicks or pops
     useEffect(() => {
         const ctx = ctxRef.current;
         const eq = equalizer;
         if (!ctx || !eq) return;
 
-        // Sync Preamp gain
+        // Calculate auto-preamp headroom protection
+        const maxBoost = eq.enabled ? Math.max(0, ...(eq.gains ?? [])) : 0;
+        const autoPreamp = eq.autoPreamp !== false;
+        const effectivePreampDb = eq.enabled
+            ? (autoPreamp ? (eq.preampDb ?? 0) - maxBoost : (eq.preampDb ?? 0))
+            : 0;
+        const preampLinear = Math.pow(10, effectivePreampDb / 20);
+
         if (preampNodeRef.current) {
-            const preampLinear = eq.enabled ? Math.pow(10, (eq.preampDb ?? 0) / 20) : 1;
-            preampNodeRef.current.gain.setValueAtTime(preampLinear, ctx.currentTime);
+            preampNodeRef.current.gain.setTargetAtTime(preampLinear, ctx.currentTime, 0.015);
         }
 
-        // If band count changed, rebuild filters & reconnect graph
+        // Rebuild filters if band count changed
         if (filtersRef.current.length !== eq.frequencies.length) {
             filtersRef.current = rebuildEqFilters(ctx, eq.frequencies, eq);
             connectGraph();
         } else {
-            // Update gain on existing filters
+            // Update filter gains smoothly
             filtersRef.current.forEach((filter, i) => {
                 const db = eq.enabled ? (eq.gains[i] ?? 0) : 0;
-                filter.gain.setValueAtTime(db, ctx.currentTime);
+                filter.gain.setTargetAtTime(db, ctx.currentTime, 0.015);
             });
         }
     }, [equalizer, rebuildEqFilters, connectGraph]);
 
-    // Tutup AudioContext saat unmount.
+    // Clean up AudioContext on unmount
     useEffect(() => {
         return () => {
             ctxRef.current?.close().catch(() => {});
