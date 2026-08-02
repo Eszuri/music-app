@@ -734,6 +734,11 @@ function HomeContent() {
                 systemVolumeSynced={settings.systemVolumeSynced}
                 systemMuted={settings.systemMuted}
                 volumeLimit={settings.volumeLimit}
+                gainBoost={player.gainBoost}
+                minGainBoost={player.minGainBoost}
+                maxGainBoost={player.maxGainBoost}
+                setGainBoost={player.setGainBoost}
+                gainBoostSupported={player.gainBoostSupported}
                 resetSidebarToken={resetSidebarToken}
                 accentColor={settings.accentColor}
                 handlePickFolder={handlePickFolder}

@@ -201,6 +201,11 @@ const en: Record<string, string> = {
     'alert.error': 'An error occurred. Check <strong>Debug</strong> log for details.',
     'alert.volumeWarning': 'System volume exceeds the safe limit (<strong>{limit}</strong>)! Lower the volume to protect your hearing.',
 
+    'gainBoost.desc': 'Boost volume above 100%. Use with caution to avoid audio distortion.',
+    'gainBoost.unsupported': 'Gain boost is not supported in this environment',
+    'gainBoost.resetTooltip': 'Reset gain to 100%',
+    'gainBoost.warningTooltip': 'High gain boost (> 200%) may cause audio distortion or clipping!',
+
     'contextMenu.reloadPage': 'Reload Page',
     'contextMenu.playPause': 'Play/Pause',
     'contextMenu.next': 'Next',
@@ -599,6 +604,11 @@ const id: Record<string, string> = {
 
     'alert.error': 'Terjadi error. Cek <strong>Debug</strong> log untuk detail.',
     'alert.volumeWarning': 'Volume sistem melebihi batas aman (<strong>{limit}</strong>)! Turunkan volume untuk melindungi pendengaran.',
+
+    'gainBoost.desc': 'Boost volume di atas 100%. Gunakan dengan hati-hati untuk menghindari distorsi suara.',
+    'gainBoost.unsupported': 'Gain boost tidak didukung di lingkungan ini',
+    'gainBoost.resetTooltip': 'Reset gain ke 100%',
+    'gainBoost.warningTooltip': 'Gain boost tinggi (> 200%) dapat menyebabkan distorsi suara atau clipping!',
 
     'contextMenu.reloadPage': 'Reload Halaman',
     'contextMenu.playPause': 'Putar/Jeda',

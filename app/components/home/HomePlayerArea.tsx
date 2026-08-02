@@ -13,6 +13,7 @@ import PlayerPanel, {SongMetadata} from "../PlayerPanel";
 import SeekBar from "../SeekBar";
 import PlaybackControls from "../PlaybackControls";
 import VolumeControl from "../VolumeControl";
+import GainBoostControl from "../GainBoostControl";
 import MetadataPanel from "../MetadataPanel";
 import AutoHideTimerMenu from "../AutoHideTimerMenu";
 import {EmptyFolderState, NoFolderEmptyState} from "./HomeEmptyStates";
@@ -45,6 +46,11 @@ interface HomePlayerAreaProps {
     systemVolumeSynced: boolean;
     systemMuted: boolean;
     volumeLimit: number;
+    gainBoost: number;
+    minGainBoost: number;
+    maxGainBoost: number;
+    setGainBoost: (v: number) => void;
+    gainBoostSupported: boolean;
     resetSidebarToken: number;
     accentColor: string;
     handlePickFolder: () => void;
@@ -125,6 +131,11 @@ export default function HomePlayerArea({
     systemVolumeSynced,
     systemMuted,
     volumeLimit,
+    gainBoost,
+    minGainBoost,
+    maxGainBoost,
+    setGainBoost,
+    gainBoostSupported,
     resetSidebarToken,
     accentColor,
     handlePickFolder,
@@ -555,6 +566,17 @@ export default function HomePlayerArea({
                                                     handleVolumeChange={handleVolumeChange}
                                                     onToggleSystemMute={toggleSystemMute}
                                                     accentColor={accentColor}
+                                                />
+                                            </div>
+                                            <div className="w-full flex justify-center mt-1">
+                                                <GainBoostControl
+                                                    gain={gainBoost}
+                                                    minGain={minGainBoost}
+                                                    maxGain={maxGainBoost}
+                                                    setGain={setGainBoost}
+                                                    supported={gainBoostSupported}
+                                                    accentColor={accentColor}
+                                                    lang={lang}
                                                 />
                                             </div>
                                         </motion.div>

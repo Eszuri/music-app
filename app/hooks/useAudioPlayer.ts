@@ -9,6 +9,7 @@ import {
     type SessionState,
 } from "../lib/homeState";
 import {t, type Lang} from "../lib/translations";
+import {useGainBoost} from "./useGainBoost";
 
 interface UseAudioPlayerOptions {
     lang: Lang;
@@ -102,6 +103,20 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     const playlistFolderRef = useRef<string | null>(null);
     const skipPlaylistRebuildRef = useRef(false);
 
+    const getAudioSrc = useCallback((filePath: string): string => {
+        if (isBrowserTauri && typeof window !== "undefined") {
+            const internals = (window as unknown as {
+                __TAURI_INTERNALS__?: {
+                    convertFileSrc: (p: string, protocol?: string) => string;
+                };
+            }).__TAURI_INTERNALS__;
+            if (internals?.convertFileSrc) {
+                return internals.convertFileSrc(filePath, "stream");
+            }
+        }
+        return filePath;
+    }, []);
+
     filesRef.current = files;
     selectedSongRef.current = selectedSong;
     metadataRef.current = metadata;
@@ -117,7 +132,6 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     repeatRef.current = repeat;
 
     const activeVolume = volumeMode === "system" ? systemVolume : appVolume;
-
 
     const isVolumeSilent = useCallback(() => {
         return volumeMode === "app"
@@ -331,13 +345,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             if (!audio) return;
 
             try {
-                let src: string;
-                if (isBrowserTauri) {
-                    const mod = await getTauri();
-                    src = mod.convertFileSrc(savedFile.path);
-                } else {
-                    src = savedFile.path;
-                }
+                const src = getAudioSrc(savedFile.path);
 
                 audio.src = src;
                 audio.volume = volumeModeRef.current === "app" ? appVolume : 1;
@@ -369,7 +377,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 saveSessionState(null);
             }
         }
-    }, [files, filesLoadedOnce]);
+    }, [files, filesLoadedOnce, getAudioSrc]);
 
     // ─── playback ──────────────────────────────────────────────────────────────
 
@@ -395,13 +403,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                     resumeVolume = await setMinimumResumeVolume();
                 }
 
-                let src: string;
-                if (isBrowserTauri) {
-                    const mod = await getTauri();
-                    src = mod.convertFileSrc(file.path);
-                } else {
-                    src = file.path;
-                }
+                const src = getAudioSrc(file.path);
 
                 audio.src = src;
                 audio.volume =
@@ -429,6 +431,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             loadMetadata,
             addLog,
             showError,
+            getAudioSrc,
         ],
     );
 
@@ -551,6 +554,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
     useEffect(() => {
         const audio = new Audio();
+        audio.crossOrigin = "anonymous";
         audioRef.current = audio;
         audio.volume = volumeModeRef.current === "app" ? appVolume : 1;
 
@@ -621,6 +625,9 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             window.removeEventListener("pagehide", flush);
         };
     }, []);
+
+    // ─── gain boost (Web Audio API) ────────────────────────────────────────────
+    const gainBoost = useGainBoost(audioRef);
 
     // ─── volume / mute sync ────────────────────────────────────────────────────
 
@@ -769,5 +776,10 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         handleSeek,
         toggleSystemMute,
         goUp,
+        gainBoost: gainBoost.gain,
+        setGainBoost: gainBoost.setGain,
+        gainBoostSupported: gainBoost.supported,
+        minGainBoost: gainBoost.minGain,
+        maxGainBoost: gainBoost.maxGain,
     };
 }

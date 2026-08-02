@@ -402,6 +402,24 @@ fn get_metadata(file_path: String) -> Result<SongMetadata, String> {
     })
 }
 
+fn decode_percent(s: &str) -> String {
+    let mut bytes = Vec::new();
+    let mut chars = s.bytes();
+    while let Some(b) = chars.next() {
+        if b == b'%' {
+            if let (Some(h), Some(l)) = (chars.next(), chars.next()) {
+                let hex_str = format!("{}{}", h as char, l as char);
+                if let Ok(val) = u8::from_str_radix(&hex_str, 16) {
+                    bytes.push(val);
+                    continue;
+                }
+            }
+        }
+        bytes.push(b);
+    }
+    String::from_utf8_lossy(&bytes).to_string()
+}
+
 #[cfg(windows)]
 fn apply_wallpaper(bmp_path: &Path) -> Result<(), String> {
     let path_wide: Vec<u16> = OsStr::new(&bmp_path.to_string_lossy().as_ref())
@@ -814,6 +832,66 @@ pub fn run() {
             set_reset_on_close,
             open_webview_stream
         ])
+        .register_uri_scheme_protocol("stream", |_app, request| {
+            if request.method() == tauri::http::Method::OPTIONS {
+                return tauri::http::Response::builder()
+                    .status(200)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .header("Access-Control-Allow-Methods", "GET, OPTIONS, HEAD")
+                    .header("Access-Control-Allow-Headers", "*")
+                    .body(Vec::new())
+                    .unwrap();
+            }
+
+            let raw_path = request.uri().path();
+            let decoded = decode_percent(raw_path);
+            let clean_path = if cfg!(windows) && decoded.starts_with('/') && decoded.chars().nth(2) == Some(':') {
+                &decoded[1..]
+            } else {
+                &decoded[..]
+            };
+
+            let path_buf = std::path::PathBuf::from(clean_path);
+            if !path_buf.exists() || !path_buf.is_file() {
+                return tauri::http::Response::builder()
+                    .status(404)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .body(Vec::new())
+                    .unwrap();
+            }
+
+            match std::fs::read(&path_buf) {
+                Ok(data) => {
+                    let ext = path_buf
+                        .extension()
+                        .and_then(|e| e.to_str())
+                        .unwrap_or("")
+                        .to_lowercase();
+                    let mime = match ext.as_str() {
+                        "mp3" => "audio/mpeg",
+                        "flac" => "audio/flac",
+                        "wav" => "audio/wav",
+                        "ogg" => "audio/ogg",
+                        "m4a" | "aac" | "mp4" => "audio/mp4",
+                        "opus" => "audio/opus",
+                        "webm" => "audio/webm",
+                        _ => "audio/mpeg",
+                    };
+                    tauri::http::Response::builder()
+                        .status(200)
+                        .header("Access-Control-Allow-Origin", "*")
+                        .header("Accept-Ranges", "bytes")
+                        .header("Content-Type", mime)
+                        .body(data)
+                        .unwrap()
+                }
+                Err(_) => tauri::http::Response::builder()
+                    .status(500)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .body(Vec::new())
+                    .unwrap(),
+            }
+        })
         .plugin(tauri_plugin_updater::Builder::default().build())
         .setup(|app| {
             if cfg!(debug_assertions) {

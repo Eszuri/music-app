@@ -35,7 +35,7 @@ export const DEFAULT_FORMATS = ['mp3', 'flac', 'ogg', 'wav', 'm4a', 'wma'];
 
 export interface TauriCore {
     invoke: <T>(cmd: string, args?: Record<string, unknown>) => Promise<T>;
-    convertFileSrc: (path: string) => string;
+    convertFileSrc: (path: string, protocol?: string) => string;
 }
 
 export interface SessionState {
