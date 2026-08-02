@@ -6,6 +6,7 @@ interface UseKeyboardShortcutsOptions {
     settingsOpenRef: React.RefObject<boolean>;
     streamingOpenRef: React.RefObject<boolean>;
     pendingFolderChangeRef: React.RefObject<boolean>;
+    equalizerOpenRef: React.RefObject<boolean>;
     togglePlayPauseRef: React.RefObject<() => void>;
     playNextRef: React.RefObject<() => void>;
     playPrevRef: React.RefObject<() => void>;
@@ -27,6 +28,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
         settingsOpenRef,
         streamingOpenRef,
         pendingFolderChangeRef,
+        equalizerOpenRef,
         togglePlayPauseRef,
         playNextRef,
         playPrevRef,
@@ -47,8 +49,10 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
             const el = document.activeElement;
             if (!el) return false;
             const tag = el.tagName;
-            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON' || tag === 'A') return true;
             if ((el as HTMLElement).isContentEditable) return true;
+            const role = el.getAttribute('role');
+            if (role === 'button' || role === 'slider' || role === 'checkbox') return true;
             return false;
         };
 
@@ -61,7 +65,12 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
             }
 
             if (isInputFocused()) return;
-            if (settingsOpenRef.current || streamingOpenRef.current || pendingFolderChangeRef.current) return;
+            if (
+                settingsOpenRef.current ||
+                streamingOpenRef.current ||
+                pendingFolderChangeRef.current ||
+                equalizerOpenRef.current
+            ) return;
 
             const key = e.key;
             const keyLower = key.length === 1 ? key.toLowerCase() : key;

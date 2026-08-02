@@ -568,7 +568,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             const song = selectedSongRef.current;
             if (song && t > 0) {
                 const now = Date.now();
-                if (now - lastSessionSaveRef.current >= 1000) {
+                if (now - lastSessionSaveRef.current >= 3000) {
                     lastSessionSaveRef.current = now;
                     const session: SessionState = {
                         filePath: song.path,

@@ -156,10 +156,12 @@ function HomeContent() {
     const settingsOpenRef = useRef(false);
     const streamingOpenRef = useRef(false);
     const pendingFolderChangeRef = useRef(false);
+    const equalizerOpenRef = useRef(false);
 
     settingsOpenRef.current = settingsOpen;
     streamingOpenRef.current = streamingOpen;
     pendingFolderChangeRef.current = pendingFolderChange;
+    equalizerOpenRef.current = equalizerOpen;
 
     // Global context menu state
     const [globalContextMenu, setGlobalContextMenu] = useState<{
@@ -245,6 +247,7 @@ function HomeContent() {
         settingsOpenRef,
         streamingOpenRef,
         pendingFolderChangeRef,
+        equalizerOpenRef,
         togglePlayPauseRef: player.togglePlayPauseRef,
         playNextRef: player.playNextRef,
         playPrevRef: player.playPrevRef,

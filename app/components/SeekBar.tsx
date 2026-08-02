@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { memo, useState } from 'react';
 import { getAccent } from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
 import {useHoverDescription} from '../hooks/useHoverDescription';
@@ -19,7 +19,7 @@ function formatTime(seconds: number): string {
     return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export default function SeekBar({ lang, currentTime, duration, handleSeek, accentColor }: SeekBarProps) {
+function SeekBar({ lang, currentTime, duration, handleSeek, accentColor }: SeekBarProps) {
     const accent = getAccent(accentColor);
     const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0;
     const [hovering, setHovering] = useState(false);
@@ -65,3 +65,5 @@ export default function SeekBar({ lang, currentTime, duration, handleSeek, accen
         </div>
     );
 }
+
+export default memo(SeekBar);

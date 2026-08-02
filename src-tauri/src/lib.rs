@@ -1,3 +1,4 @@
+use rayon::prelude::*;
 use std::ffi::OsStr;
 use std::fs;
 use std::path::Path;
@@ -235,65 +236,70 @@ fn list_files_inner(
 ) -> Result<Vec<FileEntry>, String> {
     let entries = fs::read_dir(&path).map_err(|e| format!("Failed to read directory: {}", e))?;
 
-    let mut files: Vec<FileEntry> = Vec::new();
+    let dir_entries: Vec<_> = entries
+        .filter_map(|e| e.ok())
+        .filter(|e| {
+            let name = e.file_name();
+            let name_str = name.to_string_lossy();
+            !name_str.starts_with('.')
+        })
+        .collect();
 
-    for entry in entries {
-        let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
-        let name = entry.file_name().to_string_lossy().to_string();
+    let mut files: Vec<FileEntry> = dir_entries
+        .into_par_iter()
+        .filter_map(|entry| {
+            let path_buf = entry.path();
+            let name = entry.file_name().to_string_lossy().to_string();
+            let metadata = entry.metadata().ok()?;
+            let is_dir = metadata.is_dir();
 
-        if name.starts_with('.') {
-            continue;
-        }
+            let ext = path_buf
+                .extension()
+                .unwrap_or(OsStr::new(""))
+                .to_string_lossy()
+                .to_lowercase();
 
-        let metadata = entry.metadata().map_err(|e| format!("Failed to read file metadata: {}", e))?;
-        let file_type = metadata.file_type();
-        let is_dir = file_type.is_dir();
-        let ext = entry
-            .path()
-            .extension()
-            .unwrap_or(OsStr::new(""))
-            .to_string_lossy()
-            .to_lowercase()
-            .to_string();
+            if is_dir || formats.iter().any(|f| f == &ext) {
+                let mtime = metadata
+                    .modified()
+                    .unwrap_or(SystemTime::UNIX_EPOCH)
+                    .duration_since(SystemTime::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs();
+                let ctime = metadata
+                    .created()
+                    .unwrap_or(SystemTime::UNIX_EPOCH)
+                    .duration_since(SystemTime::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs();
+                let size = metadata.len();
 
-        if is_dir || formats.contains(&ext) {
-            let mtime = metadata
-                .modified()
-                .unwrap_or(SystemTime::UNIX_EPOCH)
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_secs();
-            let ctime = metadata
-                .created()
-                .unwrap_or(SystemTime::UNIX_EPOCH)
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_secs();
-            let size = metadata.len();
+                let (display_name, sort_key) = if is_dir {
+                    let dn = name.clone();
+                    let sk = name.to_lowercase();
+                    (dn, sk)
+                } else {
+                    let dn = file_display_name(&path_buf, &name, &name_source);
+                    let sk = dn.to_lowercase();
+                    (dn, sk)
+                };
 
-            let (display_name, sort_key) = if is_dir {
-                let dn = name.clone();
-                let sk = name.to_lowercase();
-                (dn, sk)
+                Some(FileEntry {
+                    name,
+                    path: path_buf.to_string_lossy().to_string(),
+                    is_dir,
+                    ext,
+                    mtime,
+                    size,
+                    ctime,
+                    display_name,
+                    sort_key,
+                })
             } else {
-                let dn = file_display_name(&entry.path(), &name, &name_source);
-                let sk = dn.to_lowercase();
-                (dn, sk)
-            };
-
-            files.push(FileEntry {
-                name,
-                path: entry.path().to_string_lossy().to_string(),
-                is_dir,
-                ext,
-                mtime,
-                size,
-                ctime,
-                display_name,
-                sort_key,
-            });
-        }
-    }
+                None
+            }
+        })
+        .collect();
 
     let desc = sort_dir == "desc";
     let fsort = file_sort;

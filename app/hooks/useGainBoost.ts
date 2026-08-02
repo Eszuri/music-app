@@ -246,9 +246,18 @@ export function useGainBoost(
         }
     }, [equalizer, rebuildEqFilters, connectGraph]);
 
-    // Clean up AudioContext on unmount
+    // Clean up AudioContext and nodes on unmount
     useEffect(() => {
         return () => {
+            try {
+                sourceNodeRef.current?.disconnect();
+                preampNodeRef.current?.disconnect();
+                filtersRef.current.forEach((f) => f.disconnect());
+                gainNodeRef.current?.disconnect();
+                limiterNodeRef.current?.disconnect();
+            } catch (e) {
+                console.warn("useGainBoost: failed to disconnect nodes on unmount", e);
+            }
             ctxRef.current?.close().catch(() => {});
             ctxRef.current = null;
         };

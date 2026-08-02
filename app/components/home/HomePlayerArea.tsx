@@ -2,6 +2,7 @@
 
 import {AnimatePresence, motion} from "framer-motion";
 import {
+    memo,
     useCallback,
     useState,
     useEffect,
@@ -107,7 +108,7 @@ function appendDevTools(
     ];
 }
 
-export default function HomePlayerArea({
+function HomePlayerArea({
     lang,
     musicFolder,
     isCompact,
@@ -624,3 +625,5 @@ export default function HomePlayerArea({
         </div>
     );
 }
+
+export default memo(HomePlayerArea);

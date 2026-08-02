@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {memo, useCallback, useEffect, useRef, useState} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
 import {getAccent} from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
@@ -64,7 +64,7 @@ function loadSavedWidth(): number {
     return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, n));
 }
 
-export default function FolderExplorer({
+function FolderExplorer({
     lang,
     files,
     loading,
@@ -358,7 +358,7 @@ export default function FolderExplorer({
     );
 }
 
-function VirtualList({
+const VirtualList = memo(function VirtualList({
     lang,
     files,
     scrollTop,
@@ -452,7 +452,7 @@ function VirtualList({
             <div style={{height: Math.max(0, bottomPad)}} />
         </motion.div>
     );
-}
+});
 
 function SkeletonList({accentHex}: {accentHex: string}) {
     const widths = ['w-10/12', 'w-8/12', 'w-11/12', 'w-9/12', 'w-7/12', 'w-10/12', 'w-9/12', 'w-8/12'];
@@ -498,3 +498,5 @@ function SkeletonList({accentHex}: {accentHex: string}) {
         </motion.div>
     );
 }
+
+export default memo(FolderExplorer);
