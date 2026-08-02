@@ -10,6 +10,7 @@ import {
 } from "../lib/homeState";
 import {t, type Lang} from "../lib/translations";
 import {useGainBoost} from "./useGainBoost";
+import {useEqualizer} from "./useEqualizer";
 
 interface UseAudioPlayerOptions {
     lang: Lang;
@@ -626,8 +627,9 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         };
     }, []);
 
-    // ─── gain boost (Web Audio API) ────────────────────────────────────────────
-    const gainBoost = useGainBoost(audioRef);
+    // ─── equalizer & gain boost (Web Audio API) ────────────────────────────────
+    const equalizer = useEqualizer();
+    const gainBoost = useGainBoost(audioRef, equalizer);
 
     // ─── volume / mute sync ────────────────────────────────────────────────────
 
@@ -781,5 +783,6 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         gainBoostSupported: gainBoost.supported,
         minGainBoost: gainBoost.minGain,
         maxGainBoost: gainBoost.maxGain,
+        equalizer,
     };
 }

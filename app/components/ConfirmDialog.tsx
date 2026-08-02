@@ -4,7 +4,7 @@ import {useEffect} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
 import {getAccent} from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
-import {contentMotion, backdropMotion} from '../lib/animations';
+import {modalContentMotion, backdropMotion} from '../lib/animations';
 
 interface ConfirmDialogProps {
     lang?: Lang;
@@ -52,7 +52,7 @@ export default function ConfirmDialog({
                 >
                     <motion.div
                         key="confirm-modal"
-                        {...contentMotion}
+                        {...modalContentMotion}
                         className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl shadow-black/50 p-6 max-w-md w-[90%] flex flex-col gap-4"
                         onClick={(e) => e.stopPropagation()}
                     >

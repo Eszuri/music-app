@@ -4,7 +4,7 @@ import {useEffect, useState} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
 import {getAccent} from '../lib/colors';
 import {t} from '../lib/translations';
-import {contentMotion, backdropMotion} from '../lib/animations';
+import {modalContentMotion, backdropMotion} from '../lib/animations';
 import {useHoverDescription} from '../hooks/useHoverDescription';
 import AboutSection from './settings/AboutSection';
 import ChangelogSection from './settings/ChangelogSection';
@@ -80,24 +80,23 @@ export default function SettingsModal({
         return () => window.removeEventListener('keydown', onKey);
     }, [open, onClose]);
 
-    if (!open) return null;
-
     const sections = getSections(lang);
 
     return (
         <AnimatePresence>
-            <motion.div
-                key="backdrop"
-                {...backdropMotion}
-                className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
-                onClick={onClose}
-            >
+            {open && (
                 <motion.div
-                    key="modal"
-                    {...contentMotion}
-                    className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl shadow-black/60 w-[min(900px,90vw)] h-[min(560px,80vh)] flex overflow-hidden"
-                    onClick={(e) => e.stopPropagation()}
+                    key="settings-backdrop"
+                    {...backdropMotion}
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm cursor-pointer"
+                    onClick={onClose}
                 >
+                    <motion.div
+                        key="settings-modal"
+                        {...modalContentMotion}
+                        className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl shadow-black/60 w-[min(900px,90vw)] h-[min(560px,80vh)] flex overflow-hidden cursor-default"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                     {/* Sidebar nav */}
                     <nav className="w-36 lg:w-40 xl:w-44 border-r border-zinc-800 bg-zinc-950/60 p-2.5 md:p-3 flex flex-col gap-1 overflow-y-auto">
                         <h3 className="px-3 py-2 text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
@@ -211,8 +210,9 @@ export default function SettingsModal({
                             {activeSection === 'debug' && <DebugSection lang={lang} logs={logs} />}
                         </div>
                     </div>
+                    </motion.div>
                 </motion.div>
-            </motion.div>
+            )}
         </AnimatePresence>
     );
 }

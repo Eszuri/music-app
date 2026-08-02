@@ -11,6 +11,7 @@ import {HoverInfoProvider, useHoverInfo} from "./contexts/HoverInfoContext";
 import HomeAlerts from "./components/home/HomeAlerts";
 import HomeHeader from "./components/home/HomeHeader";
 import HomeModals from "./components/home/HomeModals";
+import EqualizerModal from "./components/EqualizerModal";
 import HomePlayerArea from "./components/home/HomePlayerArea";
 import ContextMenu, {type ContextMenuItem} from "./components/ContextMenu";
 import {FullInitSkeleton} from "./components/Skeleton";
@@ -150,6 +151,7 @@ function HomeContent() {
     const [pendingFolderChange, setPendingFolderChange] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [streamingOpen, setStreamingOpen] = useState(false);
+    const [equalizerOpen, setEqualizerOpen] = useState(false);
 
     const settingsOpenRef = useRef(false);
     const streamingOpenRef = useRef(false);
@@ -705,6 +707,7 @@ function HomeContent() {
                 accentColor={settings.accentColor}
                 onOpenStreaming={() => setStreamingOpen(true)}
                 onOpenSettings={() => setSettingsOpen(true)}
+                onOpenEqualizer={() => setEqualizerOpen(true)}
                 onToggleLeftSidebar={() => setShowLeftSidebar((v) => !v)}
                 onToggleRightSidebar={() => setShowRightSidebar((v) => !v)}
                 onGlobalContextMenu={showGlobalContextMenu}
@@ -812,6 +815,14 @@ function HomeContent() {
                 updateTotal={updateTotal}
                 streamingOpen={streamingOpen}
                 onCloseStreaming={() => setStreamingOpen(false)}
+            />
+
+            <EqualizerModal
+                isOpen={equalizerOpen}
+                onClose={() => setEqualizerOpen(false)}
+                equalizer={player.equalizer}
+                accentColor={settings.accentColor}
+                lang={lang}
             />
 
             <HomeAlerts

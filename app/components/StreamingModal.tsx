@@ -3,7 +3,7 @@
 import {motion, AnimatePresence} from 'framer-motion';
 import {useEffect, useCallback, useState, useRef} from 'react';
 import {t, type Lang} from '../lib/translations';
-import {contentMotion, backdropMotion} from '../lib/animations';
+import {modalContentMotion, backdropMotion} from '../lib/animations';
 import {useHoverDescription} from '../hooks/useHoverDescription';
 
 interface StreamingModalProps {
@@ -331,14 +331,16 @@ export default function StreamingModal({lang, open, onClose}: StreamingModalProp
         <AnimatePresence>
             {open && (
                 <motion.div
+                    key="streaming-backdrop"
                     {...backdropMotion}
-                    className="fixed inset-0 z-55 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm cursor-pointer"
                     onClick={onClose}
                 >
                     <motion.div
-                        {...contentMotion}
+                        key="streaming-modal"
+                        {...modalContentMotion}
                         onClick={(e) => e.stopPropagation()}
-                        className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl w-[min(960px,95vw)] max-h-[80vh] flex flex-col overflow-hidden">
+                        className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl w-[min(960px,95vw)] max-h-[80vh] flex flex-col overflow-hidden cursor-default">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800/60">
                             <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center">
