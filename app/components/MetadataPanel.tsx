@@ -11,6 +11,7 @@ import ContextMenu, {ContextMenuItem} from './ContextMenu';
 import {useHoverDescription} from '../hooks/useHoverDescription';
 import {useHoverInfo} from '../contexts/HoverInfoContext';
 import {MetadataPanelSkeleton} from './Skeleton';
+import {InfoIcon, CopyIcon, MusicNoteIcon} from './icons';
 
 interface MetadataPanelProps {
     lang: Lang;
@@ -221,10 +222,7 @@ function MetadataPanel({lang, selectedSong, metadata, accentColor, coverDataUrl,
             />
 
             <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800/30">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 16v-4M12 8h.01" />
-                </svg>
+                <InfoIcon size={14} className="text-zinc-500" />
                 <span className="text-xs font-medium text-zinc-400 tracking-wide">{t(lang, 'metadata.heading')}</span>
             </div>
 
@@ -244,7 +242,7 @@ function MetadataPanel({lang, selectedSong, metadata, accentColor, coverDataUrl,
                         items: [
                             {
                                 label: t(lang, 'contextMenu.copyText'),
-                                icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>,
+                                icon: <CopyIcon size={14} />,
                                 onClick: () => {
                                     if (sel) navigator.clipboard.writeText(sel);
                                 },

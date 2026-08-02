@@ -5,6 +5,7 @@ import {useEffect, useCallback, useState, useRef} from 'react';
 import {t, type Lang} from '../lib/translations';
 import {modalContentMotion, backdropMotion} from '../lib/animations';
 import {useHoverDescription} from '../hooks/useHoverDescription';
+import {XIcon, PlayIcon, TrashIcon, StreamingIcon} from './icons';
 
 interface StreamingModalProps {
     lang: Lang;
@@ -419,10 +420,7 @@ export default function StreamingModal({lang, open, onClose}: StreamingModalProp
                                                     onClick={() => setCustomUrl('')}
                                                     className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded flex items-center justify-center text-zinc-500 hover:text-zinc-300 cursor-pointer"
                                                 >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                        <path d="M18 6 6 18" />
-                                                        <path d="m6 6 12 12" />
-                                                    </svg>
+                                                    <XIcon size={12} />
                                                 </button>
                                             )}
                                         </div>
@@ -432,9 +430,7 @@ export default function StreamingModal({lang, open, onClose}: StreamingModalProp
                                             disabled={!customUrl.trim()}
                                             className={`px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer shrink-0 transition-colors ${customUrl.trim() ? 'bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-600/20' : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'}`}
                                         >
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                                <path d="M8 5v14l11-7z" />
-                                            </svg>
+                                            <PlayIcon size={14} />
                                         </button>
                                     </div>
                                     <p className="text-[10px] text-zinc-600 mt-1.5 px-1">{t(lang, 'stream.urlHint')}</p>

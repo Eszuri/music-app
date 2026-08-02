@@ -5,6 +5,7 @@ import {FileEntry} from './FolderExplorer';
 import {getAccent} from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
 import {useHoverDescription} from '../hooks/useHoverDescription';
+import {ShuffleIcon, RepeatIcon, PrevIcon, NextIcon, PlayIcon, PauseIcon} from './icons';
 
 interface PlaybackControlsProps {
     lang: Lang;
@@ -18,32 +19,6 @@ interface PlaybackControlsProps {
     setShuffle: (v: boolean) => void;
     setRepeat: (v: 'off' | 'all' | 'one') => void;
     accentColor: string;
-}
-
-function ShuffleIcon() {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="16 3 21 3 21 8" />
-            <line x1="4" y1="20" x2="21" y2="3" />
-            <polyline points="21 16 21 21 16 21" />
-            <line x1="15" y1="15" x2="21" y2="21" />
-            <line x1="4" y1="4" x2="9" y2="9" />
-        </svg>
-    );
-}
-
-function RepeatIcon({mode}: {mode: 'off' | 'all' | 'one'}) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m17 2 4 4-4 4" />
-            <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
-            <path d="m7 22-4-4 4-4" />
-            <path d="M21 13v1a4 4 0 0 1-4 4H3" />
-            {mode === 'one' && (
-                <text x="12" y="14.5" textAnchor="middle" fontSize="7.5" fill="currentColor" stroke="none" fontWeight="bold">1</text>
-            )}
-        </svg>
-    );
 }
 
 function PlaybackControls({
@@ -120,9 +95,7 @@ function PlaybackControls({
                 disabled={!hasSong}
                 className="w-10 h-10 rounded-full flex items-center justify-center text-white/80 hover:text-white disabled:opacity-30 cursor-pointer transition-colors"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z" />
-                </svg>
+                <PrevIcon size={22} />
             </button>
 
             {/* ── Play / Pause ─────────────────────────────────────── */}
@@ -134,15 +107,7 @@ function PlaybackControls({
                     ${hasSong ? `${accent.bg500} shadow-lg text-white ${accent.shadow25}` : 'bg-white/10 text-white/50'}`}
                 style={hasSong ? {boxShadow: `0 4px 20px ${accent.hex500}30`} : {}}
             >
-                {isPlaying ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M6 4h4v16H6zM14 4h4v16h-4z" />
-                    </svg>
-                ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M8 5v14l11-7z" />
-                    </svg>
-                )}
+                {isPlaying ? <PauseIcon size={24} /> : <PlayIcon size={24} />}
             </button>
 
             {/* ── Next ────────────────────────────────────────────── */}
@@ -152,9 +117,7 @@ function PlaybackControls({
                 disabled={!hasSong}
                 className="w-10 h-10 rounded-full flex items-center justify-center text-white/80 hover:text-white disabled:opacity-30 cursor-pointer transition-colors"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
-                </svg>
+                <NextIcon size={22} />
             </button>
 
             {/* ── Repeat ──────────────────────────────────────────── */}

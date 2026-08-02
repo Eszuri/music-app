@@ -4,6 +4,7 @@ import React, {memo, useEffect, useState} from 'react';
 import {getAccent} from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
 import {useHoverDescription} from '../hooks/useHoverDescription';
+import {VolumeMuteIcon, VolumeLowIcon, VolumeHighIcon, MinusIcon, PlusIcon, ResetIcon} from './icons';
 
 interface VolumeControlProps {
     lang: Lang;
@@ -19,30 +20,9 @@ interface VolumeControlProps {
 }
 
 function VolumeIcon({muted, low}: {muted: boolean; low: boolean}) {
-    if (muted) {
-        return (
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                <line x1="23" y1="9" x2="17" y2="15" />
-                <line x1="17" y1="9" x2="23" y2="15" />
-            </svg>
-        );
-    }
-    if (low) {
-        return (
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-            </svg>
-        );
-    }
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-        </svg>
-    );
+    if (muted) return <VolumeMuteIcon size={18} />;
+    if (low) return <VolumeLowIcon size={18} />;
+    return <VolumeHighIcon size={18} />;
 }
 
 function makeChangeEvent(value: number): React.ChangeEvent<HTMLInputElement> {
@@ -191,9 +171,7 @@ function VolumeControl({
                 className={decreaseBtnClass}
                 title={isDecreaseDisabled ? t(lang, 'volume.decreaseDisabled') : t(lang, 'volume.decrease')}
             >
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12h14" />
-                </svg>
+                <MinusIcon size={12} />
             </button>
 
             <div
@@ -243,10 +221,7 @@ function VolumeControl({
                     className="w-5 h-5 ml-3 -mr-3 flex items-center justify-center rounded text-amber-300 hover:text-amber-100 bg-amber-950/80 hover:bg-amber-900/90 border border-amber-600/60 cursor-pointer transition-colors shadow-xs"
                     title={t(lang, 'volume.resetToLimit', {limit})}
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                        <path d="M3 3v5h5" />
-                    </svg>
+                    <ResetIcon size={12} />
                 </button>
             ) : (
                 <button
@@ -256,9 +231,7 @@ function VolumeControl({
                     className={increaseBtnClass}
                     title={isIncreaseDisabled ? t(lang, 'volume.increaseDisabled') : t(lang, 'volume.increase')}
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 5v14M5 12h14" />
-                    </svg>
+                    <PlusIcon size={12} />
                 </button>
             )}
 

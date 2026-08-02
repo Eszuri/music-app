@@ -4,6 +4,7 @@ import React, {memo, useState} from 'react';
 import {getAccent} from '../lib/colors';
 import {useHoverDescription} from '../hooks/useHoverDescription';
 import {t, type Lang} from '../lib/translations';
+import {GainIcon, WarningIcon, MinusIcon, PlusIcon} from './icons';
 
 interface GainBoostControlProps {
     gain: number;          // 1.0 – 3.0 (100% – 300%)
@@ -13,24 +14,6 @@ interface GainBoostControlProps {
     supported: boolean;
     accentColor: string;
     lang?: Lang;
-}
-
-function ZapIcon() {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-        </svg>
-    );
-}
-
-function AlertTriangleIcon() {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-            <line x1="12" y1="9" x2="12" y2="13" />
-            <line x1="12" y1="17" x2="12.01" y2="17" />
-        </svg>
-    );
 }
 
 function CustomTooltip({
@@ -163,7 +146,7 @@ function GainBoostControl({
     if (!supported) {
         return (
             <div className="flex items-center gap-2 w-full justify-center text-white/40 text-[11px]">
-                <ZapIcon />
+                <GainIcon size={15} />
                 <span>{t(lang, 'gainBoost.unsupported')}</span>
             </div>
         );
@@ -180,7 +163,7 @@ function GainBoostControl({
                         isBoosted ? textClass : 'text-white/50 hover:text-white/80'
                     }`}
                 >
-                    <ZapIcon />
+                    <GainIcon size={15} />
                 </button>
             </CustomTooltip>
 
@@ -190,9 +173,7 @@ function GainBoostControl({
                 disabled={isDecreaseDisabled}
                 className={decreaseBtnClass}
             >
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12h14" />
-                </svg>
+                <MinusIcon size={12} />
             </button>
 
             {/* Slider — Column 3 (flex-1 min-w-14 max-w-40) matching Volume slider */}
@@ -233,7 +214,7 @@ function GainBoostControl({
                         disabled={isIncreaseDisabled}
                         className="w-5 h-5 flex items-center justify-center rounded text-red-500 hover:text-red-400 transition-colors animate-pulse cursor-help"
                     >
-                        <AlertTriangleIcon />
+                        <WarningIcon size={14} />
                     </button>
                 </CustomTooltip>
             ) : (
@@ -242,9 +223,7 @@ function GainBoostControl({
                     disabled={isIncreaseDisabled}
                     className={increaseBtnClass}
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 5v14M5 12h14" />
-                    </svg>
+                    <PlusIcon size={12} />
                 </button>
             )}
 
