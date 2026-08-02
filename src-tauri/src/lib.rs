@@ -459,6 +459,8 @@ fn save_metadata(
         if let Some(td) = total_discs { tag.set_disk_total(td); } else { tag.remove_disk_total(); }
         if let Some(c) = comment { tag.set_comment(c); } else { tag.remove_comment(); }
 
+        tag.remove_picture_type(lofty::picture::PictureType::CoverFront);
+
         if let (Some(b64), Some(mime)) = (cover_b64, cover_mime) {
             let engine = base64::engine::general_purpose::STANDARD;
             if let Ok(bytes) = engine.decode(&b64) {

@@ -3,7 +3,7 @@
 import React, {memo, useEffect, useState} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
 import {getAccent} from '../lib/colors';
-import {type Lang} from '../lib/translations';
+import {t, type Lang} from '../lib/translations';
 import {modalContentMotion, backdropMotion} from '../lib/animations';
 import {EditIcon, MusicNoteIcon} from './icons';
 import type {FileEntry} from './FolderExplorer';
@@ -50,7 +50,7 @@ function MetadataEditModal({
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const activeSong = customSong || selectedSong;
-    const isDisabled = !activeSong;
+    const isDisabled = !activeSong || !activeSong.path;
 
     // Reset custom song when modal opens or closes
     useEffect(() => {
@@ -254,12 +254,12 @@ function MetadataEditModal({
                                 </div>
                                 <div className="min-w-0">
                                     <h2 className="text-base font-semibold text-zinc-100 flex items-center gap-2 truncate">
-                                        {lang === 'id' ? 'Edit Metadata Lagu' : 'Edit Song Metadata'}
+                                        {t(lang, 'metadataEdit.title')}
                                     </h2>
                                     <p className="text-[11px] text-zinc-400 truncate">
                                         {activeSong
                                             ? (activeSong.display_name || activeSong.name || activeSong.path?.split(/[/\\]/).pop() || 'File audio')
-                                            : (lang === 'id' ? 'Belum ada file dipilih' : 'No file selected')}
+                                            : t(lang, 'metadataEdit.noFileSelectedSub')}
                                     </p>
                                 </div>
                             </div>
@@ -269,14 +269,14 @@ function MetadataEditModal({
                                 type="button"
                                 onClick={handlePickAnotherFile}
                                 className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-xs font-semibold border border-zinc-700/60 transition-colors cursor-pointer shrink-0 shadow-sm"
-                                title={lang === 'id' ? 'Buka file dari lokasi lain' : 'Open file from another location'}
+                                title={t(lang, 'metadataEdit.openAnotherHint')}
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2z" />
                                     <line x1="12" y1="10" x2="12" y2="16" />
                                     <line x1="9" y1="13" x2="15" y2="13" />
                                 </svg>
-                                <span>{lang === 'id' ? 'Buka File Lain' : 'Open Another File'}</span>
+                                <span>{t(lang, 'metadataEdit.openAnother')}</span>
                             </button>
                         </div>
 
@@ -292,12 +292,10 @@ function MetadataEditModal({
                                     </svg>
                                     <div>
                                         <p className="font-semibold mb-0.5">
-                                            {lang === 'id' ? 'Tidak Ada File Yang Dipilih' : 'No File Selected'}
+                                            {t(lang, 'metadataEdit.noFileTitle')}
                                         </p>
                                         <p className="text-[11px] text-amber-300/80 leading-relaxed">
-                                            {lang === 'id'
-                                                ? 'Tidak ada lagu yang sedang diputar atau dipilih untuk diedit. Harap pilih file audio dari komputer Anda menggunakan tombol "Buka File Lain" di pojok kanan atas.'
-                                                : 'No song is currently playing or selected to edit. Please choose an audio file from your computer using the "Open Another File" button in the top right.'}
+                                            {t(lang, 'metadataEdit.noFileDesc')}
                                         </p>
                                     </div>
                                 </div>
@@ -319,14 +317,14 @@ function MetadataEditModal({
                                         ) : (
                                             <div className="flex flex-col items-center gap-1.5 text-zinc-500">
                                                 <MusicNoteIcon size={32} />
-                                                <span className="text-[10px]">{lang === 'id' ? 'Tanpa Cover' : 'No Cover'}</span>
+                                                <span className="text-[10px]">{t(lang, 'metadataEdit.noCover')}</span>
                                             </div>
                                         )}
                                     </div>
 
                                     <div className="flex items-center gap-2">
                                         <label className={`px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-200 text-xs font-medium border border-zinc-700/60 transition-colors ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-zinc-700 cursor-pointer'}`}>
-                                            <span>{lang === 'id' ? 'Pilih Gambar' : 'Choose Image'}</span>
+                                            <span>{t(lang, 'metadataEdit.chooseImage')}</span>
                                             <input
                                                 type="file"
                                                 accept="image/png, image/jpeg, image/jpg"
@@ -342,7 +340,7 @@ function MetadataEditModal({
                                                 disabled={isDisabled || isSaving}
                                                 className="px-2.5 py-1.5 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 text-xs border border-rose-800/40 cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
-                                                {lang === 'id' ? 'Hapus' : 'Remove'}
+                                                {t(lang, 'metadataEdit.removeImage')}
                                             </button>
                                         )}
                                     </div>
@@ -352,42 +350,42 @@ function MetadataEditModal({
                                 <div className="flex-1 space-y-3">
                                     <div>
                                         <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">
-                                            {lang === 'id' ? 'Judul Lagu' : 'Song Title'}
+                                            {t(lang, 'metadataEdit.songTitle')}
                                         </label>
                                         <input
                                             type="text"
                                             disabled={isDisabled || isSaving}
                                             value={title}
                                             onChange={(e) => setTitle(e.target.value)}
-                                            placeholder={lang === 'id' ? 'Nama lagu' : 'Song title'}
+                                            placeholder={t(lang, 'metadataEdit.songTitle')}
                                             className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-100 text-sm focus:outline-none focus:border-zinc-500 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                         />
                                     </div>
 
                                     <div>
                                         <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">
-                                            {lang === 'id' ? 'Artis / Penyanyi' : 'Artist / Performer'}
+                                            {t(lang, 'metadataEdit.artist')}
                                         </label>
                                         <input
                                             type="text"
                                             disabled={isDisabled || isSaving}
                                             value={artist}
                                             onChange={(e) => setArtist(e.target.value)}
-                                            placeholder={lang === 'id' ? 'Nama penyanyi / band' : 'Artist or band name'}
+                                            placeholder={t(lang, 'metadataEdit.artist')}
                                             className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-100 text-sm focus:outline-none focus:border-zinc-500 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                         />
                                     </div>
 
                                     <div>
                                         <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">
-                                            {lang === 'id' ? 'Album' : 'Album'}
+                                            {t(lang, 'metadataEdit.album')}
                                         </label>
                                         <input
                                             type="text"
                                             disabled={isDisabled || isSaving}
                                             value={album}
                                             onChange={(e) => setAlbum(e.target.value)}
-                                            placeholder={lang === 'id' ? 'Nama album' : 'Album name'}
+                                            placeholder={t(lang, 'metadataEdit.album')}
                                             className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-100 text-sm focus:outline-none focus:border-zinc-500 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                         />
                                     </div>
@@ -398,7 +396,7 @@ function MetadataEditModal({
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                 <div>
                                     <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">
-                                        {lang === 'id' ? 'Genre' : 'Genre'}
+                                        {t(lang, 'metadataEdit.genre')}
                                     </label>
                                     <input
                                         type="text"
@@ -412,7 +410,7 @@ function MetadataEditModal({
 
                                 <div>
                                     <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">
-                                        {lang === 'id' ? 'Tahun Rilis' : 'Release Year'}
+                                        {t(lang, 'metadataEdit.year')}
                                     </label>
                                     <input
                                         type="number"
@@ -426,7 +424,7 @@ function MetadataEditModal({
 
                                 <div>
                                     <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">
-                                        {lang === 'id' ? 'Trek / Total' : 'Track / Total'}
+                                        {t(lang, 'metadataEdit.trackTotal')}
                                     </label>
                                     <div className="flex items-center gap-1.5">
                                         <input
@@ -451,7 +449,7 @@ function MetadataEditModal({
 
                                 <div>
                                     <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">
-                                        {lang === 'id' ? 'Disk / Total' : 'Disc / Total'}
+                                        {t(lang, 'metadataEdit.discTotal')}
                                     </label>
                                     <div className="flex items-center gap-1.5">
                                         <input
@@ -478,14 +476,14 @@ function MetadataEditModal({
                             {/* Comment / Lyrics */}
                             <div>
                                 <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">
-                                    {lang === 'id' ? 'Catatan / Komentar' : 'Comment / Lyrics'}
+                                    {t(lang, 'metadataEdit.comment')}
                                 </label>
                                 <textarea
                                     rows={2}
                                     disabled={isDisabled || isSaving}
                                     value={comment}
                                     onChange={(e) => setComment(e.target.value)}
-                                    placeholder={lang === 'id' ? 'Catatan tambahan...' : 'Additional notes...'}
+                                    placeholder={t(lang, 'metadataEdit.comment')}
                                     className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-100 text-xs focus:outline-none focus:border-zinc-500 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
                             </div>
@@ -497,7 +495,7 @@ function MetadataEditModal({
                                     onClick={onClose}
                                     className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-semibold border border-zinc-800 transition-colors cursor-pointer"
                                 >
-                                    {lang === 'id' ? 'Batal' : 'Cancel'}
+                                    {t(lang, 'metadataEdit.cancel')}
                                 </button>
                                 <button
                                     type="submit"
@@ -505,8 +503,8 @@ function MetadataEditModal({
                                     className={`px-5 py-2 rounded-xl text-xs font-semibold text-white transition-all cursor-pointer shadow-md ${accent.bg500} ${accent.bg600Hover} disabled:opacity-50 disabled:cursor-not-allowed`}
                                 >
                                     {isSaving
-                                        ? (lang === 'id' ? 'Menyimpan...' : 'Saving...')
-                                        : (lang === 'id' ? 'Simpan Metadata' : 'Save Metadata')}
+                                        ? t(lang, 'metadataEdit.saving')
+                                        : t(lang, 'metadataEdit.save')}
                                 </button>
                             </div>
                         </form>
