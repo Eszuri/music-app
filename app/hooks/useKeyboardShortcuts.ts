@@ -57,6 +57,17 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
         };
 
         const handleKey = (e: KeyboardEvent) => {
+            // Block accidental page refresh shortcuts (F5, Ctrl+R, Ctrl+Shift+R, Cmd+R, Cmd+Shift+R)
+            const isRefreshKey =
+                e.key === 'F5' ||
+                ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'));
+
+            if (isRefreshKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+
             if (e.key === 'F12') {
                 import('@tauri-apps/api/webview').then(m =>
                     (m as any).getCurrentWebview().openDevTools()
