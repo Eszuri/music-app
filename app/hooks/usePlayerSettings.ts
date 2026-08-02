@@ -69,11 +69,13 @@ export function usePlayerSettings() {
     const systemVolumeRef = useRef<number>(1);
     const lastLocalVolumeSetRef = useRef<number>(0);
 
-    volumeModeRef.current = volumeMode;
-    volumeLimitRef.current = volumeLimit;
-    volumeStepRef.current = volumeStep;
-    appVolumeRef.current = appVolume;
-    systemVolumeRef.current = systemVolume;
+    useEffect(() => {
+        volumeModeRef.current = volumeMode;
+        volumeLimitRef.current = volumeLimit;
+        volumeStepRef.current = volumeStep;
+        appVolumeRef.current = appVolume;
+        systemVolumeRef.current = systemVolume;
+    });
 
     const setAppVolume = useCallback((v: number) => {
         const clamped = Math.max(0, Math.min(1, v));

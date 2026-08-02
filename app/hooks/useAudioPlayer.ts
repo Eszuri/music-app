@@ -118,19 +118,21 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         return filePath;
     }, []);
 
-    filesRef.current = files;
-    selectedSongRef.current = selectedSong;
-    metadataRef.current = metadata;
-    autoWallpaperRef.current = autoWallpaper;
-    formatsRef.current = formats;
-    volumeModeRef.current = volumeMode;
-    volumeLimitRef.current = volumeLimit;
-    folderSortRef.current = folderSort;
-    fileSortRef.current = fileSort;
-    sortDirRef.current = sortDir;
-    nameSourceRef.current = nameSource;
-    shuffleRef.current = shuffle;
-    repeatRef.current = repeat;
+    useEffect(() => {
+        filesRef.current = files;
+        selectedSongRef.current = selectedSong;
+        metadataRef.current = metadata;
+        autoWallpaperRef.current = autoWallpaper;
+        formatsRef.current = formats;
+        volumeModeRef.current = volumeMode;
+        volumeLimitRef.current = volumeLimit;
+        folderSortRef.current = folderSort;
+        fileSortRef.current = fileSort;
+        sortDirRef.current = sortDir;
+        nameSourceRef.current = nameSource;
+        shuffleRef.current = shuffle;
+        repeatRef.current = repeat;
+    });
 
     const activeVolume = volumeMode === "system" ? systemVolume : appVolume;
 
@@ -173,10 +175,11 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
     /** Apply wallpaper from current metadata*/
     const applyWallpaper = useCallback(
-        async (meta: SongMetadata) => {
+        async (meta: SongMetadata, token?: number) => {
             if (!isBrowserTauri || !autoWallpaperRef.current) return;
             try {
                 const mod = await getTauri();
+                if (token !== undefined && token !== playTokenRef.current) return;
                 if (meta.cover_b64) {
                     await mod.invoke("set_wallpaper", {coverB64: meta.cover_b64});
                 } else {
@@ -243,7 +246,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 setMetadata(result);
                 if (result.duration) setDuration(result.duration);
                 // Fire-and-forget — wallpaper update must never block metadata state update
-                if (!skipWallpaper) applyWallpaper(result).catch(() => {});
+                if (!skipWallpaper) applyWallpaper(result, token).catch(() => {});
             } catch {
                 if (token !== playTokenRef.current || !isMountedRef.current) return;
                 setMetadata(null);
@@ -359,8 +362,10 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 audio.loop = repeatRef.current === "one";
 
                 const onCanPlay = () => {
-                    audio.currentTime = sess.currentTime;
                     audio.removeEventListener("canplay", onCanPlay);
+                    if (selectedSongRef.current?.path === savedFile.path) {
+                        audio.currentTime = sess.currentTime;
+                    }
                 };
                 audio.addEventListener("canplay", onCanPlay);
                 audio.load();

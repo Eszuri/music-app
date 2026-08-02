@@ -156,6 +156,8 @@ function FolderExplorer({
         widthPendingRef.current = next;
     }, []);
 
+    const onMouseUpRef = useRef<(() => void) | null>(null);
+
     const onMouseUp = useCallback(() => {
         if (!isDraggingRef.current) return;
         isDraggingRef.current = false;
@@ -166,8 +168,14 @@ function FolderExplorer({
             widthPendingRef.current = null;
         }
         window.removeEventListener('mousemove', onMouseMove);
-        window.removeEventListener('mouseup', onMouseUp);
+        if (onMouseUpRef.current) {
+            window.removeEventListener('mouseup', onMouseUpRef.current);
+        }
     }, [onMouseMove]);
+
+    useEffect(() => {
+        onMouseUpRef.current = onMouseUp;
+    }, [onMouseUp]);
 
     const onMouseDown = useCallback((e: React.MouseEvent) => {
         e.preventDefault();

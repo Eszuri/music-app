@@ -178,7 +178,8 @@ export function useGainBoost(
 
     // Connect graph on audio playback
     useEffect(() => {
-        let attachedAudio: HTMLAudioElement | null = null;
+        const audio = audioRef.current;
+        if (!audio) return;
 
         const handlePlay = () => {
             const node = ensureGraph();
@@ -188,24 +189,11 @@ export function useGainBoost(
             if (node) node.gain.value = gainRef.current;
         };
 
-        const timer = setInterval(() => {
-            const audio = audioRef.current;
-            if (audio && audio !== attachedAudio) {
-                if (attachedAudio) {
-                    attachedAudio.removeEventListener("play", handlePlay);
-                }
-                audio.addEventListener("play", handlePlay);
-                attachedAudio = audio;
-            }
-        }, 100);
-
+        audio.addEventListener("play", handlePlay);
         return () => {
-            clearInterval(timer);
-            if (attachedAudio) {
-                attachedAudio.removeEventListener("play", handlePlay);
-            }
+            audio.removeEventListener("play", handlePlay);
         };
-    }, [audioRef, ensureGraph]);
+    }, [audioRef.current, ensureGraph]);
 
     // Sync GainNode state
     useEffect(() => {

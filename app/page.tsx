@@ -163,11 +163,13 @@ function HomeContent() {
     const equalizerOpenRef = useRef(false);
     const metadataEditOpenRef = useRef(false);
 
-    settingsOpenRef.current = settingsOpen;
-    streamingOpenRef.current = streamingOpen;
-    pendingFolderChangeRef.current = pendingFolderChange;
-    equalizerOpenRef.current = equalizerOpen;
-    metadataEditOpenRef.current = metadataEditOpen;
+    useEffect(() => {
+        settingsOpenRef.current = settingsOpen;
+        streamingOpenRef.current = streamingOpen;
+        pendingFolderChangeRef.current = pendingFolderChange;
+        equalizerOpenRef.current = equalizerOpen;
+        metadataEditOpenRef.current = metadataEditOpen;
+    }, [settingsOpen, streamingOpen, pendingFolderChange, equalizerOpen, metadataEditOpen]);
 
     // ── Seamless URL path synchronization (/equalizer, /setting, /streaming, /metadata) ──
     const openEqualizer = useCallback(() => {
@@ -748,7 +750,7 @@ function HomeContent() {
     }, [lang, player.isPlaying, doPickFolder, setDebugError, showError]);
 
     const handleResetAllSettings = useCallback(() => {
-        (window as any).__symvoniaResetInProgress = true;
+        (window as unknown as { __symvoniaResetInProgress?: boolean }).__symvoniaResetInProgress = true;
         localStorage.clear();
         window.location.reload();
     }, []);
@@ -774,12 +776,7 @@ function HomeContent() {
 
     const confirmFolderChange = useCallback(() => {
         setPendingFolderChange(false);
-        if (player.audioRef.current) {
-            player.audioRef.current.pause();
-            player.audioRef.current.currentTime = 0;
-        }
-        player.setIsPlaying(false);
-        player.setCurrentTime(0);
+        player.resetPlayer();
         doPickFolder();
     }, [doPickFolder, player]);
 

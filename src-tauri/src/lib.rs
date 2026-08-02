@@ -1,6 +1,7 @@
 use rayon::prelude::*;
 use std::ffi::OsStr;
 use std::fs;
+use std::io::{Read, Seek};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
@@ -483,18 +484,24 @@ fn save_metadata(
 
 fn decode_percent(s: &str) -> String {
     let mut bytes = Vec::new();
-    let mut chars = s.bytes();
-    while let Some(b) = chars.next() {
-        if b == b'%' {
-            if let (Some(h), Some(l)) = (chars.next(), chars.next()) {
-                let hex_str = format!("{}{}", h as char, l as char);
+    let input = s.as_bytes();
+    let mut i = 0;
+    while i < input.len() {
+        if input[i] == b'%' && i + 2 < input.len() {
+            if let (Ok(h), Ok(l)) = (
+                std::str::from_utf8(&input[i + 1..i + 2]),
+                std::str::from_utf8(&input[i + 2..i + 3]),
+            ) {
+                let hex_str = format!("{}{}", h, l);
                 if let Ok(val) = u8::from_str_radix(&hex_str, 16) {
                     bytes.push(val);
+                    i += 3;
                     continue;
                 }
             }
         }
-        bytes.push(b);
+        bytes.push(input[i]);
+        i += 1;
     }
     String::from_utf8_lossy(&bytes).to_string()
 }
@@ -941,36 +948,90 @@ pub fn run() {
                     .unwrap();
             }
 
-            match std::fs::read(&path_buf) {
-                Ok(data) => {
-                    let ext = path_buf
-                        .extension()
-                        .and_then(|e| e.to_str())
-                        .unwrap_or("")
-                        .to_lowercase();
-                    let mime = match ext.as_str() {
-                        "mp3" => "audio/mpeg",
-                        "flac" => "audio/flac",
-                        "wav" => "audio/wav",
-                        "ogg" => "audio/ogg",
-                        "m4a" | "aac" | "mp4" => "audio/mp4",
-                        "opus" => "audio/opus",
-                        "webm" => "audio/webm",
-                        _ => "audio/mpeg",
-                    };
-                    tauri::http::Response::builder()
-                        .status(200)
-                        .header("Access-Control-Allow-Origin", "*")
-                        .header("Accept-Ranges", "bytes")
-                        .header("Content-Type", mime)
-                        .body(data)
-                        .unwrap()
-                }
-                Err(_) => tauri::http::Response::builder()
+            let file_size = match std::fs::metadata(&path_buf) {
+                Ok(m) => m.len(),
+                Err(_) => return tauri::http::Response::builder()
                     .status(500)
                     .header("Access-Control-Allow-Origin", "*")
                     .body(Vec::new())
                     .unwrap(),
+            };
+
+            let ext = path_buf
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or("")
+                .to_lowercase();
+            let mime = match ext.as_str() {
+                "mp3" => "audio/mpeg",
+                "flac" => "audio/flac",
+                "wav" => "audio/wav",
+                "ogg" => "audio/ogg",
+                "m4a" | "aac" | "mp4" => "audio/mp4",
+                "opus" => "audio/opus",
+                "webm" => "audio/webm",
+                _ => "audio/mpeg",
+            };
+
+            let range_header = request.headers().get("range").and_then(|v| v.to_str().ok());
+
+            let mut file = match std::fs::File::open(&path_buf) {
+                Ok(f) => f,
+                Err(_) => return tauri::http::Response::builder()
+                    .status(500)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .body(Vec::new())
+                    .unwrap(),
+            };
+
+            if let Some(range_str) = range_header {
+                if let Some(spec) = range_str.strip_prefix("bytes=") {
+                    let parts: Vec<&str> = spec.split('-').collect();
+                    let start: u64 = parts.first().and_then(|s| s.parse().ok()).unwrap_or(0);
+                    let mut end: u64 = parts.get(1).and_then(|s| s.parse().ok()).unwrap_or(file_size.saturating_sub(1));
+                    if end >= file_size {
+                        end = file_size.saturating_sub(1);
+                    }
+
+                    if start <= end && start < file_size {
+                        let max_chunk = 2 * 1024 * 1024;
+                        let chunk_end = std::cmp::min(end, start + max_chunk - 1);
+                        let length = (chunk_end - start + 1) as usize;
+
+                        if file.seek(std::io::SeekFrom::Start(start)).is_ok() {
+                            let mut buffer = vec![0u8; length];
+                            if file.read_exact(&mut buffer).is_ok() {
+                                return tauri::http::Response::builder()
+                                    .status(206)
+                                    .header("Access-Control-Allow-Origin", "*")
+                                    .header("Accept-Ranges", "bytes")
+                                    .header("Content-Range", format!("bytes {}-{}/{}", start, chunk_end, file_size))
+                                    .header("Content-Length", length.to_string())
+                                    .header("Content-Type", mime)
+                                    .body(buffer)
+                                    .unwrap();
+                            }
+                        }
+                    }
+                }
+            }
+
+            let mut data = Vec::new();
+            if file.read_to_end(&mut data).is_ok() {
+                tauri::http::Response::builder()
+                    .status(200)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .header("Accept-Ranges", "bytes")
+                    .header("Content-Length", file_size.to_string())
+                    .header("Content-Type", mime)
+                    .body(data)
+                    .unwrap()
+            } else {
+                tauri::http::Response::builder()
+                    .status(500)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .body(Vec::new())
+                    .unwrap()
             }
         })
         .plugin(tauri_plugin_updater::Builder::default().build())

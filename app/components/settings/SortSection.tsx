@@ -39,7 +39,7 @@ export default function SortSection({
         }
     };
     const addCustomFormat = () => {
-        let ext = customInput.trim().toLowerCase().replace(/^\./, '');
+        const ext = customInput.trim().toLowerCase().replace(/^\./, '');
         if (!ext || !/^[a-z0-9]+$/.test(ext)) return;
         if (!formats.includes(ext)) {
             setFormats([...formats, ext]);
