@@ -75,8 +75,8 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
-    const coverDataUrl = metadata?.cover_b64 && metadata?.cover_mime
-        ? `data:${metadata.cover_mime};base64,${metadata.cover_b64}`
+    const coverDataUrl = metadata?.cover_b64
+        ? `data:${metadata.cover_mime || 'image/jpeg'};base64,${metadata.cover_b64}`
         : null;
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -222,6 +222,12 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         },
         [showError],
     );
+
+    const refreshFiles = useCallback(() => {
+        if (currentPath) {
+            loadFiles(currentPath);
+        }
+    }, [currentPath, loadFiles]);
 
     // ─── metadata ──────────────────────────────────────────────────────────────
 
@@ -784,5 +790,6 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         minGainBoost: gainBoost.minGain,
         maxGainBoost: gainBoost.maxGain,
         equalizer,
+        refreshFiles,
     };
 }

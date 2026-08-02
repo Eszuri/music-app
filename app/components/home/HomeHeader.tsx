@@ -9,7 +9,7 @@ import {getAccent} from '../../lib/colors';
 import {t, type Lang} from '../../lib/translations';
 import {contentMotion} from '../../lib/animations';
 import ContextMenu, {type ContextMenuItem} from '../ContextMenu';
-import {StreamingIcon, SettingsIcon, EQIcon, InfoIcon} from '../icons';
+import {StreamingIcon, SettingsIcon, EQIcon, EditIcon} from '../icons';
 import {getTauri} from '../../lib/homeState';
 import {useHoverDescription} from '../../hooks/useHoverDescription';
 
@@ -26,6 +26,7 @@ interface HomeHeaderProps {
     onOpenStreaming: () => void;
     onOpenSettings: () => void;
     onOpenEqualizer?: () => void;
+    onOpenEditMetadata?: () => void;
     onToggleLeftSidebar: () => void;
     onToggleRightSidebar: () => void;
     onGlobalContextMenu: (e: React.MouseEvent) => void;
@@ -69,12 +70,14 @@ function HomeHeader({
     onOpenStreaming,
     onOpenSettings,
     onOpenEqualizer,
+    onOpenEditMetadata,
     onToggleLeftSidebar,
     onToggleRightSidebar,
     onGlobalContextMenu,
 }: HomeHeaderProps) {
     const accent = getAccent(accentColor);
     const eqHover = useHoverDescription(t(lang, 'equalizer.title'));
+    const editMetaHover = useHoverDescription('Edit Metadata');
 
     const [contextMenu, setContextMenu] = useState<{x: number; y: number; items: ContextMenuItem[]} | null>(null);
     const hideContextMenu = useCallback(() => setContextMenu(null), []);
@@ -158,6 +161,18 @@ function HomeHeader({
                         >
                             <EQIcon size={14} />
                             <span className="hidden lg:inline">{t(lang, 'equalizer.title')}</span>
+                        </button>
+                    )}
+
+                    {onOpenEditMetadata && (
+                        <button
+                            {...editMetaHover}
+                            onClick={onOpenEditMetadata}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-800/50 hover:bg-zinc-700/60 text-zinc-300 hover:text-zinc-100 text-xs font-medium cursor-pointer transition-colors"
+                            title={t(lang, 'contextMenu.editMetadata')}
+                        >
+                            <EditIcon size={14} />
+                            <span className="hidden lg:inline">{t(lang, 'contextMenu.editMetadata')}</span>
                         </button>
                     )}
                     {isCompact && musicFolder && (

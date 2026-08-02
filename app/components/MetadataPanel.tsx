@@ -11,7 +11,7 @@ import ContextMenu, {ContextMenuItem} from './ContextMenu';
 import {useHoverDescription} from '../hooks/useHoverDescription';
 import {useHoverInfo} from '../contexts/HoverInfoContext';
 import {MetadataPanelSkeleton} from './Skeleton';
-import {InfoIcon, CopyIcon, MusicNoteIcon} from './icons';
+import {InfoIcon, CopyIcon, MusicNoteIcon, EditIcon} from './icons';
 
 interface MetadataPanelProps {
     lang: Lang;
@@ -21,6 +21,7 @@ interface MetadataPanelProps {
     coverDataUrl: string | null;
     resetSidebarToken: number;
     onContextMenu?: (e: React.MouseEvent) => void;
+    onOpenEditMetadata?: () => void;
 }
 
 const MIN_WIDTH = 200;
@@ -85,7 +86,7 @@ function channelsLabel(lang: Lang, ch: number | null): string {
     return `${ch}${t(lang, 'metadata.ch')}`;
 }
 
-function MetadataPanel({lang, selectedSong, metadata, accentColor, coverDataUrl, resetSidebarToken, onContextMenu}: MetadataPanelProps) {
+function MetadataPanel({lang, selectedSong, metadata, accentColor, coverDataUrl, resetSidebarToken, onContextMenu, onOpenEditMetadata}: MetadataPanelProps) {
     const accent = getAccent(accentColor);
     const songTitle = selectedSong
         ? (metadata?.title || selectedSong.name.replace(/\.[^/.]+$/, ''))
@@ -266,11 +267,11 @@ function MetadataPanel({lang, selectedSong, metadata, accentColor, coverDataUrl,
                                     className="w-full aspect-square max-w-40 mx-auto rounded-xl overflow-hidden bg-zinc-900/80 ring-1 ring-white/5 mb-4"
                                 >
                                     <AnimatePresence mode="wait">
-                                        {metadata?.cover_b64 ? (
+                                        {coverDataUrl ? (
                                             <motion.img
                                                 key={selectedSong.path}
                                                 {...contentMotion}
-                                                src={coverDataUrl ?? ''}
+                                                src={coverDataUrl}
                                                 alt={t(lang, 'metadata.cover')}
                                                 className="w-full h-full object-contain"
                                             />

@@ -19,6 +19,7 @@ import MetadataPanel from "../MetadataPanel";
 import AutoHideTimerMenu from "../AutoHideTimerMenu";
 import {EmptyFolderState, NoFolderEmptyState} from "./HomeEmptyStates";
 import ContextMenu, {type ContextMenuItem} from "../ContextMenu";
+import {EditIcon} from "../icons";
 import {getTauri} from "../../lib/homeState";
 import {t, type Lang} from "../../lib/translations";
 import {contentMotion} from "../../lib/animations";
@@ -68,6 +69,7 @@ interface HomePlayerAreaProps {
     toggleSystemMute: () => void;
     onGlobalContextMenu: (e: React.MouseEvent) => void;
     onCoverSaved: () => void;
+    onOpenEditMetadata?: (file?: FileEntry) => void;
 }
 
 async function openDevTools() {
@@ -153,6 +155,7 @@ function HomePlayerArea({
     toggleSystemMute,
     onGlobalContextMenu,
     onCoverSaved,
+    onOpenEditMetadata,
 }: HomePlayerAreaProps) {
     const leftVisible = showLeftSidebar || !isCompact;
     const rightVisible = showRightSidebar || !isCompact;
@@ -383,6 +386,15 @@ function HomePlayerArea({
                         }
                     },
                 },
+                {
+                    label: t(lang, "contextMenu.editMetadata"),
+                    icon: <EditIcon size={14} />,
+                    onClick: () => {
+                        if (onOpenEditMetadata) {
+                            onOpenEditMetadata(file);
+                        }
+                    },
+                },
             ];
             setContextMenu({
                 x: e.clientX,
@@ -454,7 +466,7 @@ function HomePlayerArea({
                         >
                             <AnimatePresence>
                                 {isFullScreenAlbum &&
-                                    metadata?.cover_b64 &&
+                                    coverDataUrl &&
                                     files.length > 0 && (
                                         <motion.div
                                             {...contentMotion}
@@ -462,7 +474,7 @@ function HomePlayerArea({
                                         >
                                             <img
                                                 onContextMenu={showAlbumMenu}
-                                                src={coverDataUrl ?? ''}
+                                                src={coverDataUrl}
                                                 className="w-full h-full object-contain pointer-events-auto"
                                                 alt={t(lang, 'player.cover')}
                                             />
@@ -605,6 +617,7 @@ function HomePlayerArea({
                                         coverDataUrl={coverDataUrl}
                                         resetSidebarToken={resetSidebarToken}
                                         onContextMenu={showAlbumMenu}
+                                        onOpenEditMetadata={onOpenEditMetadata}
                                     />
                                 </motion.aside>
                             )}

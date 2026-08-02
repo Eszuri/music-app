@@ -12,6 +12,8 @@ import HomeAlerts from "./components/home/HomeAlerts";
 import HomeHeader from "./components/home/HomeHeader";
 import HomeModals from "./components/home/HomeModals";
 import EqualizerModal from "./components/EqualizerModal";
+import MetadataEditModal from "./components/MetadataEditModal";
+import type {FileEntry} from "./components/FolderExplorer";
 import HomePlayerArea from "./components/home/HomePlayerArea";
 import ContextMenu, {type ContextMenuItem} from "./components/ContextMenu";
 import {FullInitSkeleton} from "./components/Skeleton";
@@ -152,18 +154,22 @@ function HomeContent() {
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [streamingOpen, setStreamingOpen] = useState(false);
     const [equalizerOpen, setEqualizerOpen] = useState(false);
+    const [metadataEditOpen, setMetadataEditOpen] = useState(false);
+    const [editingTargetFile, setEditingTargetFile] = useState<FileEntry | null>(null);
 
     const settingsOpenRef = useRef(false);
     const streamingOpenRef = useRef(false);
     const pendingFolderChangeRef = useRef(false);
     const equalizerOpenRef = useRef(false);
+    const metadataEditOpenRef = useRef(false);
 
     settingsOpenRef.current = settingsOpen;
     streamingOpenRef.current = streamingOpen;
     pendingFolderChangeRef.current = pendingFolderChange;
     equalizerOpenRef.current = equalizerOpen;
+    metadataEditOpenRef.current = metadataEditOpen;
 
-    // ── Seamless URL path synchronization (/equalizer, /setting, /streaming) ──
+    // ── Seamless URL path synchronization (/equalizer, /setting, /streaming, /metadata) ──
     const openEqualizer = useCallback(() => {
         setEqualizerOpen(true);
         if (typeof window !== 'undefined' && window.location.pathname !== '/equalizer') {
@@ -206,6 +212,22 @@ function HomeContent() {
         }
     }, []);
 
+    const openMetadataEdit = useCallback((targetFile?: FileEntry) => {
+        setEditingTargetFile(targetFile || null);
+        setMetadataEditOpen(true);
+        if (typeof window !== 'undefined' && window.location.pathname !== '/metadata') {
+            window.history.pushState({modal: 'metadata'}, '', '/metadata');
+        }
+    }, []);
+
+    const closeMetadataEdit = useCallback(() => {
+        setMetadataEditOpen(false);
+        setEditingTargetFile(null);
+        if (typeof window !== 'undefined' && window.location.pathname.includes('/metadata')) {
+            window.history.pushState(null, '', '/');
+        }
+    }, []);
+
     useEffect(() => {
         const syncModalFromUrl = () => {
             const path = window.location.pathname.toLowerCase();
@@ -213,18 +235,27 @@ function HomeContent() {
                 setEqualizerOpen(true);
                 setSettingsOpen(false);
                 setStreamingOpen(false);
+                setMetadataEditOpen(false);
             } else if (path.includes('/setting')) {
                 setSettingsOpen(true);
                 setEqualizerOpen(false);
                 setStreamingOpen(false);
+                setMetadataEditOpen(false);
             } else if (path.includes('/streaming')) {
                 setStreamingOpen(true);
                 setEqualizerOpen(false);
                 setSettingsOpen(false);
+                setMetadataEditOpen(false);
+            } else if (path.includes('/metadata')) {
+                setMetadataEditOpen(true);
+                setEqualizerOpen(false);
+                setSettingsOpen(false);
+                setStreamingOpen(false);
             } else if (path === '/' || path === '') {
                 setEqualizerOpen(false);
                 setSettingsOpen(false);
                 setStreamingOpen(false);
+                setMetadataEditOpen(false);
             }
         };
 
@@ -782,6 +813,7 @@ function HomeContent() {
                 onOpenStreaming={openStreaming}
                 onOpenSettings={openSettings}
                 onOpenEqualizer={openEqualizer}
+                onOpenEditMetadata={openMetadataEdit}
                 onToggleLeftSidebar={() => setShowLeftSidebar((v) => !v)}
                 onToggleRightSidebar={() => setShowRightSidebar((v) => !v)}
                 onGlobalContextMenu={showGlobalContextMenu}
@@ -832,6 +864,7 @@ function HomeContent() {
                 toggleSystemMute={player.toggleSystemMute}
                 onGlobalContextMenu={showGlobalContextMenu}
                 onCoverSaved={() => showStatusNotif('cover-saved')}
+                onOpenEditMetadata={openMetadataEdit}
             />
 
             <HomeModals
@@ -897,6 +930,27 @@ function HomeContent() {
                 equalizer={player.equalizer}
                 accentColor={settings.accentColor}
                 lang={lang}
+            />
+
+            <MetadataEditModal
+                isOpen={metadataEditOpen}
+                onClose={closeMetadataEdit}
+                selectedSong={editingTargetFile || player.selectedSong}
+                metadata={editingTargetFile && editingTargetFile.path !== player.selectedSong?.path ? null : player.metadata}
+                lang={lang}
+                accentColor={settings.accentColor}
+                onSaveSuccess={() => {
+                    // Re-list current folder files and rebuild playlist queue
+                    player.refreshFiles();
+
+                    // If edited file is the active playing/selected song, reload its metadata
+                    const activeSong = player.selectedSong;
+                    const editedPath = editingTargetFile?.path || activeSong?.path;
+                    if (activeSong && editedPath === activeSong.path) {
+                        player.playSong(activeSong);
+                    }
+                    showStatusNotif('cover-saved');
+                }}
             />
 
             <HomeAlerts

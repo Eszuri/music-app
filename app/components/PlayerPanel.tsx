@@ -66,11 +66,11 @@ function PlayerPanel({lang, metadata, selectedSong, accentColor, coverDataUrl, o
                     }}
                 >
                     <AnimatePresence mode="wait">
-                        {metadata?.cover_b64 ? (
+                        {coverDataUrl ? (
                             <motion.img
                                 key={selectedSong?.path}
                                 {...contentMotion}
-                                src={coverDataUrl ?? ''}
+                                src={coverDataUrl}
                                 alt={t(lang, 'player.cover')}
                                 className="max-h-[45vh] max-w-full w-auto h-auto object-contain rounded-2xl"
                             />

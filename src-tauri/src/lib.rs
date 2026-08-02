@@ -156,6 +156,16 @@ async fn pick_wallpaper() -> Result<Option<String>, String> {
 }
 
 #[tauri::command]
+async fn pick_audio_file() -> Result<Option<String>, String> {
+    let file = rfd::AsyncFileDialog::new()
+        .set_title("Pilih file audio")
+        .add_filter("Audio", &["mp3", "flac", "wav", "m4a", "aac", "ogg", "opus", "wma"])
+        .pick_file()
+        .await;
+    Ok(file.map(|f| f.path().to_string_lossy().to_string()))
+}
+
+#[tauri::command]
 async fn open_devtools(app: tauri::AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("main") {
         window.open_devtools();
@@ -406,6 +416,69 @@ fn get_metadata(file_path: String) -> Result<SongMetadata, String> {
         sample_rate,
         channels,
     })
+}
+
+#[tauri::command]
+fn save_metadata(
+    file_path: String,
+    title: Option<String>,
+    artist: Option<String>,
+    album: Option<String>,
+    genre: Option<String>,
+    year: Option<u32>,
+    track_number: Option<u32>,
+    total_tracks: Option<u32>,
+    disc_number: Option<u32>,
+    total_discs: Option<u32>,
+    comment: Option<String>,
+    cover_b64: Option<String>,
+    cover_mime: Option<String>,
+) -> Result<(), String> {
+    let path = Path::new(&file_path);
+    if !path.exists() {
+        return Err("File not found".to_string());
+    }
+
+    let mut tagged_file = read_from_path(path).map_err(|e| format!("Failed to read metadata: {}", e))?;
+
+    let tag_type = tagged_file.primary_tag_type();
+    if tagged_file.primary_tag().is_none() {
+        tagged_file.insert_tag(lofty::tag::Tag::new(tag_type));
+    }
+
+    if let Some(tag) = tagged_file.primary_tag_mut() {
+        if let Some(t) = title { tag.set_title(t); } else { tag.remove_title(); }
+        if let Some(a) = artist { tag.set_artist(a); } else { tag.remove_artist(); }
+        if let Some(al) = album { tag.set_album(al); } else { tag.remove_album(); }
+        if let Some(g) = genre { tag.set_genre(g); } else { tag.remove_genre(); }
+        if let Some(y) = year { tag.set_year(y); } else { tag.remove_year(); }
+        if let Some(tn) = track_number { tag.set_track(tn); } else { tag.remove_track(); }
+        if let Some(tt) = total_tracks { tag.set_track_total(tt); } else { tag.remove_track_total(); }
+        if let Some(dn) = disc_number { tag.set_disk(dn); } else { tag.remove_disk(); }
+        if let Some(td) = total_discs { tag.set_disk_total(td); } else { tag.remove_disk_total(); }
+        if let Some(c) = comment { tag.set_comment(c); } else { tag.remove_comment(); }
+
+        if let (Some(b64), Some(mime)) = (cover_b64, cover_mime) {
+            let engine = base64::engine::general_purpose::STANDARD;
+            if let Ok(bytes) = engine.decode(&b64) {
+                let mime_type = match mime.as_str() {
+                    "image/png" => lofty::picture::MimeType::Png,
+                    "image/jpeg" | "image/jpg" => lofty::picture::MimeType::Jpeg,
+                    other => lofty::picture::MimeType::Unknown(other.to_string()),
+                };
+                let pic = lofty::picture::Picture::new_unchecked(
+                    lofty::picture::PictureType::CoverFront,
+                    Some(mime_type),
+                    None,
+                    bytes,
+                );
+                tag.push_picture(pic);
+            }
+        }
+    }
+
+    tagged_file.save_to_path(path, lofty::config::WriteOptions::default()).map_err(|e| format!("Failed to save metadata: {}", e))?;
+    Ok(())
 }
 
 fn decode_percent(s: &str) -> String {
@@ -821,6 +894,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             list_files,
             get_metadata,
+            save_metadata,
             get_system_volume,
             set_system_volume,
             get_system_mute,
@@ -831,6 +905,7 @@ pub fn run() {
             clear_wallpaper,
             pick_folder,
             pick_wallpaper,
+            pick_audio_file,
             open_devtools,
             save_cover_image,
             set_default_wallpaper_path,
