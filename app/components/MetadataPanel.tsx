@@ -263,111 +263,102 @@ function MetadataPanel({lang, selectedSong, metadata, accentColor, coverDataUrl,
             >
                 <AnimatePresence mode="wait">
                     {selectedSong ? (
-                        metadata ? (
-                            <motion.div
-                                key={selectedSong.path}
-                                {...contentMotion}
+                        <motion.div
+                            key={selectedSong.path}
+                            {...contentMotion}
+                        >
+                            {/* Cover art small */}
+                            <div
+                                {...hCoverArt}
+                                onContextMenu={onContextMenu}
+                                className="w-full aspect-square max-w-40 mx-auto rounded-xl overflow-hidden bg-zinc-900/80 ring-1 ring-white/5 mb-4"
                             >
-                                {/* Cover art small */}
-                                <div
-                                    {...hCoverArt}
-                                    onContextMenu={onContextMenu}
-                                    className="w-full aspect-square max-w-40 mx-auto rounded-xl overflow-hidden bg-zinc-900/80 ring-1 ring-white/5 mb-4"
-                                >
-                                    <AnimatePresence mode="wait">
-                                        {coverDataUrl ? (
-                                            <motion.img
-                                                key={selectedSong.path}
-                                                {...contentMotion}
-                                                src={coverDataUrl}
-                                                alt={t(lang, 'metadata.cover')}
-                                                className="w-full h-full object-contain"
-                                            />
-                                        ) : (
-                                            <motion.div
-                                                key="placeholder"
-                                                {...contentMotion}
-                                                animate={{opacity: 0.12, y: 0}}
-                                                className="w-full h-full flex items-center justify-center"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">
-                                                    <path d="M9 18V5l12-2v13" />
-                                                    <circle cx="6" cy="18" r="3" />
-                                                    <circle cx="18" cy="16" r="3" />
-                                                </svg>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-                                </div>
-
-                                <SectionTitle title={t(lang, 'metadata.songInfo')} />
-                                <div className="space-y-3 pl-1">
-                                    <MetaRow label={t(lang, 'metadata.title')} value={songTitle || '—'} hoverProps={hTitle} />
-                                    <MetaRow label={t(lang, 'metadata.artist')} value={metadata?.artist || t(lang, 'metadata.unknownArtist')} hoverProps={hArtist} />
-                                    {metadata?.album && <MetaRow label={t(lang, 'metadata.album')} value={metadata.album} hoverProps={hAlbum} />}
-                                    {metadata?.genre && <MetaRow label={t(lang, 'metadata.genre')} value={metadata.genre} hoverProps={hGenre} />}
-                                    {metadata?.year != null && <MetaRow label={t(lang, 'metadata.year')} value={String(metadata.year)} hoverProps={hYear} />}
-                                    {trackStr && <MetaRow label={t(lang, 'metadata.track')} value={trackStr} hoverProps={hTrack} />}
-                                    {discStr && <MetaRow label={t(lang, 'metadata.disc')} value={discStr} hoverProps={hDisc} />}
-                                    <MetaRow label={t(lang, 'metadata.duration')} value={formatDuration(metadata?.duration ?? null)} hoverProps={hDuration} />
-                                </div>
-
-                                <SectionTitle title={t(lang, 'metadata.techInfo')} />
-                                <div className="space-y-3 pl-1">
-                                    {metadata?.bitrate != null && (
-                                        <MetaRow label={t(lang, 'metadata.bitrate')} value={`${metadata.bitrate} kbps`} hoverProps={hBitrate} />
-                                    )}
-                                    {metadata?.sample_rate != null && (
-                                        <MetaRow label={t(lang, 'metadata.sampleRate')} value={`${(metadata.sample_rate / 1000).toFixed(1)} kHz`} hoverProps={hSample} />
-                                    )}
-                                    {metadata?.channels != null && (
-                                        <MetaRow label={t(lang, 'metadata.channel')} value={channelsLabel(lang, metadata.channels)} hoverProps={hChannel} />
-                                    )}
-                                    <MetaRow label={t(lang, 'metadata.format')} value={selectedSong.ext.toUpperCase()} hoverProps={hFormat} />
-                                    <MetaRow label={t(lang, 'metadata.size')} value={formatSize(selectedSong.size)} hoverProps={hSize} />
-                                    {metadata?.cover_b64 && (
-                                        <MetaRow
-                                            label={t(lang, 'metadata.coverSize')}
-                                            value={formatSize(Math.round(metadata.cover_b64.length * 3 / 4))}
-                                            hoverProps={hCoverSz}
+                                <AnimatePresence mode="wait">
+                                    {coverDataUrl ? (
+                                        <motion.img
+                                            key={selectedSong.path}
+                                            {...contentMotion}
+                                            src={coverDataUrl}
+                                            alt={t(lang, 'metadata.cover')}
+                                            className="w-full h-full object-contain"
                                         />
+                                    ) : (
+                                        <motion.div
+                                            key="placeholder"
+                                            {...contentMotion}
+                                            animate={{opacity: 0.12, y: 0}}
+                                            className="w-full h-full flex items-center justify-center"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">
+                                                <path d="M9 18V5l12-2v13" />
+                                                <circle cx="6" cy="18" r="3" />
+                                                <circle cx="18" cy="16" r="3" />
+                                            </svg>
+                                        </motion.div>
                                     )}
-                                </div>
+                                </AnimatePresence>
+                            </div>
 
-                                <SectionTitle title={t(lang, 'metadata.fileInfo')} />
-                                <div className="space-y-3 pl-1">
-                                    <MetaRow label={t(lang, 'metadata.fileName')} value={selectedSong.name} hoverProps={hFileName} />
-                                    <MetaRow label={t(lang, 'metadata.created')} value={formatDate(selectedSong.ctime)} hoverProps={hCreated} />
-                                    <MetaRow label={t(lang, 'metadata.modified')} value={formatDate(selectedSong.mtime)} hoverProps={hModified} />
-                                </div>
+                            <SectionTitle title={t(lang, 'metadata.songInfo')} />
+                            <div className="space-y-3 pl-1">
+                                <MetaRow label={t(lang, 'metadata.title')} value={songTitle || '—'} hoverProps={hTitle} />
+                                <MetaRow label={t(lang, 'metadata.artist')} value={metadata?.artist || t(lang, 'metadata.unknownArtist')} hoverProps={hArtist} />
+                                {metadata?.album && <MetaRow label={t(lang, 'metadata.album')} value={metadata.album} hoverProps={hAlbum} />}
+                                {metadata?.genre && <MetaRow label={t(lang, 'metadata.genre')} value={metadata.genre} hoverProps={hGenre} />}
+                                {metadata?.year != null && <MetaRow label={t(lang, 'metadata.year')} value={String(metadata.year)} hoverProps={hYear} />}
+                                {trackStr && <MetaRow label={t(lang, 'metadata.track')} value={trackStr} hoverProps={hTrack} />}
+                                {discStr && <MetaRow label={t(lang, 'metadata.disc')} value={discStr} hoverProps={hDisc} />}
+                                <MetaRow label={t(lang, 'metadata.duration')} value={formatDuration(metadata?.duration ?? null)} hoverProps={hDuration} />
+                            </div>
 
-                                {metadata?.comment && (
-                                    <>
-                                        <SectionTitle title={t(lang, 'metadata.comment')} />
-                                        <div className="pl-1" {...hComment}>
-                                            <p className="text-sm text-zinc-300 leading-relaxed wrap-break-word">
-                                                {metadata.comment}
-                                            </p>
-                                        </div>
-                                    </>
+                            <SectionTitle title={t(lang, 'metadata.techInfo')} />
+                            <div className="space-y-3 pl-1">
+                                {metadata?.bitrate != null && (
+                                    <MetaRow label={t(lang, 'metadata.bitrate')} value={`${metadata.bitrate} kbps`} hoverProps={hBitrate} />
                                 )}
+                                {metadata?.sample_rate != null && (
+                                    <MetaRow label={t(lang, 'metadata.sampleRate')} value={`${(metadata.sample_rate / 1000).toFixed(1)} kHz`} hoverProps={hSample} />
+                                )}
+                                {metadata?.channels != null && (
+                                    <MetaRow label={t(lang, 'metadata.channel')} value={channelsLabel(lang, metadata.channels)} hoverProps={hChannel} />
+                                )}
+                                <MetaRow label={t(lang, 'metadata.format')} value={selectedSong.ext.toUpperCase()} hoverProps={hFormat} />
+                                <MetaRow label={t(lang, 'metadata.size')} value={formatSize(selectedSong.size)} hoverProps={hSize} />
+                                {metadata?.cover_b64 && (
+                                    <MetaRow
+                                        label={t(lang, 'metadata.coverSize')}
+                                        value={formatSize(Math.round(metadata.cover_b64.length * 3 / 4))}
+                                        hoverProps={hCoverSz}
+                                    />
+                                )}
+                            </div>
 
-                                {/* Path */}
-                                <SectionTitle title={t(lang, 'metadata.location')} />
-                                <div className="pl-1" {...hLocation}>
-                                    <p className="text-xs text-zinc-500 break-all leading-relaxed font-mono">
-                                        {selectedSong.path}
-                                    </p>
-                                </div>
-                            </motion.div>
-                        ) : (
-                            <motion.div
-                                key="loading-metadata"
-                                {...contentMotion}
-                            >
-                                <MetadataPanelSkeleton accentColor={accentColor} />
-                            </motion.div>
-                        )
+                            <SectionTitle title={t(lang, 'metadata.fileInfo')} />
+                            <div className="space-y-3 pl-1">
+                                <MetaRow label={t(lang, 'metadata.fileName')} value={selectedSong.name} hoverProps={hFileName} />
+                                <MetaRow label={t(lang, 'metadata.created')} value={formatDate(selectedSong.ctime)} hoverProps={hCreated} />
+                                <MetaRow label={t(lang, 'metadata.modified')} value={formatDate(selectedSong.mtime)} hoverProps={hModified} />
+                            </div>
+
+                            {metadata?.comment && (
+                                <>
+                                    <SectionTitle title={t(lang, 'metadata.comment')} />
+                                    <div className="pl-1" {...hComment}>
+                                        <p className="text-sm text-zinc-300 leading-relaxed wrap-break-word">
+                                            {metadata.comment}
+                                        </p>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* Path */}
+                            <SectionTitle title={t(lang, 'metadata.location')} />
+                            <div className="pl-1" {...hLocation}>
+                                <p className="text-xs text-zinc-500 break-all leading-relaxed font-mono">
+                                    {selectedSong.path}
+                                </p>
+                            </div>
+                        </motion.div>
                     ) : (
                         <motion.div
                             key="no-song"

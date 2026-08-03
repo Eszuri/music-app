@@ -359,7 +359,29 @@ fn get_metadata(file_path: String) -> Result<SongMetadata, String> {
         return Err("File not found".to_string());
     }
 
-    let tagged_file = read_from_path(path).map_err(|e| format!("Failed to read metadata: {}", e))?;
+    let tagged_file = match read_from_path(path) {
+        Ok(t) => t,
+        Err(_) => {
+            return Ok(SongMetadata {
+                title: None,
+                artist: None,
+                album: None,
+                duration: None,
+                cover_b64: None,
+                cover_mime: None,
+                genre: None,
+                year: None,
+                track_number: None,
+                total_tracks: None,
+                disc_number: None,
+                total_discs: None,
+                comment: None,
+                bitrate: None,
+                sample_rate: None,
+                channels: None,
+            });
+        }
+    };
 
     let props = tagged_file.properties();
     let duration = props.duration().as_secs_f64();
@@ -367,21 +389,21 @@ fn get_metadata(file_path: String) -> Result<SongMetadata, String> {
     let sample_rate = props.sample_rate();
     let channels = props.channels();
 
-    let tag = tagged_file.primary_tag();
+    let tag = tagged_file.primary_tag().or_else(|| tagged_file.first_tag());
 
     let (title, artist, album, genre, year, track_number, total_tracks, disc_number, total_discs, comment) = tag
         .map(|t| {
             (
-                t.title().map(|s| s.to_string()),
-                t.artist().map(|s| s.to_string()),
-                t.album().map(|s| s.to_string()),
-                t.genre().map(|s| s.to_string()),
+                t.title().map(|s| s.trim().to_string()).filter(|s| !s.is_empty()),
+                t.artist().map(|s| s.trim().to_string()).filter(|s| !s.is_empty()),
+                t.album().map(|s| s.trim().to_string()).filter(|s| !s.is_empty()),
+                t.genre().map(|s| s.trim().to_string()).filter(|s| !s.is_empty()),
                 t.year(),
                 t.track(),
                 t.track_total(),
                 t.disk(),
                 t.disk_total(),
-                t.comment().map(|s| s.to_string()),
+                t.comment().map(|s| s.trim().to_string()).filter(|s| !s.is_empty()),
             )
         })
         .unwrap_or((None, None, None, None, None, None, None, None, None, None));
@@ -403,7 +425,7 @@ fn get_metadata(file_path: String) -> Result<SongMetadata, String> {
         title,
         artist,
         album,
-        duration: Some(duration),
+        duration: if duration > 0.0 { Some(duration) } else { None },
         cover_b64,
         cover_mime,
         genre,
