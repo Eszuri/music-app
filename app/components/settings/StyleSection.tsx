@@ -9,6 +9,8 @@ export default function StyleSection({
     setAccentColor,
     customAccentHex,
     setCustomAccentHex,
+    layoutMode,
+    setLayoutMode,
     onResetSidebarWidth,
 }: {
     lang: Lang;
@@ -16,6 +18,8 @@ export default function StyleSection({
     setAccentColor: (v: string) => void;
     customAccentHex: string;
     setCustomAccentHex: (v: string) => void;
+    layoutMode?: 'default' | 'compact' | 'immersive';
+    setLayoutMode?: (v: 'default' | 'compact' | 'immersive') => void;
     onResetSidebarWidth: () => void;
 }) {
     const swatches: {id: string; bg: string}[] = [
@@ -84,6 +88,40 @@ export default function StyleSection({
                     </div>
                 )}
             </SettingRow>
+            <SettingRow
+                title={t(lang, 'style.layoutMode.title')}
+                description={t(lang, 'style.layoutMode.desc')}
+            >
+                <div className="flex flex-col gap-2">
+                    {[
+                        { id: 'default', labelKey: 'style.layoutMode.default' },
+                        { id: 'compact', labelKey: 'style.layoutMode.compact' },
+                        { id: 'immersive', labelKey: 'style.layoutMode.immersive' },
+                    ].map((mode) => (
+                        <label
+                            key={mode.id}
+                            className={`flex items-center gap-3 p-2.5 rounded-xl border transition-colors cursor-pointer ${
+                                (layoutMode || 'default') === mode.id
+                                    ? 'bg-zinc-800/80 border-zinc-600'
+                                    : 'bg-zinc-900/50 border-zinc-800/50 hover:bg-zinc-800/50'
+                            }`}
+                        >
+                            <input
+                                type="radio"
+                                name="layoutMode"
+                                value={mode.id}
+                                checked={(layoutMode || 'default') === mode.id}
+                                onChange={() => setLayoutMode?.(mode.id as 'default' | 'compact' | 'immersive')}
+                                className="w-4 h-4 text-zinc-100 bg-zinc-800 border-zinc-600 focus:ring-zinc-500 cursor-pointer"
+                            />
+                            <span className="text-sm text-zinc-200 font-medium select-none">
+                                {t(lang, mode.labelKey)}
+                            </span>
+                        </label>
+                    ))}
+                </div>
+            </SettingRow>
+
             <SettingRow
                 title={t(lang, 'style.sidebarWidth.title')}
                 description={t(lang, 'style.sidebarWidth.desc')}

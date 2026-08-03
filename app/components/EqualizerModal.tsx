@@ -18,6 +18,7 @@ interface EqualizerModalProps {
     equalizer: ReturnType<typeof useEqualizer>;
     accentColor: string;
     lang: Lang;
+    outputMode?: 'shared' | 'exclusive';
 }
 
 const BAND_MODE_OPTIONS: EQBandMode[] = [5, 10, 15, 31];
@@ -49,6 +50,7 @@ function EqualizerModal({
     equalizer,
     accentColor,
     lang,
+    outputMode,
 }: EqualizerModalProps) {
     useEffect(() => {
         if (!isOpen) return;
@@ -58,6 +60,8 @@ function EqualizerModal({
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, onClose]);
+
+    if (!isOpen) return null;
 
     const accent = getAccent(accentColor);
     const {
@@ -131,6 +135,12 @@ function EqualizerModal({
                         </button>
                     </div>
                 </div>
+
+                {outputMode === 'exclusive' && (
+                    <div className="px-6 py-2.5 bg-amber-500/10 border-b border-amber-500/20 text-amber-300 text-xs font-medium flex items-center justify-between">
+                        <span>{t(lang, 'equalizer.bitPerfectBypassed')}</span>
+                    </div>
+                )}
 
                 {/* Control Bar: Band Mode, Presets, Auto Headroom Guard, Zoom & Reset */}
                 <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3.5 border-b border-zinc-800/60 bg-zinc-900/30 text-xs">

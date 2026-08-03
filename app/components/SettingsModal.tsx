@@ -7,6 +7,7 @@ import {t} from '../lib/translations';
 import {modalContentMotion, backdropMotion} from '../lib/animations';
 import {useHoverDescription} from '../hooks/useHoverDescription';
 import AboutSection from './settings/AboutSection';
+import AudioSection from './settings/AudioSection';
 import ChangelogSection from './settings/ChangelogSection';
 import DebugSection from './settings/DebugSection';
 import GeneralSection from './settings/GeneralSection';
@@ -41,6 +42,10 @@ export default function SettingsModal({
     defaultWallpaper,
     onPickWallpaper,
     onClearWallpaper,
+    outputMode,
+    setOutputMode,
+    outputDevice,
+    setOutputDevice,
     folderSort,
     setFolderSort,
     fileSort,
@@ -58,6 +63,8 @@ export default function SettingsModal({
     setAccentColor,
     customAccentHex,
     setCustomAccentHex,
+    layoutMode = 'default',
+    setLayoutMode,
     onResetSidebarWidth,
     onResetAllSettings,
     logs,
@@ -161,6 +168,16 @@ export default function SettingsModal({
                                     onResetAllSettings={onResetAllSettings}
                                 />
                             )}
+                             {activeSection === 'audio' && (
+                                 <AudioSection
+                                     lang={lang}
+                                     outputMode={outputMode}
+                                     setOutputMode={setOutputMode}
+                                     outputDevice={outputDevice}
+                                     setOutputDevice={setOutputDevice}
+                                     accentColor={accentColor}
+                                 />
+                             )}
                             {activeSection === 'sort' && (
                                 <SortSection
                                     lang={lang}
@@ -186,15 +203,17 @@ export default function SettingsModal({
                                 />
                             )}
                             {activeSection === 'style' && (
-                                <StyleSection
-                                    lang={lang}
-                                    accentColor={accentColor}
-                                    setAccentColor={setAccentColor}
-                                    customAccentHex={customAccentHex}
-                                    setCustomAccentHex={setCustomAccentHex}
-                                    onResetSidebarWidth={onResetSidebarWidth}
-                                />
-                            )}
+                                 <StyleSection
+                                     lang={lang}
+                                     accentColor={accentColor}
+                                     setAccentColor={setAccentColor}
+                                     customAccentHex={customAccentHex}
+                                     setCustomAccentHex={setCustomAccentHex}
+                                     layoutMode={layoutMode}
+                                     setLayoutMode={setLayoutMode}
+                                     onResetSidebarWidth={onResetSidebarWidth}
+                                 />
+                             )}
                             {activeSection === 'changelog' && <ChangelogSection lang={lang} />}
                             {activeSection === 'about' && <AboutSection lang={lang} />}
                             {activeSection === 'debug' && <DebugSection lang={lang} logs={logs} />}

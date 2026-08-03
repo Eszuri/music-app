@@ -2,7 +2,7 @@ import type {LogEntry} from '../../types/log';
 
 import type {Lang} from '../../lib/translations';
 
-export type SectionId = 'general' | 'sort' | 'shortcut' | 'style' | 'changelog' | 'about' | 'debug';
+export type SectionId = 'general' | 'audio' | 'sort' | 'shortcut' | 'style' | 'changelog' | 'about' | 'debug';
 
 export interface SettingsModalProps {
     lang: Lang;
@@ -27,6 +27,10 @@ export interface SettingsModalProps {
     defaultWallpaper: string | null;
     onPickWallpaper: () => void;
     onClearWallpaper: () => void;
+    outputMode: 'shared' | 'exclusive';
+    setOutputMode: (v: 'shared' | 'exclusive') => void;
+    outputDevice: string | null;
+    setOutputDevice: (v: string | null) => void;
     folderSort: string;
     setFolderSort: (v: string) => void;
     fileSort: string;
@@ -44,6 +48,8 @@ export interface SettingsModalProps {
     setAccentColor: (v: string) => void;
     customAccentHex: string;
     setCustomAccentHex: (v: string) => void;
+    layoutMode?: 'default' | 'compact' | 'immersive';
+    setLayoutMode?: (v: 'default' | 'compact' | 'immersive') => void;
     onResetSidebarWidth: () => void;
     onResetAllSettings: () => void;
     logs: LogEntry[];

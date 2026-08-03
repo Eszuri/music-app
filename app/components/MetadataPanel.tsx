@@ -1,17 +1,17 @@
 'use client';
 
-import {memo, useCallback, useEffect, useRef, useState} from 'react';
-import {motion, AnimatePresence} from 'framer-motion';
-import {FileEntry} from './FolderExplorer';
-import {SongMetadata} from './PlayerPanel';
-import {getAccent} from '../lib/colors';
-import {t, type Lang} from '../lib/translations';
-import {contentMotion} from '../lib/animations';
-import ContextMenu, {ContextMenuItem} from './ContextMenu';
-import {useHoverDescription} from '../hooks/useHoverDescription';
-import {useHoverInfo} from '../contexts/HoverInfoContext';
-import {MetadataPanelSkeleton} from './Skeleton';
-import {InfoIcon, CopyIcon, MusicNoteIcon, EditIcon} from './icons';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FileEntry } from './FolderExplorer';
+import { SongMetadata } from './PlayerPanel';
+import { getAccent } from '../lib/colors';
+import { t, type Lang } from '../lib/translations';
+import { contentMotion } from '../lib/animations';
+import ContextMenu, { ContextMenuItem } from './ContextMenu';
+import { useHoverDescription } from '../hooks/useHoverDescription';
+import { useHoverInfo } from '../contexts/HoverInfoContext';
+import { MetadataPanelSkeleton } from './Skeleton';
+import { InfoIcon, CopyIcon, MusicNoteIcon, EditIcon } from './icons';
 
 interface MetadataPanelProps {
     lang: Lang;
@@ -64,7 +64,7 @@ function formatDuration(seconds: number | null): string {
     return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-function MetaRow({label, value, hoverProps}: {label: string; value: string; hoverProps?: Record<string, unknown>}) {
+function MetaRow({ label, value, hoverProps }: { label: string; value: string; hoverProps?: Record<string, unknown> }) {
     return (
         <div className="flex flex-col gap-0.5 min-w-0" {...(hoverProps ?? {})}>
             <span className="text-[10px] font-medium tracking-wider text-zinc-500 uppercase truncate">{label}</span>
@@ -75,7 +75,7 @@ function MetaRow({label, value, hoverProps}: {label: string; value: string; hove
     );
 }
 
-function SectionTitle({title}: {title: string}) {
+function SectionTitle({ title }: { title: string }) {
     return <h4 className="text-[11px] font-semibold tracking-wider text-zinc-400 uppercase mt-5 first:mt-0 mb-2.5">{title}</h4>;
 }
 
@@ -86,14 +86,14 @@ function channelsLabel(lang: Lang, ch: number | null): string {
     return `${ch}${t(lang, 'metadata.ch')}`;
 }
 
-function MetadataPanel({lang, selectedSong, metadata, accentColor, coverDataUrl, resetSidebarToken, onContextMenu, onOpenEditMetadata}: MetadataPanelProps) {
+function MetadataPanel({ lang, selectedSong, metadata, accentColor, coverDataUrl, resetSidebarToken, onContextMenu, onOpenEditMetadata }: MetadataPanelProps) {
     const accent = getAccent(accentColor);
     const songTitle = selectedSong
         ? (metadata?.title || selectedSong.name.replace(/\.[^/.]+$/, ''))
         : null;
 
     const [width, setWidth] = useState<number>(DEFAULT_WIDTH);
-    const [contextMenu, setContextMenu] = useState<{x: number; y: number; items: ContextMenuItem[]} | null>(null);
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
     const isDraggingRef = useRef(false);
     const startXRef = useRef(0);
     const startWidthRef = useRef(DEFAULT_WIDTH);
@@ -120,7 +120,7 @@ function MetadataPanel({lang, selectedSong, metadata, accentColor, coverDataUrl,
     const hComment = useHoverDescription(selectedSong ? t(lang, 'status.meta.comment') : null);
     const hLocation = useHoverDescription(selectedSong ? t(lang, 'status.meta.location') : null);
     const hCoverArt = useHoverDescription(selectedSong ? t(lang, 'status.meta.cover') : null);
-    const {setHoverInfo} = useHoverInfo();
+    const { setHoverInfo } = useHoverInfo();
 
     useEffect(() => {
         setWidth(loadSavedWidth());
@@ -214,7 +214,7 @@ function MetadataPanel({lang, selectedSong, metadata, accentColor, coverDataUrl,
 
     return (
         <aside
-            style={{width}}
+            style={{ width }}
             className="relative flex shrink-0 flex-col border-l border-zinc-800/50 bg-zinc-950/40 max-lg:flex-1 max-lg:min-w-0 overflow-hidden"
         >
             <div
@@ -286,7 +286,7 @@ function MetadataPanel({lang, selectedSong, metadata, accentColor, coverDataUrl,
                                         <motion.div
                                             key="placeholder"
                                             {...contentMotion}
-                                            animate={{opacity: 0.12, y: 0}}
+                                            animate={{ opacity: 0.12, y: 0 }}
                                             className="w-full h-full flex items-center justify-center"
                                         >
                                             <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">
@@ -299,7 +299,14 @@ function MetadataPanel({lang, selectedSong, metadata, accentColor, coverDataUrl,
                                 </AnimatePresence>
                             </div>
 
-                            <SectionTitle title={t(lang, 'metadata.songInfo')} />
+                            <div className="flex items-center justify-between">
+                                <SectionTitle title={t(lang, 'metadata.songInfo')} />
+                                {metadata?.sample_rate != null && metadata.sample_rate > 44100 && (
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-widest bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase">
+                                        Hi-Res Audio
+                                    </span>
+                                )}
+                            </div>
                             <div className="space-y-3 pl-1">
                                 <MetaRow label={t(lang, 'metadata.title')} value={songTitle || '—'} hoverProps={hTitle} />
                                 <MetaRow label={t(lang, 'metadata.artist')} value={metadata?.artist || t(lang, 'metadata.unknownArtist')} hoverProps={hArtist} />
@@ -311,7 +318,7 @@ function MetadataPanel({lang, selectedSong, metadata, accentColor, coverDataUrl,
                                 <MetaRow label={t(lang, 'metadata.duration')} value={formatDuration(metadata?.duration ?? null)} hoverProps={hDuration} />
                             </div>
 
-                            <SectionTitle title={t(lang, 'metadata.techInfo')} />
+                            <SectionTitle title='' />
                             <div className="space-y-3 pl-1">
                                 {metadata?.bitrate != null && (
                                     <MetaRow label={t(lang, 'metadata.bitrate')} value={`${metadata.bitrate} kbps`} hoverProps={hBitrate} />
@@ -332,9 +339,7 @@ function MetadataPanel({lang, selectedSong, metadata, accentColor, coverDataUrl,
                                     />
                                 )}
                             </div>
-
-                            <SectionTitle title={t(lang, 'metadata.fileInfo')} />
-                            <div className="space-y-3 pl-1">
+                            <div className="space-y-3 mt-3 pl-1">
                                 <MetaRow label={t(lang, 'metadata.fileName')} value={selectedSong.name} hoverProps={hFileName} />
                                 <MetaRow label={t(lang, 'metadata.created')} value={formatDate(selectedSong.ctime)} hoverProps={hCreated} />
                                 <MetaRow label={t(lang, 'metadata.modified')} value={formatDate(selectedSong.mtime)} hoverProps={hModified} />

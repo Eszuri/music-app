@@ -35,6 +35,7 @@ interface UseAudioPlayerOptions {
     lastLocalVolumeSetRef: React.RefObject<number>;
     pauseIfMuted: boolean;
     systemMuted: boolean;
+    outputMode?: "shared" | "exclusive";
 }
 
 const MIN_RESUME_VOLUME = 0.01;
@@ -640,7 +641,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
     // ─── equalizer & gain boost (Web Audio API) ────────────────────────────────
     const equalizer = useEqualizer();
-    const gainBoost = useGainBoost(audioRef, equalizer);
+    const gainBoost = useGainBoost(audioRef, equalizer, options.outputMode);
 
     // ─── volume / mute sync ────────────────────────────────────────────────────
 

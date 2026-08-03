@@ -6,6 +6,7 @@ const en: Record<string, string> = {
     'lang.id': 'Indonesia',
 
     'sections.general': 'General',
+    'sections.audio': 'Audio Output',
     'sections.sort': 'Sort',
     'sections.shortcut': 'Shortcut',
     'sections.style': 'Style',
@@ -58,6 +59,18 @@ const en: Record<string, string> = {
     'general.volumeLimit.desc': 'Warn if system volume exceeds this limit (0 = no limit)',
     'general.volumeLimit.save': 'Save',
     'general.volumeLimit.over': '⚠ Volume currently exceeds limit!',
+
+    'audio.group.mode': 'Playback Engine & Output Mode',
+    'audio.outputMode.title': 'Output Audio Engine Mode',
+    'audio.outputMode.desc': 'Shared: uses browser & OS mixer. Exclusive (Bit-Perfect): streams directly to audio hardware bypassing OS mixer.',
+    'audio.outputMode.shared': 'Shared Mode (Standard)',
+    'audio.outputMode.exclusive': 'WASAPI Exclusive Mode (Bit-Perfect)',
+    'audio.outputMode.desktopOnly': ' (Desktop App Only)',
+    'audio.outputDevice.title': 'Output Audio Device',
+    'audio.outputDevice.desc': 'Select output soundcard or DAC device',
+    'audio.outputDevice.default': 'Default System Output Device',
+    'audio.bitPerfect.betaTag': 'BETA',
+    'audio.bitPerfect.warning': '⚠ [EXPERIMENTAL / BETA] Bit-Perfect mode locks your audio device exclusively for 100% bit-exact PCM playback. Equalizer, Gain Boost, and Software Volume scaling are bypassed in this mode.',
     'general.volumeLimit.limit': 'Limit: {value}',
 
     'general.update.title': 'Update',
@@ -150,6 +163,11 @@ const en: Record<string, string> = {
 
     'style.accentColor.title': 'Accent Color',
     'style.accentColor.desc': 'Application accent color',
+    'style.layoutMode.title': 'Layout Mode',
+    'style.layoutMode.desc': 'Choose overall application user interface layout',
+    'style.layoutMode.default': 'Default (Standard 3-Panel)',
+    'style.layoutMode.compact': 'Compact (Spotify-Style Bottom Bar)',
+    'style.layoutMode.immersive': 'Immersive (GoneMAD-Style Split View)',
     'style.custom': 'Custom',
     'style.color.green': 'Green',
     'style.color.blue': 'Blue',
@@ -221,6 +239,7 @@ const en: Record<string, string> = {
     'equalizer.preset': 'Preset',
     'equalizer.reset': 'Reset Flat',
     'equalizer.tip': 'Tip: Double-click any slider to reset its band to 0 dB.',
+    'equalizer.bitPerfectBypassed': '⚡ Bit-Perfect Mode Active: Equalizer & DSP are bypassed for 100% bit-exact audio output.',
     'equalizer.done': 'Done',
     'equalizer.preset.flat': 'Flat (Default)',
     'equalizer.preset.bassBoost': 'Bass Boost',
@@ -297,7 +316,6 @@ const en: Record<string, string> = {
     'metadata.track': 'Track',
     'metadata.disc': 'Disc',
     'metadata.duration': 'Duration',
-    'metadata.techInfo': 'Technical Info',
     'metadata.bitrate': 'Bitrate',
     'metadata.sampleRate': 'Sample Rate',
     'metadata.channel': 'Channel',
@@ -459,7 +477,8 @@ const id: Record<string, string> = {
     'lang.id': 'Indonesia',
 
     'sections.general': 'Umum',
-    'sections.sort': 'Urutkan',
+    'sections.audio': 'Output Audio',
+    'sections.sort': 'Urutan',
     'sections.shortcut': 'Pintasan',
     'sections.style': 'Tampilan',
     'sections.debug': 'Debug',
@@ -511,6 +530,18 @@ const id: Record<string, string> = {
     'general.volumeLimit.desc': 'Beri peringatan jika volume sistem melebihi batas ini (0 = tidak ada batas)',
     'general.volumeLimit.save': 'Simpan',
     'general.volumeLimit.over': '⚠ Volume saat ini melebihi batas!',
+
+    'audio.group.mode': 'Engine Pemutar & Mode Output',
+    'audio.outputMode.title': 'Mode Engine Output Audio',
+    'audio.outputMode.desc': 'Shared: menggunakan mixer OS & browser. Exclusive (Bit-Perfect): mengalirkan sinyal audio langsung ke hardware tanpa melalui mixer OS.',
+    'audio.outputMode.shared': 'Mode Shared (Standar)',
+    'audio.outputMode.exclusive': 'Mode WASAPI Exclusive (Bit-Perfect)',
+    'audio.outputMode.desktopOnly': ' (Hanya Aplikasi Desktop)',
+    'audio.outputDevice.title': 'Perangkat Audio Output',
+    'audio.outputDevice.desc': 'Pilih soundcard atau DAC output',
+    'audio.outputDevice.default': 'Perangkat Output Default Sistem',
+    'audio.bitPerfect.betaTag': 'BETA',
+    'audio.bitPerfect.warning': '⚠ [EKSPERIMENTAL / BETA] Mode Bit-Perfect mengunci perangkat audio Anda secara eksklusif untuk kualitas audio 100% bit-exact. Fitur ini masih dalam tahap pengujian (Beta). Equalizer, Gain Boost, dan Pengatur Volume Software di-bypass pada mode ini.',
     'general.volumeLimit.limit': 'Batas: {value}',
 
     'general.update.title': 'Update',
@@ -603,6 +634,11 @@ const id: Record<string, string> = {
 
     'style.accentColor.title': 'Warna Aksen',
     'style.accentColor.desc': 'Warna aksen aplikasi',
+    'style.layoutMode.title': 'Mode Tata Letak',
+    'style.layoutMode.desc': 'Pilih tata letak antarmuka pengguna aplikasi',
+    'style.layoutMode.default': 'Default (Standar 3-Panel)',
+    'style.layoutMode.compact': 'Ringkas (Bottom Bar Gaya Spotify)',
+    'style.layoutMode.immersive': 'Imersif (Split View Gaya GoneMAD)',
     'style.custom': 'Kustom',
     'style.color.green': 'Hijau',
     'style.color.blue': 'Biru',
@@ -674,6 +710,7 @@ const id: Record<string, string> = {
     'equalizer.preset': 'Preset',
     'equalizer.reset': 'Reset Flat',
     'equalizer.tip': 'Tips: Klik 2x pada slider mana saja untuk me-reset band ke 0 dB.',
+    'equalizer.bitPerfectBypassed': '⚡ Mode Bit-Perfect Aktif: Equalizer & DSP di-bypass demi transmisi audio murni 100% bit-exact.',
     'equalizer.done': 'Selesai',
     'equalizer.preset.flat': 'Flat (Standar)',
     'equalizer.preset.bassBoost': 'Bass Boost',
@@ -750,7 +787,6 @@ const id: Record<string, string> = {
     'metadata.track': 'Track',
     'metadata.disc': 'Disc',
     'metadata.duration': 'Durasi',
-    'metadata.techInfo': 'Info Teknis',
     'metadata.bitrate': 'Bitrate',
     'metadata.sampleRate': 'Sample Rate',
     'metadata.channel': 'Channel',
@@ -907,7 +943,7 @@ const id: Record<string, string> = {
     'log.autoUpdateFailed': 'Download pembaruan otomatis gagal: {msg}',
 };
 
-const all: Record<Lang, Record<string, string>> = {en, id};
+const all: Record<Lang, Record<string, string>> = { en, id };
 
 export function t(lang: Lang, key: string, vars?: Record<string, string | number>): string {
     const map = all[lang] || en;

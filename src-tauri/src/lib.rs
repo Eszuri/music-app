@@ -7,6 +7,102 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, SystemTime};
 
+mod audio;
+
+use audio::engine::AudioEngineHandle;
+use audio::output::{get_audio_hosts_and_devices, AudioDeviceInfo, OutputMode};
+
+static AUDIO_ENGINE: std::sync::OnceLock<AudioEngineHandle> = std::sync::OnceLock::new();
+
+#[tauri::command]
+fn engine_play(path: String) -> Result<(), String> {
+    if let Some(engine) = AUDIO_ENGINE.get() {
+        engine.play(std::path::PathBuf::from(path));
+        Ok(())
+    } else {
+        Err("Audio engine not initialized".to_string())
+    }
+}
+
+#[tauri::command]
+fn engine_pause() -> Result<(), String> {
+    if let Some(engine) = AUDIO_ENGINE.get() {
+        engine.pause();
+        Ok(())
+    } else {
+        Err("Audio engine not initialized".to_string())
+    }
+}
+
+#[tauri::command]
+fn engine_resume() -> Result<(), String> {
+    if let Some(engine) = AUDIO_ENGINE.get() {
+        engine.resume();
+        Ok(())
+    } else {
+        Err("Audio engine not initialized".to_string())
+    }
+}
+
+#[tauri::command]
+fn engine_stop() -> Result<(), String> {
+    if let Some(engine) = AUDIO_ENGINE.get() {
+        engine.stop();
+        Ok(())
+    } else {
+        Err("Audio engine not initialized".to_string())
+    }
+}
+
+#[tauri::command]
+fn engine_seek(position_secs: f64) -> Result<(), String> {
+    if let Some(engine) = AUDIO_ENGINE.get() {
+        engine.seek(position_secs);
+        Ok(())
+    } else {
+        Err("Audio engine not initialized".to_string())
+    }
+}
+
+#[tauri::command]
+fn engine_set_volume(volume: f32) -> Result<(), String> {
+    if let Some(engine) = AUDIO_ENGINE.get() {
+        engine.set_volume(volume);
+        Ok(())
+    } else {
+        Err("Audio engine not initialized".to_string())
+    }
+}
+
+#[tauri::command]
+fn engine_set_output_mode(mode: String) -> Result<(), String> {
+    if let Some(engine) = AUDIO_ENGINE.get() {
+        let output_mode = match mode.as_str() {
+            "exclusive" => OutputMode::Exclusive,
+            _ => OutputMode::Shared,
+        };
+        engine.set_output_mode(output_mode);
+        Ok(())
+    } else {
+        Err("Audio engine not initialized".to_string())
+    }
+}
+
+#[tauri::command]
+fn engine_get_output_devices() -> Result<Vec<AudioDeviceInfo>, String> {
+    Ok(get_audio_hosts_and_devices())
+}
+
+#[tauri::command]
+fn engine_set_output_device(name: Option<String>) -> Result<(), String> {
+    if let Some(engine) = AUDIO_ENGINE.get() {
+        engine.set_device(name);
+        Ok(())
+    } else {
+        Err("Audio engine not initialized".to_string())
+    }
+}
+
 #[cfg(windows)]
 use std::os::windows::ffi::OsStrExt;
 
@@ -942,7 +1038,16 @@ pub fn run() {
             set_default_wallpaper_path,
             get_default_wallpaper_path,
             set_reset_on_close,
-            open_webview_stream
+            open_webview_stream,
+            engine_play,
+            engine_pause,
+            engine_resume,
+            engine_stop,
+            engine_seek,
+            engine_set_volume,
+            engine_set_output_mode,
+            engine_get_output_devices,
+            engine_set_output_device
         ])
         .register_uri_scheme_protocol("stream", |_app, request| {
             if request.method() == tauri::http::Method::OPTIONS {
@@ -1060,6 +1165,9 @@ pub fn run() {
         })
         .plugin(tauri_plugin_updater::Builder::default().build())
         .setup(|app| {
+            let handle = app.handle().clone();
+            let _ = AUDIO_ENGINE.set(AudioEngineHandle::new(handle));
+
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()

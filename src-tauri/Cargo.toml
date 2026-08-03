@@ -27,6 +27,10 @@ lofty = "0.22"
 base64 = "0.22"
 image = "0.25"
 rayon = "1.10"
+symphonia = { version = "0.5", features = ["mp3", "flac", "pcm", "aac", "vorbis", "ogg", "wav", "aiff", "isomp4"] }
+cpal = "0.15"
+ringbuf = "0.3"
+crossbeam-channel = "0.5"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.58", features = [

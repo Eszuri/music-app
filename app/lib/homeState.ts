@@ -20,6 +20,9 @@ export const LANGUAGE_KEY = 'music-app-language';
 export const DEFAULT_LANGUAGE = 'en';
 export const UPDATE_SKIP_KEY = 'music-app-update-skip';
 export const SESSION_STATE_KEY = 'music-app-session-state';
+export const OUTPUT_MODE_KEY = 'music-app-output-mode';
+export const OUTPUT_DEVICE_KEY = 'music-app-output-device';
+export const LAYOUT_MODE_KEY = 'music-app-layout-mode';
 
 export type ShortcutAction = 'playPause' | 'next' | 'prev' | 'volumeUp' | 'volumeDown';
 

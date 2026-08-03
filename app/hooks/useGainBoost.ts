@@ -39,6 +39,7 @@ export interface EqualizerAudioState {
 export function useGainBoost(
     audioRef: React.RefObject<HTMLAudioElement | null>,
     equalizer?: EqualizerAudioState,
+    outputMode?: 'shared' | 'exclusive',
 ) {
     const [gain, setGainState] = useState<number>(() => loadSavedGain());
     const [supported, setSupported] = useState(true);
@@ -57,8 +58,12 @@ export function useGainBoost(
     const eqRef = useRef(equalizer);
     eqRef.current = equalizer;
 
+    const modeRef = useRef(outputMode);
+    modeRef.current = outputMode;
+
     const rebuildEqFilters = useCallback((ctx: AudioContext, freqs: number[], eq?: EqualizerAudioState): BiquadFilterNode[] => {
         const qVal = getQFactorForBands(freqs.length);
+        const isExclusive = modeRef.current === 'exclusive';
         return freqs.map((freq, i) => {
             const filter = ctx.createBiquadFilter();
             if (i === 0) {
@@ -71,7 +76,7 @@ export function useGainBoost(
             }
             filter.frequency.value = freq;
 
-            const db = eq?.enabled ? (eq.gains[i] ?? 0) : 0;
+            const db = (!isExclusive && eq?.enabled) ? (eq.gains[i] ?? 0) : 0;
             filter.gain.value = db;
             return filter;
         });
@@ -137,9 +142,10 @@ export function useGainBoost(
             // Preamp Gain Node
             const preamp = ctx.createGain();
             const eq = eqRef.current;
-            const maxBoost = eq?.enabled ? Math.max(0, ...(eq.gains ?? [])) : 0;
+            const isExclusive = modeRef.current === 'exclusive';
+            const maxBoost = (!isExclusive && eq?.enabled) ? Math.max(0, ...(eq.gains ?? [])) : 0;
             const autoPreamp = eq?.autoPreamp !== false;
-            const effectivePreampDb = eq?.enabled
+            const effectivePreampDb = (!isExclusive && eq?.enabled)
                 ? (autoPreamp ? (eq.preampDb ?? 0) - maxBoost : (eq.preampDb ?? 0))
                 : 0;
             const preampLinear = Math.pow(10, effectivePreampDb / 20);
@@ -153,7 +159,7 @@ export function useGainBoost(
 
             // Main Gain Boost Node
             const gainNode = ctx.createGain();
-            gainNode.gain.value = gainRef.current;
+            gainNode.gain.value = isExclusive ? 1 : gainRef.current;
             gainNodeRef.current = gainNode;
 
             // Anti-Clipping Soft Peak Limiter Node
@@ -186,22 +192,23 @@ export function useGainBoost(
             if (ctxRef.current?.state === "suspended") {
                 ctxRef.current.resume().catch(() => {});
             }
-            if (node) node.gain.value = gainRef.current;
+            if (node) node.gain.value = outputMode === 'exclusive' ? 1 : gainRef.current;
         };
 
         audio.addEventListener("play", handlePlay);
         return () => {
             audio.removeEventListener("play", handlePlay);
         };
-    }, [audioRef.current, ensureGraph]);
+    }, [audioRef.current, ensureGraph, outputMode]);
 
     // Sync GainNode state
     useEffect(() => {
         if (gainNodeRef.current && ctxRef.current) {
-            gainNodeRef.current.gain.setTargetAtTime(gain, ctxRef.current.currentTime, 0.015);
+            const targetGain = outputMode === 'exclusive' ? 1 : gain;
+            gainNodeRef.current.gain.setTargetAtTime(targetGain, ctxRef.current.currentTime, 0.015);
         }
         safeSetLocalStorage(GAIN_BOOST_KEY, String(gain));
-    }, [gain]);
+    }, [gain, outputMode]);
 
     // Sync Equalizer & Preamp state live without clicks or pops
     useEffect(() => {
@@ -209,10 +216,12 @@ export function useGainBoost(
         const eq = equalizer;
         if (!ctx || !eq) return;
 
+        const isExclusive = outputMode === 'exclusive';
+
         // Calculate auto-preamp headroom protection
-        const maxBoost = eq.enabled ? Math.max(0, ...(eq.gains ?? [])) : 0;
+        const maxBoost = (!isExclusive && eq.enabled) ? Math.max(0, ...(eq.gains ?? [])) : 0;
         const autoPreamp = eq.autoPreamp !== false;
-        const effectivePreampDb = eq.enabled
+        const effectivePreampDb = (!isExclusive && eq.enabled)
             ? (autoPreamp ? (eq.preampDb ?? 0) - maxBoost : (eq.preampDb ?? 0))
             : 0;
         const preampLinear = Math.pow(10, effectivePreampDb / 20);
@@ -228,11 +237,11 @@ export function useGainBoost(
         } else {
             // Update filter gains smoothly
             filtersRef.current.forEach((filter, i) => {
-                const db = eq.enabled ? (eq.gains[i] ?? 0) : 0;
+                const db = (!isExclusive && eq.enabled) ? (eq.gains[i] ?? 0) : 0;
                 filter.gain.setTargetAtTime(db, ctx.currentTime, 0.015);
             });
         }
-    }, [equalizer, rebuildEqFilters, connectGraph]);
+    }, [equalizer, outputMode, rebuildEqFilters, connectGraph]);
 
     // Clean up AudioContext and nodes on unmount
     useEffect(() => {
