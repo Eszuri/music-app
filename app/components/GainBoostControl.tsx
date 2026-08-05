@@ -14,6 +14,7 @@ interface GainBoostControlProps {
     supported: boolean;
     accentColor: string;
     lang?: Lang;
+    disabled?: boolean;
 }
 
 function CustomTooltip({
@@ -66,6 +67,7 @@ function GainBoostControl({
     supported,
     accentColor,
     lang = 'en',
+    disabled = false,
 }: GainBoostControlProps) {
     const accent = getAccent(accentColor);
     const pct = Math.round(gain * 100);
@@ -76,8 +78,8 @@ function GainBoostControl({
 
     const minPct = Math.round(minGain * 100);
     const maxPct = Math.round(maxGain * 100);
-    const isDecreaseDisabled = pct <= minPct;
-    const isIncreaseDisabled = pct >= maxPct;
+    const isDecreaseDisabled = pct <= minPct || disabled;
+    const isIncreaseDisabled = pct >= maxPct || disabled;
 
     // Color logic: Green (<=150%), Yellow (151%-200%), Red (>200%)
     let sliderColorHex = accent.hex400;
@@ -104,9 +106,11 @@ function GainBoostControl({
     }
 
     const hoverMain = useHoverDescription(
-        supported
-            ? t(lang, 'gainBoost.desc')
-            : t(lang, 'gainBoost.unsupported'),
+        !supported
+            ? t(lang, 'gainBoost.unsupported')
+            : disabled
+            ? 'Disabled in Bit-Perfect mode'
+            : t(lang, 'gainBoost.desc'),
     );
 
     const warningText = t(lang, 'gainBoost.warningTooltip');
@@ -115,18 +119,23 @@ function GainBoostControl({
     const resetHover = useHoverDescription(t(lang, 'gainBoost.resetTooltip'));
 
     const onSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (disabled) return;
         const v = parseFloat(e.target.value);
         if (Number.isFinite(v)) setGain(v / 100);
     };
 
-    const reset = () => setGain(minGain);
+    const reset = () => {
+        if (!disabled) setGain(minGain);
+    };
 
     const stepDown = () => {
+        if (disabled) return;
         const next = Math.max(minPct, pct - 5);
         setGain(next / 100);
     };
 
     const stepUp = () => {
+        if (disabled) return;
         const next = Math.min(maxPct, pct + 5);
         setGain(next / 100);
     };
@@ -148,6 +157,15 @@ function GainBoostControl({
             <div className="flex items-center gap-2 w-full justify-center text-white/40 text-[11px]">
                 <GainIcon size={15} />
                 <span>{t(lang, 'gainBoost.unsupported')}</span>
+            </div>
+        );
+    }
+
+    if (disabled) {
+        return (
+            <div className="flex items-center gap-2 w-full justify-center text-amber-500/80 text-[11px]">
+                <WarningIcon size={15} />
+                <span>Dinonaktifkan di mode Bit-Perfect</span>
             </div>
         );
     }

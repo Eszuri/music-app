@@ -26,7 +26,7 @@ export function SettingRow({
     children,
     className = ''
 }: {
-    title: string;
+    title: string | ReactNode;
     description: string;
     children: ReactNode;
     className?: string
@@ -38,7 +38,7 @@ export function SettingRow({
             className={`relative flex items-start justify-between gap-4 px-4 py-3.5 border-b border-zinc-800/40 last:border-0 ${className}`}
         >
             <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-medium text-zinc-100">{title}</h4>
+                <div className="text-sm font-medium text-zinc-100">{title}</div>
                 <p className="text-xs text-zinc-500 mt-0.5">{description}</p>
             </div>
             <div className="shrink-0 pt-0.5">{children}</div>

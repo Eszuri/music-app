@@ -598,6 +598,7 @@ function HomePlayerArea({
                                                     supported={gainBoostSupported}
                                                     accentColor={accentColor}
                                                     lang={lang}
+                                                    disabled={outputMode === 'bitperfect'}
                                                 />
                                             </div>
                                         </motion.div>

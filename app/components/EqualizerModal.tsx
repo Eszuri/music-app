@@ -18,6 +18,7 @@ interface EqualizerModalProps {
     equalizer: ReturnType<typeof useEqualizer>;
     accentColor: string;
     lang: Lang;
+    disabled?: boolean;
 }
 
 const BAND_MODE_OPTIONS: EQBandMode[] = [5, 10, 15, 31];
@@ -49,6 +50,7 @@ function EqualizerModal({
     equalizer,
     accentColor,
     lang,
+    disabled = false,
 }: EqualizerModalProps) {
     useEffect(() => {
         if (!isOpen) return;
@@ -102,7 +104,7 @@ function EqualizerModal({
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800/80 bg-zinc-900/40">
                     <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-xl bg-zinc-800/80 ${enabled ? accent.text400 : 'text-zinc-500'}`}>
+                        <div className={`p-2 rounded-xl bg-zinc-800/80 ${enabled && !disabled ? accent.text400 : 'text-zinc-500'}`}>
                             <EQIcon />
                         </div>
                         <div>
@@ -111,9 +113,14 @@ function EqualizerModal({
                                 <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700/60 text-zinc-400 font-normal">
                                     {bandMode} Bands
                                 </span>
+                                {disabled && (
+                                    <span className="text-[10px] px-2 py-0.5 rounded uppercase font-bold tracking-widest bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                                        Dinonaktifkan
+                                    </span>
+                                )}
                             </h2>
                             <p className="text-[11px] text-zinc-400">
-                                {t(lang, 'equalizer.subtitle')}
+                                {disabled ? "Equalizer tidak berlaku di mode Bit-Perfect" : t(lang, 'equalizer.subtitle')}
                             </p>
                         </div>
                     </div>
@@ -121,15 +128,18 @@ function EqualizerModal({
                     <div className="flex items-center gap-3">
                         {/* Power Switch */}
                         <button
-                            onClick={toggleEnabled}
+                            onClick={disabled ? undefined : toggleEnabled}
+                            disabled={disabled}
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
-                                enabled
-                                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-xs shadow-emerald-950'
-                                    : 'bg-zinc-800/80 text-zinc-400 border border-zinc-700/60 hover:text-zinc-200'
+                                disabled
+                                    ? 'bg-zinc-800/40 text-zinc-500 border border-zinc-800/50 cursor-not-allowed opacity-50'
+                                    : enabled
+                                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-xs shadow-emerald-950'
+                                        : 'bg-zinc-800/80 text-zinc-400 border border-zinc-700/60 hover:text-zinc-200'
                             }`}
                         >
                             <PowerIcon />
-                            <span>{enabled ? t(lang, 'equalizer.on') : t(lang, 'equalizer.off')}</span>
+                            <span>{enabled && !disabled ? t(lang, 'equalizer.on') : t(lang, 'equalizer.off')}</span>
                         </button>
                     </div>
                 </div>
@@ -137,7 +147,7 @@ function EqualizerModal({
 
 
                 {/* Control Bar: Band Mode, Presets, Auto Headroom Guard, Zoom & Reset */}
-                <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3.5 border-b border-zinc-800/60 bg-zinc-900/30 text-xs">
+                <div className={`flex flex-wrap items-center justify-between gap-3 px-6 py-3.5 border-b border-zinc-800/60 bg-zinc-900/30 text-xs ${disabled ? 'pointer-events-none opacity-50' : ''}`}>
                     {/* Left Group: Band Mode & Preset Selectors */}
                     <div className="flex flex-wrap items-center gap-3">
                         {/* Band Mode Dropdown */}

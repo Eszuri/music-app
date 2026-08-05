@@ -346,6 +346,8 @@ function HomeContent() {
         systemMuted: settings.systemMuted,
         fadeAudio: settings.fadeAudio,
         fadeDuration: settings.fadeDuration,
+        outputMode: settings.outputMode,
+        outputDevice: settings.outputDevice,
     });
 
     useKeyboardShortcuts({
@@ -940,6 +942,7 @@ function HomeContent() {
                 equalizer={player.equalizer}
                 accentColor={settings.accentColor}
                 lang={lang}
+                disabled={settings.outputMode === 'bitperfect'}
             />
 
             <MetadataEditModal

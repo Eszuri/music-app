@@ -179,6 +179,32 @@ async fn pick_audio_file() -> Result<Option<String>, String> {
 }
 
 #[tauri::command]
+async fn pick_single_file(
+    title: Option<String>,
+    filters: Option<Vec<serde_json::Value>>,
+) -> Result<Option<String>, String> {
+    let mut dialog = rfd::AsyncFileDialog::new()
+        .set_title(title.as_deref().unwrap_or("Pilih file"));
+
+    if let Some(filters) = filters {
+        for f in &filters {
+            let name = f.get("name").and_then(|v| v.as_str()).unwrap_or("File");
+            let exts: Vec<&str> = f
+                .get("extensions")
+                .and_then(|v| v.as_array())
+                .map(|arr| arr.iter().filter_map(|x| x.as_str()).collect())
+                .unwrap_or_default();
+            if !exts.is_empty() {
+                dialog = dialog.add_filter(name, &exts);
+            }
+        }
+    }
+
+    let file = dialog.pick_file().await;
+    Ok(file.map(|f| f.path().to_string_lossy().to_string()))
+}
+
+#[tauri::command]
 async fn open_devtools(app: tauri::AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("main") {
         window.open_devtools();
@@ -1056,6 +1082,7 @@ pub fn run() {
             pick_folder,
             pick_wallpaper,
             pick_audio_file,
+            pick_single_file,
             open_devtools,
             save_cover_image,
             set_default_wallpaper_path,

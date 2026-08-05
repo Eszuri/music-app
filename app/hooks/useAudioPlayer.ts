@@ -474,19 +474,26 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                     resumeVolume = await setMinimumResumeVolume();
                 }
 
-                const src = getAudioSrc(file.path);
                 const targetVol = volumeModeRef.current === "app" ? (resumeVolume ?? appVolume) : 1;
 
-                audio.src = src;
-                audio.loop = repeatRef.current === "one";
-
-                if (fadeAudioRef.current && fadeDurationRef.current > 0) {
-                    audio.volume = 0;
-                    await audio.play();
-                    fadeVolumeTo(targetVol, fadeDurationRef.current);
+                if (bpActiveRef.current) {
+                    audio.pause();
+                    audio.removeAttribute("src");
+                    audio.load();
+                    await enginePlayRef.current(file);
                 } else {
-                    audio.volume = targetVol;
-                    await audio.play();
+                    const src = getAudioSrc(file.path);
+                    audio.src = src;
+                    audio.loop = repeatRef.current === "one";
+
+                    if (fadeAudioRef.current && fadeDurationRef.current > 0) {
+                        audio.volume = 0;
+                        await audio.play();
+                        fadeVolumeTo(targetVol, fadeDurationRef.current);
+                    } else {
+                        audio.volume = targetVol;
+                        await audio.play();
+                    }
                 }
 
                 autoPausedBySilenceRef.current = false;
@@ -516,6 +523,15 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     );
 
     const togglePlayPause = useCallback(() => {
+        if (bpActiveRef.current) {
+            if (isPlaying) {
+                bpSendCommandRef.current({command: "pause"}).catch(() => {});
+            } else {
+                bpSendCommandRef.current({command: "resume"}).catch(() => {});
+            }
+            return;
+        }
+
         const audio = audioRef.current;
         if (!audio || !audio.src) return;
 
@@ -555,7 +571,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 audio.pause();
             }
         }
-    }, [pauseIfMuted, isVolumeSilent, setMinimumResumeVolume, applyWallpaper, appVolume, fadeVolumeTo]);
+    }, [pauseIfMuted, isVolumeSilent, setMinimumResumeVolume, applyWallpaper, appVolume, fadeVolumeTo, isPlaying]);
 
     const resetPlayer = useCallback(() => {
         if (audioRef.current) {
@@ -738,14 +754,14 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         if (prevBpActiveRef.current === bpActive) return;
         prevBpActiveRef.current = bpActive;
         if (bpActive) {
-            audioRef.current?.pause();
+            resetPlayer();
             addLog("info", t(lang, 'audio.bitperfect.log.enabled'));
         } else {
             bpSendCommandRef.current({command: "stop"}).catch(() => {});
+            resetPlayer();
             addLog("info", t(lang, 'audio.bitperfect.log.disabled'));
         }
-        setIsPlaying(false);
-    }, [bpActive, addLog, lang]);
+    }, [bpActive, addLog, lang, resetPlayer]);
 
     // Keep engine volume in sync with the app volume slider.
     useEffect(() => {
