@@ -35,6 +35,8 @@ interface UseAudioPlayerOptions {
     lastLocalVolumeSetRef: React.RefObject<number>;
     pauseIfMuted: boolean;
     systemMuted: boolean;
+    fadeAudio?: boolean;
+    fadeDuration?: number;
 }
 
 const MIN_RESUME_VOLUME = 0.01;
@@ -63,6 +65,8 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         lastLocalVolumeSetRef,
         pauseIfMuted,
         systemMuted,
+        fadeAudio = true,
+        fadeDuration = 500,
     } = options;
 
     const [files, setFiles] = useState<FileEntry[]>([]);
@@ -103,6 +107,50 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     const sessionRestoreAttemptedRef = useRef(false);
     const playlistFolderRef = useRef<string | null>(null);
     const skipPlaylistRebuildRef = useRef(false);
+    const fadeAudioRef = useRef(fadeAudio);
+    const fadeDurationRef = useRef(fadeDuration);
+    const fadeAnimationRef = useRef<number | null>(null);
+
+    useEffect(() => {
+        fadeAudioRef.current = fadeAudio;
+        fadeDurationRef.current = fadeDuration;
+    }, [fadeAudio, fadeDuration]);
+
+    const fadeVolumeTo = useCallback((targetVol: number, durationMs: number, onComplete?: () => void) => {
+        const audio = audioRef.current;
+        if (fadeAnimationRef.current) {
+            cancelAnimationFrame(fadeAnimationRef.current);
+            fadeAnimationRef.current = null;
+        }
+
+        const clampedTarget = Math.max(0, Math.min(1, targetVol));
+
+        if (!audio || !fadeAudioRef.current || durationMs <= 0) {
+            if (audio) audio.volume = clampedTarget;
+            onComplete?.();
+            return;
+        }
+
+        const startVol = audio.volume;
+        const startTime = performance.now();
+
+        const step = (now: number) => {
+            const elapsed = now - startTime;
+            const progress = Math.min(1, elapsed / durationMs);
+            const current = startVol + (clampedTarget - startVol) * progress;
+            if (audio) audio.volume = Math.max(0, Math.min(1, current));
+
+            if (progress < 1) {
+                fadeAnimationRef.current = requestAnimationFrame(step);
+            } else {
+                fadeAnimationRef.current = null;
+                if (audio) audio.volume = clampedTarget;
+                onComplete?.();
+            }
+        };
+
+        fadeAnimationRef.current = requestAnimationFrame(step);
+    }, []);
 
     const getAudioSrc = useCallback((filePath: string): string => {
         if (isBrowserTauri && typeof window !== "undefined") {
@@ -416,12 +464,20 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 }
 
                 const src = getAudioSrc(file.path);
+                const targetVol = volumeModeRef.current === "app" ? (resumeVolume ?? appVolume) : 1;
 
                 audio.src = src;
-                audio.volume =
-                    volumeModeRef.current === "app" ? (resumeVolume ?? appVolume) : 1;
                 audio.loop = repeatRef.current === "one";
-                await audio.play();
+
+                if (fadeAudioRef.current && fadeDurationRef.current > 0) {
+                    audio.volume = 0;
+                    await audio.play();
+                    fadeVolumeTo(targetVol, fadeDurationRef.current);
+                } else {
+                    audio.volume = targetVol;
+                    await audio.play();
+                }
+
                 autoPausedBySilenceRef.current = false;
                 restoredPendingPlayRef.current = false;
 
@@ -444,6 +500,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             addLog,
             showError,
             getAudioSrc,
+            fadeVolumeTo,
         ],
     );
 
@@ -453,10 +510,19 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
         if (audio.paused) {
             const resume = async () => {
+                let resumeVolume: number | null = null;
                 if (pauseIfMuted && isVolumeSilent()) {
-                    await setMinimumResumeVolume();
+                    resumeVolume = await setMinimumResumeVolume();
                 }
-                await audio.play();
+                const targetVol = volumeModeRef.current === "app" ? (resumeVolume ?? appVolume) : 1;
+                if (fadeAudioRef.current && fadeDurationRef.current > 0) {
+                    audio.volume = 0;
+                    await audio.play();
+                    fadeVolumeTo(targetVol, fadeDurationRef.current);
+                } else {
+                    audio.volume = targetVol;
+                    await audio.play();
+                }
                 autoPausedBySilenceRef.current = false;
 
                 if (restoredPendingPlayRef.current) {
@@ -468,9 +534,17 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             resume().catch(() => {});
         } else {
             autoPausedBySilenceRef.current = false;
-            audio.pause();
+            const targetVol = volumeModeRef.current === "app" ? appVolume : 1;
+            if (fadeAudioRef.current && fadeDurationRef.current > 0) {
+                fadeVolumeTo(0, fadeDurationRef.current, () => {
+                    audio.pause();
+                    audio.volume = targetVol;
+                });
+            } else {
+                audio.pause();
+            }
         }
-    }, [pauseIfMuted, isVolumeSilent, setMinimumResumeVolume, applyWallpaper]);
+    }, [pauseIfMuted, isVolumeSilent, setMinimumResumeVolume, applyWallpaper, appVolume, fadeVolumeTo]);
 
     const resetPlayer = useCallback(() => {
         if (audioRef.current) {

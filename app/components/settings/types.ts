@@ -23,6 +23,10 @@ export interface SettingsModalProps {
     setVolumeLimit: (v: number) => void;
     pauseIfMuted: boolean;
     setPauseIfMuted: (v: boolean) => void;
+    fadeAudio: boolean;
+    setFadeAudio: (v: boolean) => void;
+    fadeDuration: number;
+    setFadeDuration: (v: number) => void;
     volume: number;
     defaultWallpaper: string | null;
     onPickWallpaper: () => void;

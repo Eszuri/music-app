@@ -36,6 +36,8 @@ import type {Lang} from '../lib/translations';
 import {t} from '../lib/translations';
 
 export const APP_VOLUME_KEY = 'music-app-app-volume';
+export const FADE_AUDIO_KEY = 'music-app-fade-audio';
+export const FADE_DURATION_KEY = 'music-app-fade-duration';
 
 export function usePlayerSettings() {
     const [musicFolder, setMusicFolderState] = useState<string | null>(null);
@@ -65,6 +67,8 @@ export function usePlayerSettings() {
     const [layoutMode, setLayoutModeStateInternal] = useState<'default' | 'compact' | 'immersive'>('default');
     const [shortcuts, setShortcutsState] = useState<Record<ShortcutAction, string>>(DEFAULT_SHORTCUTS);
     const [pauseIfMuted, setPauseIfMutedState] = useState(true);
+    const [fadeAudio, setFadeAudioStateInternal] = useState(true);
+    const [fadeDuration, setFadeDurationStateInternal] = useState(500);
 
     const shortcutsRef = useRef<Record<ShortcutAction, string>>(DEFAULT_SHORTCUTS);
     const volumeLimitRef = useRef<number>(0);
@@ -73,6 +77,23 @@ export function usePlayerSettings() {
     const appVolumeRef = useRef<number>(1);
     const systemVolumeRef = useRef<number>(1);
     const lastLocalVolumeSetRef = useRef<number>(0);
+    const fadeAudioRef = useRef(true);
+    const fadeDurationRef = useRef(500);
+
+    useEffect(() => {
+        fadeAudioRef.current = fadeAudio;
+        fadeDurationRef.current = fadeDuration;
+    }, [fadeAudio, fadeDuration]);
+
+    const setFadeAudio = useCallback((v: boolean) => {
+        setFadeAudioStateInternal(v);
+        safeSetLocalStorage(FADE_AUDIO_KEY, String(v));
+    }, []);
+
+    const setFadeDuration = useCallback((v: number) => {
+        setFadeDurationStateInternal(v);
+        safeSetLocalStorage(FADE_DURATION_KEY, String(v));
+    }, []);
 
     useEffect(() => {
         volumeModeRef.current = volumeMode;
@@ -212,8 +233,15 @@ export function usePlayerSettings() {
                 }
             } catch { /* ignore */}
         }
-        const pim = window.localStorage.getItem(PAUSE_IF_MUTED_KEY);
-        if (pim !== null) setPauseIfMutedState(pim !== 'false');
+        const pm = window.localStorage.getItem(PAUSE_IF_MUTED_KEY);
+        if (pm !== null) setPauseIfMutedState(pm === 'true');
+        const fa = window.localStorage.getItem(FADE_AUDIO_KEY);
+        if (fa !== null) setFadeAudioStateInternal(fa === 'true');
+        const fd = window.localStorage.getItem(FADE_DURATION_KEY);
+        if (fd !== null) {
+            const num = parseInt(fd, 10);
+            if (!isNaN(num) && num > 0) setFadeDurationStateInternal(num);
+        }
         setInitialized(true);
     }, []);
 
@@ -526,5 +554,11 @@ export function usePlayerSettings() {
         lastLocalVolumeSetRef,
         pauseIfMuted,
         setPauseIfMuted,
+        fadeAudio,
+        setFadeAudio,
+        fadeDuration,
+        setFadeDuration,
+        fadeAudioRef,
+        fadeDurationRef,
     };
 }

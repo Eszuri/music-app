@@ -344,6 +344,8 @@ function HomeContent() {
         lastLocalVolumeSetRef: settings.lastLocalVolumeSetRef,
         pauseIfMuted: settings.pauseIfMuted,
         systemMuted: settings.systemMuted,
+        fadeAudio: settings.fadeAudio,
+        fadeDuration: settings.fadeDuration,
     });
 
     useKeyboardShortcuts({
@@ -889,6 +891,10 @@ function HomeContent() {
                 setVolumeLimit={settings.handleVolumeLimitSetting}
                 pauseIfMuted={settings.pauseIfMuted}
                 setPauseIfMuted={settings.setPauseIfMuted}
+                fadeAudio={settings.fadeAudio}
+                setFadeAudio={settings.setFadeAudio}
+                fadeDuration={settings.fadeDuration}
+                setFadeDuration={settings.setFadeDuration}
                 volume={player.activeVolume}
                 defaultWallpaper={settings.defaultWallpaper}
                 onPickWallpaper={handlePickWallpaper}

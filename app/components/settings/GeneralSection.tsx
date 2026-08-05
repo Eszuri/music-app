@@ -25,6 +25,10 @@ export default function GeneralSection({
     setVolumeLimit,
     pauseIfMuted,
     setPauseIfMuted,
+    fadeAudio,
+    setFadeAudio,
+    fadeDuration,
+    setFadeDuration,
     volume,
     defaultWallpaper,
     onPickWallpaper,
@@ -53,6 +57,10 @@ export default function GeneralSection({
     setVolumeLimit: (v: number) => void;
     pauseIfMuted: boolean;
     setPauseIfMuted: (v: boolean) => void;
+    fadeAudio: boolean;
+    setFadeAudio: (v: boolean) => void;
+    fadeDuration: number;
+    setFadeDuration: (v: number) => void;
     volume: number;
     defaultWallpaper: string | null;
     onPickWallpaper: () => void;
@@ -205,6 +213,38 @@ export default function GeneralSection({
                         onChange={(v) => setPauseIfMuted(v === 'true')}
                     />
                 </SettingRow>
+                <SettingRow
+                    title={t(lang, 'general.fadeAudio.title')}
+                    description={t(lang, 'general.fadeAudio.desc')}
+                >
+                    <SelectStub
+                        options={[
+                            ['true', t(lang, 'general.pauseIfMuted.on')],
+                            ['false', t(lang, 'general.pauseIfMuted.off')],
+                        ]}
+                        value={String(fadeAudio)}
+                        onChange={(v) => setFadeAudio(v === 'true')}
+                    />
+                </SettingRow>
+                {fadeAudio && (
+                    <SettingRow
+                        title={t(lang, 'general.fadeDuration.title')}
+                        description={t(lang, 'general.fadeDuration.desc')}
+                    >
+                        <SelectStub
+                            options={[
+                                ['200', '200 ms (0.2s)'],
+                                ['300', '300 ms (0.3s)'],
+                                ['500', '500 ms (0.5s)'],
+                                ['800', '800 ms (0.8s)'],
+                                ['1000', '1000 ms (1.0s)'],
+                                ['1500', '1500 ms (1.5s)'],
+                            ]}
+                            value={String(fadeDuration)}
+                            onChange={(v) => setFadeDuration(parseInt(v, 10))}
+                        />
+                    </SettingRow>
+                )}
                 {volumeMode === 'system' && (
                     <SettingRow
                         title={t(lang, 'general.volumeLimit.title')}
