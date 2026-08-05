@@ -89,6 +89,27 @@ function channelsLabel(lang: Lang, ch: number | null): string {
     return `${ch}${t(lang, 'metadata.ch')}`;
 }
 
+function checkIsHiRes(selectedSong: FileEntry | null, metadata: SongMetadata | null): boolean {
+    if (!selectedSong || !metadata) return false;
+
+    // 1. Lossy formats (mp3, aac, ogg, wma) are NEVER Hi-Res Audio
+    const ext = selectedSong.ext.toLowerCase();
+    const isLossless = ['flac', 'wav', 'alac', 'aiff', 'aif', 'dsf', 'dff'].includes(ext);
+    if (!isLossless) return false;
+
+    const sr = metadata.sample_rate ?? 0;
+    const bd = metadata.bit_depth ?? null;
+
+    // 2. Official Hi-Res Audio criteria:
+    // - Bit Depth > 16 (24-bit, 32-bit) with Sample Rate >= 44100 Hz
+    // - OR Sample Rate >= 88200 Hz (88.2kHz, 96kHz, 192kHz, DSD)
+    if (bd != null) {
+        return bd > 16 && sr >= 44100;
+    }
+
+    return sr >= 88200;
+}
+
 function LyricsSection({
     lang,
     selectedSong,
@@ -473,7 +494,7 @@ function MetadataPanel({
 
                                 <div className="flex items-center justify-between">
                                     <SectionTitle title={t(lang, 'metadata.songInfo')} />
-                                    {metadata?.sample_rate != null && metadata.sample_rate > 44100 && (
+                                    {checkIsHiRes(selectedSong, metadata) && (
                                         <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-widest bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase">
                                             Hi-Res Audio
                                         </span>
@@ -497,6 +518,9 @@ function MetadataPanel({
                                     )}
                                     {metadata?.sample_rate != null && (
                                         <MetaRow label={t(lang, 'metadata.sampleRate')} value={`${(metadata.sample_rate / 1000).toFixed(1)} kHz`} hoverProps={hSample} />
+                                    )}
+                                    {metadata?.bit_depth != null && (
+                                        <MetaRow label={t(lang, 'metadata.bitDepth')} value={`${metadata.bit_depth}-bit`} />
                                     )}
                                     {metadata?.channels != null && (
                                         <MetaRow label={t(lang, 'metadata.channel')} value={channelsLabel(lang, metadata.channels)} hoverProps={hChannel} />

@@ -142,6 +142,7 @@ struct SongMetadata {
     bitrate: Option<u32>,
     sample_rate: Option<u32>,
     channels: Option<u8>,
+    bit_depth: Option<u8>,
 }
 
 #[tauri::command]
@@ -387,6 +388,7 @@ fn get_metadata(file_path: String) -> Result<SongMetadata, String> {
                 bitrate: None,
                 sample_rate: None,
                 channels: None,
+                bit_depth: None,
             });
         }
     };
@@ -396,6 +398,7 @@ fn get_metadata(file_path: String) -> Result<SongMetadata, String> {
     let bitrate = props.audio_bitrate();
     let sample_rate = props.sample_rate();
     let channels = props.channels();
+    let bit_depth = props.bit_depth();
 
     let tag = tagged_file.primary_tag().or_else(|| tagged_file.first_tag());
 
@@ -446,6 +449,7 @@ fn get_metadata(file_path: String) -> Result<SongMetadata, String> {
         bitrate,
         sample_rate,
         channels,
+        bit_depth,
     })
 }
 

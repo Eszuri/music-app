@@ -25,6 +25,7 @@ export interface SongMetadata {
     bitrate: number | null;
     sample_rate: number | null;
     channels: number | null;
+    bit_depth?: number | null;
 }
 
 interface PlayerPanelProps {
