@@ -879,6 +879,7 @@ function HomeContent() {
                 onCancelFolderChange={() => setPendingFolderChange(false)}
                 settingsOpen={settingsOpen}
                 onCloseSettings={closeSettings}
+                isPlaying={player.isPlaying}
                 musicFolder={settings.musicFolder}
                 onChangeFolder={handlePickFolder}
                 autoWallpaper={settings.autoWallpaper}

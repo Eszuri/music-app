@@ -8,6 +8,7 @@ import {modalContentMotion, backdropMotion} from '../lib/animations';
 import {useHoverDescription} from '../hooks/useHoverDescription';
 import AboutSection from './settings/AboutSection';
 import AudioSection from './settings/AudioSection';
+import PluginSection from './settings/PluginSection';
 import ChangelogSection from './settings/ChangelogSection';
 import DebugSection from './settings/DebugSection';
 import GeneralSection from './settings/GeneralSection';
@@ -15,6 +16,7 @@ import ShortcutSection from './settings/ShortcutSection';
 import SortSection from './settings/SortSection';
 import StyleSection from './settings/StyleSection';
 import {getSections} from './settings/sectionsConfig';
+import {useBitPerfectEngine} from '../hooks/useBitPerfectEngine';
 import type {SectionId, SettingsModalProps} from './settings/types';
 
 export type {LogEntry} from '../types/log';
@@ -24,6 +26,7 @@ export default function SettingsModal({
     setLang,
     open,
     onClose,
+    isPlaying,
     musicFolder,
     onChangeFolder,
     autoWallpaper,
@@ -91,7 +94,17 @@ export default function SettingsModal({
         return () => window.removeEventListener('keydown', onKey);
     }, [open, onClose]);
 
-    const sections = getSections(lang);
+    const { status } = useBitPerfectEngine();
+    const isPluginInstalled = status?.installed === true;
+
+    // Fallback if active section is 'audio' but plugin is not installed
+    useEffect(() => {
+        if (activeSection === 'audio' && !isPluginInstalled) {
+            setActiveSection('plugin');
+        }
+    }, [activeSection, isPluginInstalled]);
+
+    const sections = getSections(lang).filter(s => s.id !== 'audio' || isPluginInstalled);
 
     return (
         <AnimatePresence>
@@ -117,18 +130,20 @@ export default function SettingsModal({
                             const isActive = s.id === activeSection;
                             const a = getAccent(accentColor);
                             return (
-                                <button
-                                    key={s.id}
-                                    {...settingItemHover}
-                                    onClick={() => setActiveSection(s.id)}
-                                    className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left cursor-pointer ${isActive
-                                        ? `${a.bg15} ${a.text400} border ${a.border500_20}`
-                                        : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100 border border-transparent'
-                                        }`}
-                                >
-                                    {s.icon}
-                                    <span>{s.label}</span>
-                                </button>
+                                <div key={s.id}>
+                                    {s.isDivider && <div className="my-1.5 mx-3 border-t border-zinc-800/80" />}
+                                    <button
+                                        {...settingItemHover}
+                                        onClick={() => setActiveSection(s.id)}
+                                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left cursor-pointer ${isActive
+                                            ? `${a.bg15} ${a.text400} border ${a.border500_20}`
+                                            : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100 border border-transparent'
+                                            }`}
+                                    >
+                                        {s.icon}
+                                        <span>{s.label}</span>
+                                    </button>
+                                </div>
                             );
                         })}
                     </nav>
@@ -212,16 +227,23 @@ export default function SettingsModal({
                                      onResetSidebarWidth={onResetSidebarWidth}
                                  />
                              )}
-                            {activeSection === 'audio' && (
-                                <AudioSection
-                                    lang={lang}
-                                    outputDevice={outputDevice}
-                                    setOutputDevice={setOutputDevice}
-                                    outputMode={outputMode}
-                                    setOutputMode={setOutputMode}
-                                    accentColor={accentColor}
-                                />
-                            )}
+                             {activeSection === 'plugin' && (
+                                    <PluginSection
+                                        lang={lang}
+                                        accentColor={accentColor}
+                                        isPlaying={isPlaying}
+                                    />
+                                )}
+                                {activeSection === 'audio' && isPluginInstalled && (
+                                    <AudioSection
+                                        lang={lang}
+                                        outputDevice={outputDevice}
+                                        setOutputDevice={setOutputDevice}
+                                        outputMode={outputMode}
+                                        setOutputMode={setOutputMode}
+                                        accentColor={accentColor}
+                                    />
+                                )}
                             {activeSection === 'changelog' && <ChangelogSection lang={lang} />}
                             {activeSection === 'about' && <AboutSection lang={lang} />}
                             {activeSection === 'debug' && <DebugSection lang={lang} logs={logs} />}

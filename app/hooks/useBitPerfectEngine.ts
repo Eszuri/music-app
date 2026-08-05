@@ -41,6 +41,13 @@ interface EngineEventHandlers {
  */
 export function useBitPerfectEngine(handlers: EngineEventHandlers = {}) {
     const [status, setStatus] = useState<BitPerfectPluginStatus | null>(null);
+
+    const setStatusGlobal = useCallback((newStatus: BitPerfectPluginStatus | null) => {
+        setStatus(newStatus);
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('bitperfect-status-changed', { detail: newStatus }));
+        }
+    }, []);
     const [downloading, setDownloading] = useState(false);
     const [downloadProgress, setDownloadProgress] = useState<{downloaded: number; total: number} | null>(null);
     const [engineRunning, setEngineRunning] = useState(false);
@@ -56,10 +63,19 @@ export function useBitPerfectEngine(handlers: EngineEventHandlers = {}) {
         try {
             const mod = await getTauri();
             const s = await mod.invoke<BitPerfectPluginStatus>("get_bit_perfect_plugin_status");
-            setStatus(s);
+            setStatusGlobal(s);
         } catch {
             // plugin commands unavailable (older backend) — stay silent
         }
+    }, [setStatusGlobal]);
+
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const customEvent = e as CustomEvent<BitPerfectPluginStatus | null>;
+            setStatus(customEvent.detail);
+        };
+        window.addEventListener('bitperfect-status-changed', handler);
+        return () => window.removeEventListener('bitperfect-status-changed', handler);
     }, []);
 
     useEffect(() => {
@@ -133,28 +149,28 @@ export function useBitPerfectEngine(handlers: EngineEventHandlers = {}) {
         try {
             const mod = await getTauri();
             const s = await mod.invoke<BitPerfectPluginStatus>("download_bit_perfect_plugin", {});
-            setStatus(s);
+            setStatusGlobal(s);
         } finally {
             setDownloading(false);
             setDownloadProgress(null);
         }
-    }, []);
+    }, [setStatusGlobal]);
 
     const installFromFile = useCallback(async (path: string) => {
         if (!isBrowserTauri) return;
         const mod = await getTauri();
         const s = await mod.invoke<BitPerfectPluginStatus>("install_bit_perfect_plugin_from_file", {path});
-        setStatus(s);
-    }, []);
+        setStatusGlobal(s);
+    }, [setStatusGlobal]);
 
     const uninstall = useCallback(async () => {
         if (!isBrowserTauri) return;
         const mod = await getTauri();
         await mod.invoke("uninstall_bit_perfect_plugin");
-        setStatus({installed: false, path: null, size_bytes: null, sha256: null});
+        setStatusGlobal({installed: false, path: null, size_bytes: null, sha256: null});
         setEngineRunning(false);
         setEngineState(null);
-    }, []);
+    }, [setStatusGlobal]);
 
     const stopEngine = useCallback(async () => {
         if (!isBrowserTauri) return;

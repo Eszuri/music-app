@@ -7,6 +7,7 @@ interface SectionDef {
     id: SectionId;
     label: string;
     icon: ReactNode;
+    isDivider?: boolean;
 }
 
 export function getSections(lang: Lang): SectionDef[] {
@@ -55,17 +56,6 @@ export function getSections(lang: Lang): SectionDef[] {
             ),
         },
         {
-            id: 'audio',
-            label: t(lang, 'sections.audio'),
-            icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 14v-3a9 9 0 0 1 18 0v3" />
-                    <path d="M2 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3a1 1 0 0 0-1 1z" />
-                    <path d="M22 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h2a1 1 0 0 1 1 1z" />
-                </svg>
-            ),
-        },
-        {
             id: 'debug',
             label: t(lang, 'sections.debug'),
             icon: (
@@ -95,6 +85,28 @@ export function getSections(lang: Lang): SectionDef[] {
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" />
                     <path d="M12 16v-4M12 8h.01" />
+                </svg>
+            ),
+        },
+        {
+            id: 'plugin',
+            label: t(lang, 'sections.plugin') || 'Plugin',
+            isDivider: true,
+            icon: (
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect width="7" height="7" x="14" y="3" rx="1"/>
+                    <path d="M10 21V8a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5a1 1 0 0 0-1-1H3"/>
+                </svg>
+            ),
+        },
+        {
+            id: 'audio',
+            label: t(lang, 'sections.audio'),
+            icon: (
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 14v-3a9 9 0 0 1 18 0v3" />
+                    <path d="M2 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3a1 1 0 0 0-1 1z" />
+                    <path d="M22 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h2a1 1 0 0 1 1 1z" />
                 </svg>
             ),
         },

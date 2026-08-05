@@ -14,6 +14,7 @@ interface HomeModalsProps {
     onCancelFolderChange: () => void;
     settingsOpen: boolean;
     onCloseSettings: () => void;
+    isPlaying: boolean;
     musicFolder: string | null;
     onChangeFolder: () => void;
     autoWallpaper: boolean;
@@ -78,6 +79,7 @@ export default function HomeModals({
     onCancelFolderChange,
     settingsOpen,
     onCloseSettings,
+    isPlaying,
     musicFolder,
     onChangeFolder,
     autoWallpaper,
@@ -153,6 +155,7 @@ export default function HomeModals({
                 setLang={setLang}
                 open={settingsOpen}
                 onClose={onCloseSettings}
+                isPlaying={isPlaying}
                 musicFolder={musicFolder}
                 onChangeFolder={onChangeFolder}
                 autoWallpaper={autoWallpaper}
