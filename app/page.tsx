@@ -344,7 +344,6 @@ function HomeContent() {
         lastLocalVolumeSetRef: settings.lastLocalVolumeSetRef,
         pauseIfMuted: settings.pauseIfMuted,
         systemMuted: settings.systemMuted,
-        outputMode: settings.outputMode,
     });
 
     useKeyboardShortcuts({
@@ -893,10 +892,6 @@ function HomeContent() {
                 defaultWallpaper={settings.defaultWallpaper}
                 onPickWallpaper={handlePickWallpaper}
                 onClearWallpaper={() => settings.setDefaultWallpaper(null)}
-                outputMode={settings.outputMode}
-                setOutputMode={settings.setOutputModeState}
-                outputDevice={settings.outputDevice}
-                setOutputDevice={settings.setOutputDeviceState}
                 folderSort={settings.folderSort}
                 setFolderSort={settings.setFolderSortState}
                 fileSort={settings.fileSort}
@@ -932,7 +927,6 @@ function HomeContent() {
                 equalizer={player.equalizer}
                 accentColor={settings.accentColor}
                 lang={lang}
-                outputMode={settings.outputMode}
             />
 
             <MetadataEditModal

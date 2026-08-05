@@ -32,10 +32,6 @@ interface HomeModalsProps {
     defaultWallpaper: string | null;
     onPickWallpaper: () => void;
     onClearWallpaper: () => void;
-    outputMode: 'shared' | 'exclusive';
-    setOutputMode: (v: 'shared' | 'exclusive') => void;
-    outputDevice: string | null;
-    setOutputDevice: (v: string | null) => void;
     layoutMode?: 'default' | 'compact' | 'immersive';
     setLayoutMode?: (v: 'default' | 'compact' | 'immersive') => void;
     folderSort: string;
@@ -92,10 +88,6 @@ export default function HomeModals({
     defaultWallpaper,
     onPickWallpaper,
     onClearWallpaper,
-    outputMode,
-    setOutputMode,
-    outputDevice,
-    setOutputDevice,
     layoutMode = 'default',
     setLayoutMode,
     folderSort,
@@ -163,10 +155,6 @@ export default function HomeModals({
                 defaultWallpaper={defaultWallpaper}
                 onPickWallpaper={onPickWallpaper}
                 onClearWallpaper={onClearWallpaper}
-                outputMode={outputMode}
-                setOutputMode={setOutputMode}
-                outputDevice={outputDevice}
-                setOutputDevice={setOutputDevice}
                 layoutMode={layoutMode}
                 setLayoutMode={setLayoutMode}
                 folderSort={folderSort}

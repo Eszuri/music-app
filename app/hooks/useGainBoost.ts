@@ -39,7 +39,6 @@ export interface EqualizerAudioState {
 export function useGainBoost(
     audioRef: React.RefObject<HTMLAudioElement | null>,
     equalizer?: EqualizerAudioState,
-    outputMode?: 'shared' | 'exclusive',
 ) {
     const [gain, setGainState] = useState<number>(() => loadSavedGain());
     const [supported, setSupported] = useState(true);
@@ -50,7 +49,6 @@ export function useGainBoost(
     const gainNodeRef = useRef<GainNode | null>(null);
     const limiterNodeRef = useRef<DynamicsCompressorNode | null>(null);
     const filtersRef = useRef<BiquadFilterNode[]>([]);
-    const attachedElementRef = useRef<HTMLAudioElement | null>(null);
 
     const gainRef = useRef(gain);
     gainRef.current = gain;
@@ -58,12 +56,8 @@ export function useGainBoost(
     const eqRef = useRef(equalizer);
     eqRef.current = equalizer;
 
-    const modeRef = useRef(outputMode);
-    modeRef.current = outputMode;
-
     const rebuildEqFilters = useCallback((ctx: AudioContext, freqs: number[], eq?: EqualizerAudioState): BiquadFilterNode[] => {
         const qVal = getQFactorForBands(freqs.length);
-        const isExclusive = modeRef.current === 'exclusive';
         return freqs.map((freq, i) => {
             const filter = ctx.createBiquadFilter();
             if (i === 0) {
@@ -76,7 +70,7 @@ export function useGainBoost(
             }
             filter.frequency.value = freq;
 
-            const db = (!isExclusive && eq?.enabled) ? (eq.gains[i] ?? 0) : 0;
+            const db = eq?.enabled ? (eq.gains[i] ?? 0) : 0;
             filter.gain.value = db;
             return filter;
         });
@@ -98,9 +92,8 @@ export function useGainBoost(
             limiter.disconnect();
 
             // Connect: source ➔ preamp ➔ filter[0] ➔ ... ➔ filter[N-1] ➔ gainNode ➔ limiter ➔ destination
-            let lastNode: AudioNode = source;
-            lastNode.connect(preamp);
-            lastNode = preamp;
+            let lastNode: AudioNode = preamp;
+            source.connect(preamp);
 
             filters.forEach((filter) => {
                 lastNode.connect(filter);
@@ -111,7 +104,7 @@ export function useGainBoost(
             gainNode.connect(limiter);
             limiter.connect(ctxRef.current.destination);
         } catch (e) {
-            console.warn("useGainBoost: failed to connect audio graph", e);
+            console.error("[useGainBoost] Error connecting AudioContext graph:", e);
         }
     }, []);
 
@@ -119,64 +112,43 @@ export function useGainBoost(
         const audio = audioRef.current;
         if (!audio) return null;
 
-        if (attachedElementRef.current === audio && gainNodeRef.current) {
-            return gainNodeRef.current;
-        }
-
         try {
-            const AudioCtxCtor =
-                window.AudioContext ||
-                (window as unknown as {webkitAudioContext?: typeof AudioContext})
-                    .webkitAudioContext;
-            if (!AudioCtxCtor) {
-                setSupported(false);
-                return null;
+            if (!ctxRef.current) {
+                const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+                ctxRef.current = new AudioCtx();
             }
 
-            const ctx = ctxRef.current ?? new AudioCtxCtor();
-            ctxRef.current = ctx;
+            const ctx = ctxRef.current;
 
-            const source = ctx.createMediaElementSource(audio);
-            sourceNodeRef.current = source;
+            if (!sourceNodeRef.current) {
+                sourceNodeRef.current = ctx.createMediaElementSource(audio);
+            }
+            if (!preampNodeRef.current) {
+                preampNodeRef.current = ctx.createGain();
+            }
+            if (!gainNodeRef.current) {
+                gainNodeRef.current = ctx.createGain();
+                gainNodeRef.current.gain.value = gainRef.current;
+            }
+            if (!limiterNodeRef.current) {
+                const comp = ctx.createDynamicsCompressor();
+                comp.threshold.value = -0.5; // Trigger just before 0 dBFS clipping
+                comp.knee.value = 3.0; // Soft knee for clean transparent limiting
+                comp.ratio.value = 20.0; // Brickwall ratio
+                comp.attack.value = 0.002; // Fast 2ms attack
+                comp.release.value = 0.05; // 50ms release
+                limiterNodeRef.current = comp;
+            }
 
-            // Preamp Gain Node
-            const preamp = ctx.createGain();
-            const eq = eqRef.current;
-            const isExclusive = modeRef.current === 'exclusive';
-            const maxBoost = (!isExclusive && eq?.enabled) ? Math.max(0, ...(eq.gains ?? [])) : 0;
-            const autoPreamp = eq?.autoPreamp !== false;
-            const effectivePreampDb = (!isExclusive && eq?.enabled)
-                ? (autoPreamp ? (eq.preampDb ?? 0) - maxBoost : (eq.preampDb ?? 0))
-                : 0;
-            const preampLinear = Math.pow(10, effectivePreampDb / 20);
-            preamp.gain.value = preampLinear;
-            preampNodeRef.current = preamp;
+            const freqs = eqRef.current?.frequencies ?? [];
+            if (filtersRef.current.length !== freqs.length) {
+                filtersRef.current = rebuildEqFilters(ctx, freqs, eqRef.current);
+            }
 
-            // Equalizer BiquadFilterNodes
-            const freqs = eq?.frequencies ?? [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
-            const filters = rebuildEqFilters(ctx, freqs, eq);
-            filtersRef.current = filters;
-
-            // Main Gain Boost Node
-            const gainNode = ctx.createGain();
-            gainNode.gain.value = isExclusive ? 1 : gainRef.current;
-            gainNodeRef.current = gainNode;
-
-            // Anti-Clipping Soft Peak Limiter Node
-            const limiter = ctx.createDynamicsCompressor();
-            limiter.threshold.value = -0.5; // Limiting threshold at -0.5 dBFS
-            limiter.knee.value = 3;         // Soft knee
-            limiter.ratio.value = 20;       // Limiter compression ratio
-            limiter.attack.value = 0.003;   // Instant 3ms attack
-            limiter.release.value = 0.1;    // 100ms smooth release
-            limiterNodeRef.current = limiter;
-
-            attachedElementRef.current = audio;
             connectGraph();
-
-            return gainNode;
+            return gainNodeRef.current;
         } catch (e) {
-            console.warn("useGainBoost: gagal inisialisasi Web Audio graph", e);
+            console.warn("[useGainBoost] Web Audio API failed:", e);
             setSupported(false);
             return null;
         }
@@ -192,23 +164,22 @@ export function useGainBoost(
             if (ctxRef.current?.state === "suspended") {
                 ctxRef.current.resume().catch(() => {});
             }
-            if (node) node.gain.value = outputMode === 'exclusive' ? 1 : gainRef.current;
+            if (node) node.gain.value = gainRef.current;
         };
 
         audio.addEventListener("play", handlePlay);
         return () => {
             audio.removeEventListener("play", handlePlay);
         };
-    }, [audioRef.current, ensureGraph, outputMode]);
+    }, [audioRef.current, ensureGraph]);
 
     // Sync GainNode state
     useEffect(() => {
         if (gainNodeRef.current && ctxRef.current) {
-            const targetGain = outputMode === 'exclusive' ? 1 : gain;
-            gainNodeRef.current.gain.setTargetAtTime(targetGain, ctxRef.current.currentTime, 0.015);
+            gainNodeRef.current.gain.setTargetAtTime(gain, ctxRef.current.currentTime, 0.015);
         }
         safeSetLocalStorage(GAIN_BOOST_KEY, String(gain));
-    }, [gain, outputMode]);
+    }, [gain]);
 
     // Sync Equalizer & Preamp state live without clicks or pops
     useEffect(() => {
@@ -216,12 +187,10 @@ export function useGainBoost(
         const eq = equalizer;
         if (!ctx || !eq) return;
 
-        const isExclusive = outputMode === 'exclusive';
-
         // Calculate auto-preamp headroom protection
-        const maxBoost = (!isExclusive && eq.enabled) ? Math.max(0, ...(eq.gains ?? [])) : 0;
+        const maxBoost = eq.enabled ? Math.max(0, ...(eq.gains ?? [])) : 0;
         const autoPreamp = eq.autoPreamp !== false;
-        const effectivePreampDb = (!isExclusive && eq.enabled)
+        const effectivePreampDb = eq.enabled
             ? (autoPreamp ? (eq.preampDb ?? 0) - maxBoost : (eq.preampDb ?? 0))
             : 0;
         const preampLinear = Math.pow(10, effectivePreampDb / 20);
@@ -237,11 +206,11 @@ export function useGainBoost(
         } else {
             // Update filter gains smoothly
             filtersRef.current.forEach((filter, i) => {
-                const db = (!isExclusive && eq.enabled) ? (eq.gains[i] ?? 0) : 0;
+                const db = eq.enabled ? (eq.gains[i] ?? 0) : 0;
                 filter.gain.setTargetAtTime(db, ctx.currentTime, 0.015);
             });
         }
-    }, [equalizer, outputMode, rebuildEqFilters, connectGraph]);
+    }, [equalizer, rebuildEqFilters, connectGraph]);
 
     // Clean up AudioContext and nodes on unmount
     useEffect(() => {
@@ -252,18 +221,23 @@ export function useGainBoost(
                 filtersRef.current.forEach((f) => f.disconnect());
                 gainNodeRef.current?.disconnect();
                 limiterNodeRef.current?.disconnect();
-            } catch (e) {
-                console.warn("useGainBoost: failed to disconnect nodes on unmount", e);
+                ctxRef.current?.close().catch(() => {});
+            } catch {
+                // ignore
             }
-            ctxRef.current?.close().catch(() => {});
-            ctxRef.current = null;
         };
     }, []);
 
-    const setGain = useCallback((value: number) => {
-        const clamped = Math.max(MIN_GAIN, Math.min(MAX_GAIN, value));
+    const setGain = useCallback((newGain: number) => {
+        const clamped = Math.max(MIN_GAIN, Math.min(MAX_GAIN, newGain));
         setGainState(clamped);
     }, []);
 
-    return {gain, setGain, supported, minGain: MIN_GAIN, maxGain: MAX_GAIN};
+    return {
+        gain,
+        setGain,
+        minGain: MIN_GAIN,
+        maxGain: MAX_GAIN,
+        supported,
+    };
 }

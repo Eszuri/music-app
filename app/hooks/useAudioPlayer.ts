@@ -35,7 +35,6 @@ interface UseAudioPlayerOptions {
     lastLocalVolumeSetRef: React.RefObject<number>;
     pauseIfMuted: boolean;
     systemMuted: boolean;
-    outputMode?: "shared" | "exclusive";
 }
 
 const MIN_RESUME_VOLUME = 0.01;
@@ -426,6 +425,12 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 autoPausedBySilenceRef.current = false;
                 restoredPendingPlayRef.current = false;
 
+                if (isBrowserTauri) {
+                    getTauri().then((mod) => {
+                        mod.invoke("engine_play", { path: file.path }).catch(() => {});
+                    });
+                }
+
                 if (token !== playTokenRef.current || !isMountedRef.current) return;
 
                 setSelectedSong(file);
@@ -460,6 +465,12 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 await audio.play();
                 autoPausedBySilenceRef.current = false;
 
+                if (isBrowserTauri) {
+                    getTauri().then((mod) => {
+                        mod.invoke("engine_resume").catch(() => {});
+                    });
+                }
+
                 if (restoredPendingPlayRef.current) {
                     restoredPendingPlayRef.current = false;
                     const meta = metadataRef.current;
@@ -470,6 +481,11 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         } else {
             autoPausedBySilenceRef.current = false;
             audio.pause();
+            if (isBrowserTauri) {
+                getTauri().then((mod) => {
+                    mod.invoke("engine_pause").catch(() => {});
+                });
+            }
         }
     }, [pauseIfMuted, isVolumeSilent, setMinimumResumeVolume, applyWallpaper]);
 
@@ -491,7 +507,10 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         saveSessionState(null);
         if (isBrowserTauri) {
             getTauri()
-                .then((mod) => mod.invoke("clear_wallpaper"))
+                .then((mod) => {
+                    mod.invoke("clear_wallpaper").catch(() => {});
+                    mod.invoke("engine_stop").catch(() => {});
+                })
                 .catch(() => {});
         }
     }, []);
@@ -641,7 +660,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
     // ─── equalizer & gain boost (Web Audio API) ────────────────────────────────
     const equalizer = useEqualizer();
-    const gainBoost = useGainBoost(audioRef, equalizer, options.outputMode);
+    const gainBoost = useGainBoost(audioRef, equalizer);
 
     // ─── volume / mute sync ────────────────────────────────────────────────────
 
@@ -735,6 +754,11 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         const t = parseFloat(e.target.value);
         setCurrentTime(t);
         if (audioRef.current) audioRef.current.currentTime = t;
+        if (isBrowserTauri) {
+            getTauri().then((mod) => {
+                mod.invoke("engine_seek", { positionSecs: t }).catch(() => {});
+            });
+        }
     }, []);
 
     const toggleSystemMute = useCallback(() => {

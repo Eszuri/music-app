@@ -61,7 +61,6 @@ export function usePlayerSettings() {
     const [accentColor, setAccentColorState] = useState('green');
     const [customAccentHex, setCustomAccentHexState] = useState('#22c55e');
     const [defaultWallpaper, setDefaultWallpaperState] = useState<string | null>(null);
-    const [outputMode, setOutputModeStateInternal] = useState<'shared' | 'exclusive'>('shared');
     const [outputDevice, setOutputDeviceStateInternal] = useState<string | null>(null);
     const [layoutMode, setLayoutModeStateInternal] = useState<'default' | 'compact' | 'immersive'>('default');
     const [shortcuts, setShortcutsState] = useState<Record<ShortcutAction, string>>(DEFAULT_SHORTCUTS);
@@ -160,15 +159,7 @@ export function usePlayerSettings() {
         if (ca) setCustomAccentHexState(ca);
         const wp = window.localStorage.getItem(WALLPAPER_KEY);
         if (wp) setDefaultWallpaperState(wp);
-        const om = window.localStorage.getItem(OUTPUT_MODE_KEY);
-        if (om === 'exclusive' || om === 'shared') {
-            setOutputModeStateInternal(om);
-            if (isBrowserTauri) {
-                getTauri().then(mod => {
-                    mod.invoke('engine_set_output_mode', { mode: om }).catch(() => {});
-                });
-            }
-        }
+
         const od = window.localStorage.getItem(OUTPUT_DEVICE_KEY);
         if (od) {
             setOutputDeviceStateInternal(od);
@@ -450,16 +441,6 @@ export function usePlayerSettings() {
         }
     };
 
-    const setOutputModeState = useCallback((mode: 'shared' | 'exclusive') => {
-        setOutputModeStateInternal(mode);
-        safeSetLocalStorage(OUTPUT_MODE_KEY, mode);
-        if (isBrowserTauri) {
-            getTauri().then(mod => {
-                mod.invoke('engine_set_output_mode', { mode }).catch(() => {});
-            });
-        }
-    }, []);
-
     const setOutputDeviceState = useCallback((name: string | null) => {
         setOutputDeviceStateInternal(name);
         if (name) {
@@ -529,8 +510,6 @@ export function usePlayerSettings() {
         setCustomAccentHexState,
         defaultWallpaper,
         setDefaultWallpaper,
-        outputMode,
-        setOutputModeState,
         outputDevice,
         setOutputDeviceState,
         layoutMode,

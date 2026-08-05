@@ -21,15 +21,7 @@ export function getSections(lang: Lang): SectionDef[] {
                 </svg>
             ),
         },
-        {
-            id: 'audio',
-            label: t(lang, 'sections.audio'),
-            icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2v20M17 5v14M22 9v6M7 7v10M2 11v2" />
-                </svg>
-            ),
-        },
+
         {
             id: 'sort',
             label: t(lang, 'sections.sort'),

@@ -5,7 +5,7 @@ use std::time::Duration;
 use tauri::Emitter;
 
 use super::decoder::{AudioDecoder, AudioStreamInfo};
-use super::output::{AudioOutput, OutputMode};
+use super::output::AudioOutput;
 
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct EnginePositionEvent {
@@ -27,7 +27,6 @@ pub enum EngineCommand {
     Stop,
     Seek(f64),
     SetVolume(f32),
-    SetOutputMode(OutputMode),
     SetDevice(Option<String>),
 }
 
@@ -35,7 +34,6 @@ pub struct AudioEngineState {
     pub is_playing: bool,
     pub is_paused: bool,
     pub volume: f32,
-    pub output_mode: OutputMode,
     pub device_name: Option<String>,
     pub stream_info: Option<AudioStreamInfo>,
 }
@@ -46,7 +44,6 @@ impl Default for AudioEngineState {
             is_playing: false,
             is_paused: false,
             volume: 1.0,
-            output_mode: OutputMode::Shared,
             device_name: None,
             stream_info: None,
         }
@@ -71,21 +68,20 @@ impl AudioEngineHandle {
             let mut pending_offset = 0;
             let mut playback_position_sec = 0.0;
             let mut target_volume = 1.0;
+            let mut last_position_emit = std::time::Instant::now();
 
             loop {
                 // Handle pending commands from frontend
                 while let Ok(cmd) = rx.try_recv() {
                     match cmd {
                         EngineCommand::Play(path) => {
+                            current_output = None;
+                            current_decoder = None;
                             match AudioDecoder::open(&path) {
                                 Ok(decoder) => {
                                     let info = decoder.get_stream_info();
                                     log::info!("Opened audio stream: {:?}", info);
 
-                                    let mode = {
-                                        let s = state_clone.lock().unwrap();
-                                        s.output_mode.clone()
-                                    };
                                     let dev_name = {
                                         let s = state_clone.lock().unwrap();
                                         s.device_name.clone()
@@ -95,7 +91,6 @@ impl AudioEngineHandle {
                                         dev_name.as_deref(),
                                         info.sample_rate,
                                         info.channels,
-                                        mode,
                                     ) {
                                         Ok(out) => {
                                             current_output = Some(out);
@@ -186,13 +181,10 @@ impl AudioEngineHandle {
                             let mut s = state_clone.lock().unwrap();
                             s.volume = target_volume;
                         }
-                        EngineCommand::SetOutputMode(mode) => {
-                            let mut s = state_clone.lock().unwrap();
-                            s.output_mode = mode;
-                        }
                         EngineCommand::SetDevice(dev) => {
                             let mut s = state_clone.lock().unwrap();
                             s.device_name = dev;
+                            current_output = None;
                         }
                     }
                 }
@@ -204,52 +196,70 @@ impl AudioEngineHandle {
                 };
 
                 if is_active {
+                    if current_output.is_none() && current_decoder.is_some() {
+                        if let Some(ref decoder) = current_decoder {
+                            let info = decoder.get_stream_info();
+                            let dev_name = {
+                                let s = state_clone.lock().unwrap();
+                                s.device_name.clone()
+                            };
+                            match AudioOutput::new(dev_name.as_deref(), info.sample_rate, info.channels) {
+                                Ok(out) => current_output = Some(out),
+                                Err(e) => log::error!("Failed to recreate output stream: {}", e),
+                            }
+                        }
+                    }
+
                     if let (Some(decoder), Some(output)) = (current_decoder.as_mut(), current_output.as_mut()) {
-                        // Refill buffer if needed
-                        if pending_offset >= pending_samples.len() {
-                            match decoder.decode_next() {
-                                Ok(Some(samples)) => {
-                                    pending_samples = samples;
-                                    // Apply software volume scaling unless in Exclusive (Bit-Perfect) mode
-                                    let is_exclusive = {
-                                        let s = state_clone.lock().unwrap();
-                                        s.output_mode == OutputMode::Exclusive
-                                    };
-                                    if !is_exclusive && (target_volume - 1.0).abs() > 0.001 {
-                                        for s in pending_samples.iter_mut() {
-                                            *s *= target_volume;
+                        // Keep ring buffer continuously filled
+                        while output.free_space() >= 1024 {
+                            if pending_offset >= pending_samples.len() {
+                                match decoder.decode_next() {
+                                    Ok(Some(mut samples)) => {
+                                        if (target_volume - 1.0).abs() > 0.001 {
+                                            for s in samples.iter_mut() {
+                                                *s *= target_volume;
+                                            }
                                         }
+                                        pending_samples = samples;
+                                        pending_offset = 0;
                                     }
-                                    pending_offset = 0;
+                                    Ok(None) => {
+                                        let mut s = state_clone.lock().unwrap();
+                                        s.is_playing = false;
+                                        s.is_paused = false;
+                                        let _ = app_handle.emit("engine-state", EngineStateEvent {
+                                            is_playing: false,
+                                            is_paused: false,
+                                            is_stopped: true,
+                                        });
+                                        break;
+                                    }
+                                    Err(e) => {
+                                        log::error!("Error decoding frame: {}", e);
+                                        break;
+                                    }
                                 }
-                                Ok(None) => {
-                                    // End of stream
-                                    let mut s = state_clone.lock().unwrap();
-                                    s.is_playing = false;
-                                    s.is_paused = false;
-                                    let _ = app_handle.emit("engine-state", EngineStateEvent {
-                                        is_playing: false,
-                                        is_paused: false,
-                                        is_stopped: true,
-                                    });
+                            }
+
+                            if pending_offset < pending_samples.len() {
+                                let unwritten = &pending_samples[pending_offset..];
+                                let written = output.push_samples(unwritten);
+                                if written == 0 {
+                                    break;
                                 }
-                                Err(e) => {
-                                    log::error!("Error decoding frame: {}", e);
+                                pending_offset += written;
+
+                                let samples_per_sec = output.sample_rate as f64 * output.channels as f64;
+                                if samples_per_sec > 0.0 {
+                                    playback_position_sec += written as f64 / samples_per_sec;
                                 }
                             }
                         }
 
-                        // Push samples to output
-                        if pending_offset < pending_samples.len() {
-                            let unwritten = &pending_samples[pending_offset..];
-                            let written = output.push_samples(unwritten);
-                            pending_offset += written;
-
-                            let samples_per_sec = output.sample_rate as f64 * output.channels as f64;
-                            if samples_per_sec > 0.0 {
-                                playback_position_sec += written as f64 / samples_per_sec;
-                            }
-
+                        // Throttle position IPC emits to 4Hz (every 250ms) to eliminate UI thread lag
+                        if last_position_emit.elapsed() >= Duration::from_millis(250) {
+                            last_position_emit = std::time::Instant::now();
                             let _ = app_handle.emit("engine-position", EnginePositionEvent {
                                 current_time: playback_position_sec,
                                 duration: decoder.duration_secs,
@@ -287,10 +297,6 @@ impl AudioEngineHandle {
 
     pub fn set_volume(&self, volume: f32) {
         let _ = self.sender.send(EngineCommand::SetVolume(volume));
-    }
-
-    pub fn set_output_mode(&self, mode: OutputMode) {
-        let _ = self.sender.send(EngineCommand::SetOutputMode(mode));
     }
 
     pub fn set_device(&self, device_name: Option<String>) {

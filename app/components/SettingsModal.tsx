@@ -7,7 +7,6 @@ import {t} from '../lib/translations';
 import {modalContentMotion, backdropMotion} from '../lib/animations';
 import {useHoverDescription} from '../hooks/useHoverDescription';
 import AboutSection from './settings/AboutSection';
-import AudioSection from './settings/AudioSection';
 import ChangelogSection from './settings/ChangelogSection';
 import DebugSection from './settings/DebugSection';
 import GeneralSection from './settings/GeneralSection';
@@ -42,10 +41,6 @@ export default function SettingsModal({
     defaultWallpaper,
     onPickWallpaper,
     onClearWallpaper,
-    outputMode,
-    setOutputMode,
-    outputDevice,
-    setOutputDevice,
     folderSort,
     setFolderSort,
     fileSort,
@@ -168,16 +163,6 @@ export default function SettingsModal({
                                     onResetAllSettings={onResetAllSettings}
                                 />
                             )}
-                             {activeSection === 'audio' && (
-                                 <AudioSection
-                                     lang={lang}
-                                     outputMode={outputMode}
-                                     setOutputMode={setOutputMode}
-                                     outputDevice={outputDevice}
-                                     setOutputDevice={setOutputDevice}
-                                     accentColor={accentColor}
-                                 />
-                             )}
                             {activeSection === 'sort' && (
                                 <SortSection
                                     lang={lang}

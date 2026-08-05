@@ -3,12 +3,6 @@ use cpal::{Stream, StreamConfig};
 use ringbuf::HeapRb;
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub enum OutputMode {
-    Shared,
-    Exclusive,
-}
-
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct AudioDeviceInfo {
     pub name: String,
@@ -45,11 +39,10 @@ pub fn get_audio_hosts_and_devices() -> Vec<AudioDeviceInfo> {
 }
 
 pub struct AudioOutput {
-    _stream: Stream,
+    #[allow(dead_code)]
+    stream: Stream,
     pub sample_rate: u32,
     pub channels: u16,
-    #[allow(dead_code)]
-    pub mode: OutputMode,
     producer: ringbuf::HeapProducer<f32>,
 }
 
@@ -58,10 +51,13 @@ impl AudioOutput {
         target_device_name: Option<&str>,
         target_sample_rate: u32,
         target_channels: u16,
-        mode: OutputMode,
     ) -> Result<Self, String> {
-        let host = cpal::default_host();
+        let ring_buffer_size = (target_sample_rate as usize * target_channels as usize) / 2;
+        let rb = HeapRb::<f32>::new(ring_buffer_size.max(4096));
+        let (producer, consumer) = rb.split();
+        let consumer_arc = Arc::new(Mutex::new(consumer));
 
+        let host = cpal::default_host();
         let device = if let Some(dev_name) = target_device_name {
             host.output_devices()
                 .map_err(|e| format!("Failed to list devices: {}", e))?
@@ -76,30 +72,13 @@ impl AudioOutput {
             .default_output_config()
             .map_err(|e| format!("Failed to get default output config: {}", e))?;
 
-        if mode == OutputMode::Exclusive {
-            log::info!(
-                "Opening audio device in Exclusive (Bit-Perfect) mode: {}Hz {}ch",
-                target_sample_rate,
-                target_channels
-            );
-        }
-
-        let sample_rate = cpal::SampleRate(target_sample_rate);
-        let channels = target_channels;
-
         let config = StreamConfig {
-            channels,
-            sample_rate,
+            channels: target_channels,
+            sample_rate: cpal::SampleRate(target_sample_rate),
             buffer_size: cpal::BufferSize::Default,
         };
 
-        let ring_buffer_size = (target_sample_rate as usize * channels as usize) / 2;
-        let rb = HeapRb::<f32>::new(ring_buffer_size.max(4096));
-        let (producer, consumer) = rb.split();
-        let consumer_arc = Arc::new(Mutex::new(consumer));
-
         let consumer_for_stream = Arc::clone(&consumer_arc);
-
         let stream_result = device.build_output_stream(
             &config,
             move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
@@ -118,7 +97,7 @@ impl AudioOutput {
         let stream = match stream_result {
             Ok(s) => s,
             Err(e) => {
-                log::warn!("Primary audio stream initialization failed ({}), attempting fallback config", e);
+                log::warn!("Primary audio stream initialization failed ({}), attempting default config", e);
                 let consumer_fallback = Arc::clone(&consumer_arc);
                 let fallback_config = StreamConfig {
                     channels: default_config.channels(),
@@ -147,10 +126,9 @@ impl AudioOutput {
         stream.play().map_err(|e| format!("Failed to start output stream: {}", e))?;
 
         Ok(Self {
-            _stream: stream,
-            sample_rate: config.sample_rate.0,
-            channels: config.channels,
-            mode,
+            stream,
+            sample_rate: target_sample_rate,
+            channels: target_channels,
             producer,
         })
     }

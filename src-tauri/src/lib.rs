@@ -10,7 +10,7 @@ use std::time::{Duration, SystemTime};
 mod audio;
 
 use audio::engine::AudioEngineHandle;
-use audio::output::{get_audio_hosts_and_devices, AudioDeviceInfo, OutputMode};
+use audio::output::{get_audio_hosts_and_devices, AudioDeviceInfo};
 
 static AUDIO_ENGINE: std::sync::OnceLock<AudioEngineHandle> = std::sync::OnceLock::new();
 
@@ -74,19 +74,7 @@ fn engine_set_volume(volume: f32) -> Result<(), String> {
     }
 }
 
-#[tauri::command]
-fn engine_set_output_mode(mode: String) -> Result<(), String> {
-    if let Some(engine) = AUDIO_ENGINE.get() {
-        let output_mode = match mode.as_str() {
-            "exclusive" => OutputMode::Exclusive,
-            _ => OutputMode::Shared,
-        };
-        engine.set_output_mode(output_mode);
-        Ok(())
-    } else {
-        Err("Audio engine not initialized".to_string())
-    }
-}
+
 
 #[tauri::command]
 fn engine_get_output_devices() -> Result<Vec<AudioDeviceInfo>, String> {
@@ -1045,7 +1033,6 @@ pub fn run() {
             engine_stop,
             engine_seek,
             engine_set_volume,
-            engine_set_output_mode,
             engine_get_output_devices,
             engine_set_output_device
         ])
