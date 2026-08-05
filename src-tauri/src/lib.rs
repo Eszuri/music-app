@@ -7,6 +7,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, SystemTime};
 
+mod plugin_manager;
+mod sidecar;
+
 
 
 #[cfg(windows)]
@@ -849,6 +852,67 @@ async fn set_wallpaper(cover_b64: String) -> Result<(), String> {
     .map_err(|e| format!("Task error: {}", e))?
 }
 
+// ─── Bit-Perfect plugin (C# sidecar engine) ─────────────────────────────────
+
+#[tauri::command]
+fn get_bit_perfect_plugin_status(app: AppHandle) -> Result<plugin_manager::PluginStatus, String> {
+    plugin_manager::get_status(&app)
+}
+
+#[tauri::command]
+async fn download_bit_perfect_plugin(
+    app: AppHandle,
+    url: Option<String>,
+) -> Result<plugin_manager::PluginStatus, String> {
+    let app_clone = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        plugin_manager::download_and_install(&app_clone, url)
+    })
+    .await
+    .map_err(|e| format!("Task error: {}", e))?
+}
+
+/// Installs the engine from a local exe path (development / sideload).
+#[tauri::command]
+async fn install_bit_perfect_plugin_from_file(
+    app: AppHandle,
+    path: String,
+) -> Result<plugin_manager::PluginStatus, String> {
+    let app_clone = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        plugin_manager::install_from_file(&app_clone, &path)
+    })
+    .await
+    .map_err(|e| format!("Task error: {}", e))?
+}
+
+#[tauri::command]
+async fn uninstall_bit_perfect_plugin(app: AppHandle) -> Result<(), String> {
+    sidecar::stop_engine()?;
+    let app_clone = app.clone();
+    tauri::async_runtime::spawn_blocking(move || plugin_manager::uninstall(&app_clone))
+        .await
+        .map_err(|e| format!("Task error: {}", e))?
+}
+
+/// Sends a raw JSON command line to the C# audio engine, starting the
+/// process if necessary. Example payload:
+/// {"command":"play","path":"D:\\music\\song.flac","exclusive":true}
+#[tauri::command]
+fn send_audio_command(app: AppHandle, json: String) -> Result<(), String> {
+    sidecar::send_command(&app, &json)
+}
+
+#[tauri::command]
+fn stop_audio_engine() -> Result<(), String> {
+    sidecar::stop_engine()
+}
+
+#[tauri::command]
+fn is_audio_engine_running() -> bool {
+    sidecar::is_running()
+}
+
 #[tauri::command]
 async fn open_webview_stream(
     app: tauri::AppHandle,
@@ -997,7 +1061,14 @@ pub fn run() {
             set_default_wallpaper_path,
             get_default_wallpaper_path,
             set_reset_on_close,
-            open_webview_stream
+            open_webview_stream,
+            get_bit_perfect_plugin_status,
+            download_bit_perfect_plugin,
+            install_bit_perfect_plugin_from_file,
+            uninstall_bit_perfect_plugin,
+            send_audio_command,
+            stop_audio_engine,
+            is_audio_engine_running
         ])
         .register_uri_scheme_protocol("stream", |_app, request| {
             if request.method() == tauri::http::Method::OPTIONS {
@@ -1136,6 +1207,8 @@ pub fn run() {
     app.run(|_handle, event| {
         #[cfg(windows)]
         if let tauri::RunEvent::Exit = event {
+            // Kill the sidecar engine so it never outlives the host app.
+            let _ = sidecar::stop_engine();
             if RESET_ON_CLOSE.load(Ordering::SeqCst) {
                 let has_default = DEFAULT_WALLPAPER_PATH.lock()
                     .map(|p| p.is_some())

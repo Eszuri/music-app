@@ -71,6 +71,8 @@ interface HomePlayerAreaProps {
     onGlobalContextMenu: (e: React.MouseEvent) => void;
     onCoverSaved: () => void;
     onOpenEditMetadata?: (file?: FileEntry) => void;
+    outputMode?: 'default' | 'bitperfect';
+    bpEngineState?: any;
 }
 
 async function openDevTools() {
@@ -158,6 +160,8 @@ function HomePlayerArea({
     onGlobalContextMenu,
     onCoverSaved,
     onOpenEditMetadata,
+    outputMode,
+    bpEngineState,
 }: HomePlayerAreaProps) {
     const leftVisible = showLeftSidebar || !isCompact;
     const rightVisible = showRightSidebar || !isCompact;
@@ -544,6 +548,8 @@ function HomePlayerArea({
                                                 coverDataUrl={coverDataUrl}
                                                 onContextMenu={showAlbumMenu}
                                                 hideCover={isFullScreenAlbum}
+                                                outputMode={outputMode}
+                                                bpEngineState={bpEngineState}
                                             />
                                             <div className="w-full px-2">
                                                 <SeekBar

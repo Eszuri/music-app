@@ -865,6 +865,8 @@ function HomeContent() {
                 onGlobalContextMenu={showGlobalContextMenu}
                 onCoverSaved={() => showStatusNotif('cover-saved')}
                 onOpenEditMetadata={openMetadataEdit}
+                outputMode={settings.outputMode}
+                bpEngineState={player.bpEngineState}
             />
 
             <HomeModals
@@ -899,6 +901,10 @@ function HomeContent() {
                 defaultWallpaper={settings.defaultWallpaper}
                 onPickWallpaper={handlePickWallpaper}
                 onClearWallpaper={() => settings.setDefaultWallpaper(null)}
+                outputDevice={settings.outputDevice}
+                setOutputDevice={settings.setOutputDeviceState}
+                outputMode={settings.outputMode}
+                setOutputMode={settings.setOutputMode}
                 folderSort={settings.folderSort}
                 setFolderSort={settings.setFolderSortState}
                 fileSort={settings.fileSort}

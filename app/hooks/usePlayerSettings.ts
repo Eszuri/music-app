@@ -64,6 +64,7 @@ export function usePlayerSettings() {
     const [customAccentHex, setCustomAccentHexState] = useState('#22c55e');
     const [defaultWallpaper, setDefaultWallpaperState] = useState<string | null>(null);
     const [outputDevice, setOutputDeviceStateInternal] = useState<string | null>(null);
+    const [outputMode, setOutputModeStateInternal] = useState<'default' | 'bitperfect'>('default');
     const [layoutMode, setLayoutModeStateInternal] = useState<'default' | 'compact' | 'immersive'>('default');
     const [shortcuts, setShortcutsState] = useState<Record<ShortcutAction, string>>(DEFAULT_SHORTCUTS);
     const [pauseIfMuted, setPauseIfMutedState] = useState(true);
@@ -184,12 +185,9 @@ export function usePlayerSettings() {
         const od = window.localStorage.getItem(OUTPUT_DEVICE_KEY);
         if (od) {
             setOutputDeviceStateInternal(od);
-            if (isBrowserTauri) {
-                getTauri().then(mod => {
-                    mod.invoke('engine_set_output_device', { name: od }).catch(() => {});
-                });
-            }
         }
+        const om = window.localStorage.getItem(OUTPUT_MODE_KEY);
+        if (om === 'bitperfect') setOutputModeStateInternal('bitperfect');
         const sh = window.localStorage.getItem('music-app-shuffle');
         if (sh !== null) setShuffleState(sh === 'true');
         const rp = window.localStorage.getItem('music-app-repeat');
@@ -476,11 +474,11 @@ export function usePlayerSettings() {
         } else {
             window.localStorage.removeItem(OUTPUT_DEVICE_KEY);
         }
-        if (isBrowserTauri) {
-            getTauri().then(mod => {
-                mod.invoke('engine_set_output_device', { name }).catch(() => {});
-            });
-        }
+    }, []);
+
+    const setOutputMode = useCallback((mode: 'default' | 'bitperfect') => {
+        setOutputModeStateInternal(mode);
+        safeSetLocalStorage(OUTPUT_MODE_KEY, mode);
     }, []);
 
     const setLayoutModeState = useCallback((mode: 'default' | 'compact' | 'immersive') => {
@@ -540,6 +538,8 @@ export function usePlayerSettings() {
         setDefaultWallpaper,
         outputDevice,
         setOutputDeviceState,
+        outputMode,
+        setOutputMode,
         layoutMode,
         setLayoutModeState,
         shortcuts,

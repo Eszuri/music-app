@@ -36,9 +36,11 @@ interface PlayerPanelProps {
     coverDataUrl: string | null;
     onContextMenu?: (e: React.MouseEvent) => void;
     hideCover?: boolean;
+    outputMode?: 'default' | 'bitperfect';
+    bpEngineState?: any;
 }
 
-function PlayerPanel({lang, metadata, selectedSong, accentColor, coverDataUrl, onContextMenu, hideCover}: PlayerPanelProps) {
+function PlayerPanel({lang, metadata, selectedSong, accentColor, coverDataUrl, onContextMenu, hideCover, outputMode, bpEngineState}: PlayerPanelProps) {
     const accent = getAccent(accentColor);
     const songTitle = selectedSong
         ? (metadata?.title || selectedSong.name.replace(/\.[^/.]+$/, ''))
@@ -100,6 +102,14 @@ function PlayerPanel({lang, metadata, selectedSong, accentColor, coverDataUrl, o
                         <p {...artistHover} className={`text-sm mt-1.5 truncate ${accent.text400} opacity-80`}>{songArtist}</p>
                         {songAlbum && (
                             <p {...albumHover} className="text-xs text-white/70 mt-0.5 truncate">{songAlbum}</p>
+                        )}
+                        {outputMode === 'bitperfect' && bpEngineState?.state === 'playing' && (
+                            <div className="mt-2 flex justify-center">
+                                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest bg-zinc-900 border ${accent.border500_30} ${accent.text400} shadow-[0_0_10px_rgba(0,0,0,0.5)]`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${accent.bg500} animate-pulse shadow-[0_0_5px_currentColor]`}></span>
+                                    Bit Perfect {bpEngineState.sampleRate ? `| ${bpEngineState.sampleRate / 1000}kHz` : ''} {bpEngineState.bitDepth ? ` ${bpEngineState.bitDepth}bit` : ''}
+                                </span>
+                            </div>
                         )}
                     </>
                 )}

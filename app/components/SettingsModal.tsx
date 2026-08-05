@@ -7,6 +7,7 @@ import {t} from '../lib/translations';
 import {modalContentMotion, backdropMotion} from '../lib/animations';
 import {useHoverDescription} from '../hooks/useHoverDescription';
 import AboutSection from './settings/AboutSection';
+import AudioSection from './settings/AudioSection';
 import ChangelogSection from './settings/ChangelogSection';
 import DebugSection from './settings/DebugSection';
 import GeneralSection from './settings/GeneralSection';
@@ -64,6 +65,10 @@ export default function SettingsModal({
     setCustomAccentHex,
     layoutMode = 'default',
     setLayoutMode,
+    outputDevice,
+    setOutputDevice,
+    outputMode,
+    setOutputMode,
     onResetSidebarWidth,
     onResetAllSettings,
     logs,
@@ -207,6 +212,16 @@ export default function SettingsModal({
                                      onResetSidebarWidth={onResetSidebarWidth}
                                  />
                              )}
+                            {activeSection === 'audio' && (
+                                <AudioSection
+                                    lang={lang}
+                                    outputDevice={outputDevice}
+                                    setOutputDevice={setOutputDevice}
+                                    outputMode={outputMode}
+                                    setOutputMode={setOutputMode}
+                                    accentColor={accentColor}
+                                />
+                            )}
                             {activeSection === 'changelog' && <ChangelogSection lang={lang} />}
                             {activeSection === 'about' && <AboutSection lang={lang} />}
                             {activeSection === 'debug' && <DebugSection lang={lang} logs={logs} />}

@@ -11,6 +11,7 @@ import {
 import {t, type Lang} from "../lib/translations";
 import {useGainBoost} from "./useGainBoost";
 import {useEqualizer} from "./useEqualizer";
+import {useBitPerfectEngine} from "./useBitPerfectEngine";
 
 interface UseAudioPlayerOptions {
     lang: Lang;
@@ -37,6 +38,8 @@ interface UseAudioPlayerOptions {
     systemMuted: boolean;
     fadeAudio?: boolean;
     fadeDuration?: number;
+    outputMode?: "default" | "bitperfect";
+    outputDevice?: string | null;
 }
 
 const MIN_RESUME_VOLUME = 0.01;
@@ -67,6 +70,8 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         systemMuted,
         fadeAudio = true,
         fadeDuration = 500,
+        outputMode = "default",
+        outputDevice = null,
     } = options;
 
     const [files, setFiles] = useState<FileEntry[]>([]);
@@ -110,6 +115,11 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     const fadeAudioRef = useRef(fadeAudio);
     const fadeDurationRef = useRef(fadeDuration);
     const fadeAnimationRef = useRef<number | null>(null);
+    const outputDeviceRef = useRef<string | null>(outputDevice);
+    const bpActiveRef = useRef(false);
+    const prevBpActiveRef = useRef<boolean | null>(null);
+    const bpSendCommandRef = useRef<(cmd: Record<string, unknown>) => Promise<void>>(async () => {});
+    const enginePlayRef = useRef<(file: FileEntry, seekPosition?: number) => Promise<void>>(async () => {});
 
     useEffect(() => {
         fadeAudioRef.current = fadeAudio;
@@ -180,6 +190,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         nameSourceRef.current = nameSource;
         shuffleRef.current = shuffle;
         repeatRef.current = repeat;
+        outputDeviceRef.current = outputDevice;
     });
 
     const activeVolume = volumeMode === "system" ? systemVolume : appVolume;
@@ -638,6 +649,113 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         togglePlayPauseRef.current = togglePlayPause;
     }, [togglePlayPause]);
 
+    // ─── bit-perfect engine (optional WASAPI Exclusive plugin) ────────────────
+
+    const enginePlay = useCallback(
+        async (file: FileEntry, seekPosition?: number) => {
+            const cmd: Record<string, unknown> = {
+                command: "play",
+                path: file.path,
+                exclusive: true,
+                volume: volumeModeRef.current === "app" ? appVolume : 1,
+            };
+            if (outputDeviceRef.current) cmd.deviceId = outputDeviceRef.current;
+            await bpSendCommandRef.current(cmd);
+            if (seekPosition !== undefined && seekPosition > 0) {
+                await bpSendCommandRef.current({command: "seek", position: seekPosition});
+            }
+        },
+        [appVolume],
+    );
+
+    useEffect(() => {
+        enginePlayRef.current = enginePlay;
+    }, [enginePlay]);
+
+    const bp = useBitPerfectEngine({
+        onProgress: (e) => {
+            if (!bpActiveRef.current) return;
+            setCurrentTime(e.position);
+            if (e.duration > 0) setDuration(e.duration);
+            const song = selectedSongRef.current;
+            if (song && e.position > 0) {
+                const now = Date.now();
+                if (now - lastSessionSaveRef.current >= 3000) {
+                    lastSessionSaveRef.current = now;
+                    saveSessionState({
+                        filePath: song.path,
+                        currentTime: e.position,
+                        timestamp: now,
+                    });
+                }
+            }
+        },
+        onState: (e) => {
+            if (!bpActiveRef.current) return;
+            switch (e.state) {
+                case "playing":
+                    setIsPlaying(true);
+                    break;
+                case "paused":
+                case "stopped":
+                    setIsPlaying(false);
+                    break;
+                case "ended": {
+                    setIsPlaying(false);
+                    saveSessionState(null);
+                    const song = selectedSongRef.current;
+                    if (repeatRef.current === "one" && song) {
+                        enginePlayRef.current(song).catch(() => {});
+                    } else {
+                        playNextRef.current();
+                    }
+                    break;
+                }
+            }
+        },
+        onError: (message) => {
+            if (!bpActiveRef.current) return;
+            setIsPlaying(false);
+            showError(t(lang, 'log.playbackFailed', {msg: message}));
+        },
+    });
+
+    useEffect(() => {
+        bpSendCommandRef.current = bp.sendCommand;
+    }, [bp.sendCommand]);
+
+    const bpActive = outputMode === "bitperfect" && bp.status?.installed === true;
+    useEffect(() => {
+        bpActiveRef.current = bpActive;
+    }, [bpActive]);
+
+    // Switching playback engine: silence whichever side is being left behind.
+    useEffect(() => {
+        if (prevBpActiveRef.current === null) {
+            prevBpActiveRef.current = bpActive;
+            return;
+        }
+        if (prevBpActiveRef.current === bpActive) return;
+        prevBpActiveRef.current = bpActive;
+        if (bpActive) {
+            audioRef.current?.pause();
+            addLog("info", t(lang, 'audio.bitperfect.log.enabled'));
+        } else {
+            bpSendCommandRef.current({command: "stop"}).catch(() => {});
+            addLog("info", t(lang, 'audio.bitperfect.log.disabled'));
+        }
+        setIsPlaying(false);
+    }, [bpActive, addLog, lang]);
+
+    // Keep engine volume in sync with the app volume slider.
+    useEffect(() => {
+        if (!bpActiveRef.current) return;
+        bpSendCommandRef.current({
+            command: "set_volume",
+            volume: volumeMode === "app" ? appVolume : 1,
+        }).catch(() => {});
+    }, [volumeMode, appVolume]);
+
     // ─── audio element lifecycle ───────────────────────────────────────────────
 
     useEffect(() => {
@@ -877,5 +995,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         maxGainBoost: gainBoost.maxGain,
         equalizer,
         refreshFiles,
+        bpEngineState: bp.engineState,
+        bpActive,
     };
 }

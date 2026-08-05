@@ -9,3 +9,5 @@ next-env.d.ts
 /.commandcode
 .env
 RELEASE.md
+src-audio-engine/bin
+src-audio-engine/obj

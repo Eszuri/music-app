@@ -48,6 +48,14 @@ jobs:
         env:
           TAURI_UPDATER_PUBKEY: ${{ secrets.TAURI_UPDATER_PUBKEY }}
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build C# Audio Engine Plugin
+        run: dotnet publish src-audio-engine/AudioEngine.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o src-audio-engine/publish
+
       - name: Build & Sign with tauri-action
         uses: tauri-apps/tauri-action@v1
         env:
@@ -80,3 +88,13 @@ jobs:
               gh release delete-asset $tag $_ --yes
             }
           }
+
+      - name: Upload C# Plugin ke Release
+        if: success()
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          Rename-Item -Path "src-audio-engine/publish/AudioEngine.exe" -NewName "symvonia-audio-engine.exe"
+          gh release upload $tag "src-audio-engine/publish/symvonia-audio-engine.exe" --clobber
