@@ -5,6 +5,19 @@ import {type Lang} from '../../lib/translations';
 
 const changelogEn = [
     {
+        version: '1.0.1',
+        items: [
+            'Added Audio Fade In & Fade Out on play, pause, resume, and track skipping with customizable duration in Settings.',
+            'Embedded lyrics feature directly inside the right-hand Metadata Panel with a horizontal navbar switcher.',
+            'Synchronized timestamp auto-scrolling, click-to-seek, and manual LRC file import for lyrics.',
+            'Strict & accurate Hi-Res Audio detection based on JEITA/RIAA standards (lossless formats only: FLAC, WAV, ALAC, AIFF, DSD).',
+            'Added Bit Depth metadata extraction and display in technical specifications.',
+            'Updated navbar tab switcher icons with modern document/audio design.',
+            'Cleaned up top header UI by removing redundant center title text.',
+            'Fixed missing translation and updated UI language dictionaries.',
+        ],
+    },
+    {
         version: '1.0.0',
         items: [
             'Full bilingual support — all UI text, notifications, and messages now follow the selected language.',
@@ -135,6 +148,19 @@ const changelogEn = [
 ];
 
 const changelogId = [
+    {
+        version: '1.0.1',
+        items: [
+            'Menambahkan fitur Audio Fade In & Fade Out saat play, pause, resume, dan ganti lagu dengan durasi yang dapat diatur di Setting.',
+            'Integrasi fitur lirik lagu langsung di Panel Metadata kanan dengan tombol switch navbar horizontal.',
+            'Highlight otomatis lirik tersinkronisasi, auto-scroll halus, klik-ke-timestamp, dan impor file .lrc/.txt manual.',
+            'Deteksi Hi-Res Audio akurat sesuai standar resmi JEITA/RIAA (khusus format lossless: FLAC, WAV, ALAC, AIFF, DSD).',
+            'Ekstraksi dan tampilan informasi Kedalaman Bit (Bit Depth) pada rincian teknis metadata.',
+            'Pembaruan ikon switcher navbar dengan desain dokumen & audio modern.',
+            'Pembersihan UI header atas dengan menghapus teks judul tengah yang tidak diperlukan.',
+            'Perbaikan terjemahan bahasa Indonesia dan Inggris di seluruh aplikasi.',
+        ],
+    },
     {
         version: '1.0.0',
         items: [
