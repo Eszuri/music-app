@@ -14,6 +14,7 @@ public sealed class AudioPlayer : IDisposable
     private readonly object _gate = new();
 
     private AudioFileReader? _reader;
+    private PausableSampleProvider? _pausable;
     private WasapiOut? _output;
     private MMDevice? _device;
     private Timer? _progressTimer;
@@ -41,7 +42,7 @@ public sealed class AudioPlayer : IDisposable
         get
         {
             lock (_gate)
-                return _output?.PlaybackState == PlaybackState.Playing;
+                return _output?.PlaybackState == PlaybackState.Playing && _pausable != null && !_pausable.IsPaused;
         }
     }
 
@@ -50,7 +51,7 @@ public sealed class AudioPlayer : IDisposable
         get
         {
             lock (_gate)
-                return _output?.PlaybackState == PlaybackState.Paused;
+                return _output?.PlaybackState == PlaybackState.Playing && _pausable != null && _pausable.IsPaused;
         }
     }
 
@@ -88,6 +89,7 @@ public sealed class AudioPlayer : IDisposable
 
             _reader = new AudioFileReader(path) { Volume = _volume };
             _device = ResolveDevice(deviceId);
+            _pausable = new PausableSampleProvider(_reader);
 
             if (exclusive)
             {
@@ -95,12 +97,12 @@ public sealed class AudioPlayer : IDisposable
                 // Do NOT call Init again — a second Init would try to re-acquire
                 // the device we just grabbed exclusively (AUDCLNT_E_DEVICE_IN_USE)
                 // and would discard the PCM-conversion wrapper.
-                _output = CreateExclusiveOutput(_device, _reader);
+                _output = CreateExclusiveOutput(_device, _pausable);
             }
             else
             {
                 _output = new WasapiOut(_device, AudioClientShareMode.Shared, true, 200);
-                _output.Init(_reader);
+                _output.Init(_pausable.ToWaveProvider());
             }
 
             _output.PlaybackStopped += OnPlaybackStopped;
@@ -111,7 +113,7 @@ public sealed class AudioPlayer : IDisposable
         }
     }
 
-    private static WasapiOut CreateExclusiveOutput(MMDevice device, AudioFileReader reader)
+    private static WasapiOut CreateExclusiveOutput(MMDevice device, ISampleProvider reader)
     {
         int sourceRate = reader.WaveFormat.SampleRate;
         int channels = reader.WaveFormat.Channels;
@@ -119,11 +121,11 @@ public sealed class AudioPlayer : IDisposable
         // Candidate formats, most bit-transparent first. float32 is the native
         // output of AudioFileReader (no conversion at all); PCM24/16 require an
         // in-memory bit-depth conversion but keep the source sample rate.
-        var attempts = new List<(Func<AudioFileReader, IWaveProvider> wrap, string label)>
+        var attempts = new List<(Func<ISampleProvider, IWaveProvider> wrap, string label)>
         {
-            ((Func<AudioFileReader, IWaveProvider>)(r => r), $"float32 {sourceRate}Hz"),
-            ((Func<AudioFileReader, IWaveProvider>)(r => new SampleToWaveProvider24(r)), $"pcm24 {sourceRate}Hz"),
-            ((Func<AudioFileReader, IWaveProvider>)(r => new SampleToWaveProvider16(r)), $"pcm16 {sourceRate}Hz"),
+            ((Func<ISampleProvider, IWaveProvider>)(r => r.ToWaveProvider()), $"float32 {sourceRate}Hz"),
+            ((Func<ISampleProvider, IWaveProvider>)(r => new SampleToWaveProvider24(r)), $"pcm24 {sourceRate}Hz"),
+            ((Func<ISampleProvider, IWaveProvider>)(r => new SampleToWaveProvider16(r)), $"pcm16 {sourceRate}Hz"),
         };
 
         Exception? lastError = null;
@@ -153,8 +155,10 @@ public sealed class AudioPlayer : IDisposable
     {
         lock (_gate)
         {
-            if (_output?.PlaybackState == PlaybackState.Playing)
-                _output.Pause();
+            if (_output?.PlaybackState == PlaybackState.Playing && _pausable != null)
+            {
+                _pausable.IsPaused = true;
+            }
         }
     }
 
@@ -162,8 +166,10 @@ public sealed class AudioPlayer : IDisposable
     {
         lock (_gate)
         {
-            if (_output?.PlaybackState == PlaybackState.Paused)
-                _output.Play();
+            if (_output?.PlaybackState == PlaybackState.Playing && _pausable != null)
+            {
+                _pausable.IsPaused = false;
+            }
         }
     }
 
@@ -332,5 +338,29 @@ public sealed class AudioPlayer : IDisposable
         {
             StopLocked();
         }
+    }
+}
+
+internal class PausableSampleProvider : ISampleProvider
+{
+    private readonly ISampleProvider _source;
+    public bool IsPaused { get; set; }
+
+    public PausableSampleProvider(ISampleProvider source)
+    {
+        _source = source;
+        WaveFormat = source.WaveFormat;
+    }
+
+    public WaveFormat WaveFormat { get; }
+
+    public int Read(float[] buffer, int offset, int count)
+    {
+        if (IsPaused)
+        {
+            Array.Clear(buffer, offset, count);
+            return count;
+        }
+        return _source.Read(buffer, offset, count);
     }
 }

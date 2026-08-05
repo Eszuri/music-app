@@ -560,7 +560,15 @@ function MetadataPanel({
                                 )}
                             </motion.div>
                         ) : (
-                            <MetadataPanelSkeleton />
+                            <div className="h-full flex flex-col items-center justify-center space-y-4 opacity-50 select-none py-20">
+                                <div className="p-4 rounded-2xl bg-zinc-800/40 border border-zinc-700/50">
+                                    <MusicNoteIcon size={40} className="text-zinc-500" />
+                                </div>
+                                <div className="space-y-1 text-center">
+                                    <p className="text-sm font-medium text-zinc-300">Tidak ada lagu</p>
+                                    <p className="text-xs text-zinc-500">Pilih lagu untuk melihat detail</p>
+                                </div>
+                            </div>
                         )}
                     </AnimatePresence>
                 </div>
