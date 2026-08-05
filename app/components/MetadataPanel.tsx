@@ -11,7 +11,8 @@ import ContextMenu, { ContextMenuItem } from './ContextMenu';
 import { useHoverDescription } from '../hooks/useHoverDescription';
 import { useHoverInfo } from '../contexts/HoverInfoContext';
 import { MetadataPanelSkeleton } from './Skeleton';
-import { InfoIcon, CopyIcon, MusicNoteIcon, EditIcon } from './icons';
+import { InfoIcon, CopyIcon, MusicNoteIcon, EditIcon, LyricsIcon, DetailsIcon } from './icons';
+import { useLyrics } from '../hooks/useLyrics';
 
 interface MetadataPanelProps {
     lang: Lang;
@@ -20,6 +21,8 @@ interface MetadataPanelProps {
     accentColor: string;
     coverDataUrl: string | null;
     resetSidebarToken: number;
+    currentTime?: number;
+    onSeek?: (timeSec: number) => void;
     onContextMenu?: (e: React.MouseEvent) => void;
     onOpenEditMetadata?: () => void;
 }
@@ -86,12 +89,158 @@ function channelsLabel(lang: Lang, ch: number | null): string {
     return `${ch}${t(lang, 'metadata.ch')}`;
 }
 
-function MetadataPanel({ lang, selectedSong, metadata, accentColor, coverDataUrl, resetSidebarToken, onContextMenu, onOpenEditMetadata }: MetadataPanelProps) {
+function LyricsSection({
+    lang,
+    selectedSong,
+    currentTime,
+    onSeek,
+    accentColor,
+}: {
+    lang: Lang;
+    selectedSong: FileEntry | null;
+    currentTime?: number;
+    onSeek?: (timeSec: number) => void;
+    accentColor: string;
+}) {
+    const songPath = selectedSong?.path ?? null;
+    const { lines, isSynced, source, loading, activeIndex, importLyricsFile } = useLyrics(songPath, currentTime ?? 0);
+
+    const activeLineRef = useRef<HTMLDivElement | null>(null);
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+    const accent = getAccent(accentColor);
+
+    // Auto-scroll active lyric line to center of container
+    useEffect(() => {
+        if (activeIndex < 0 || !activeLineRef.current) return;
+        activeLineRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+        });
+    }, [activeIndex]);
+
+    const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const content = event.target?.result as string;
+            if (content) {
+                importLyricsFile(content, file.name);
+            }
+        };
+        reader.readAsText(file);
+    };
+
+    return (
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            {/* Hidden File Input */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept=".lrc,.txt"
+                onChange={handleFileImport}
+                className="hidden"
+            />
+
+            {/* Lyrics Content Container */}
+            <div
+                ref={containerRef}
+                className="flex-1 overflow-y-auto p-4 space-y-4 text-center select-none scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent"
+            >
+                {loading ? (
+                    <div className="h-full flex flex-col items-center justify-center space-y-3 text-zinc-400 py-16">
+                        <div className="w-6 h-6 border-2 border-zinc-600 border-t-zinc-200 rounded-full animate-spin" />
+                        <p className="text-xs font-medium">{t(lang, 'general.update.checking')}</p>
+                    </div>
+                ) : lines.length > 0 ? (
+                    lines.map((line, idx) => {
+                        const isActive = idx === activeIndex;
+                        return (
+                            <div
+                                key={line.id}
+                                ref={isActive ? activeLineRef : null}
+                                onClick={() => {
+                                    if (line.timeSec !== null && onSeek) {
+                                        onSeek(line.timeSec);
+                                    }
+                                }}
+                                className={`transition-all duration-250 py-1.5 px-3 rounded-xl cursor-pointer ${
+                                    isActive
+                                        ? 'scale-105 font-bold text-base text-zinc-100 drop-shadow-md py-2.5 bg-zinc-800/40'
+                                        : 'text-zinc-500 hover:text-zinc-300 text-sm font-medium'
+                                }`}
+                                style={
+                                    isActive
+                                        ? {
+                                              color: accent.hex || '#22c55e',
+                                              textShadow: `0 0 16px ${accent.hex || '#22c55e'}30`,
+                                          }
+                                        : undefined
+                                }
+                            >
+                                {line.text}
+                            </div>
+                        );
+                    })
+                ) : (
+                    <div className="h-full flex flex-col items-center justify-center space-y-3 text-center py-12 px-2">
+                        <div className="p-3 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 text-zinc-500">
+                            <LyricsIcon size={28} />
+                        </div>
+                        <div className="space-y-1">
+                            <h3 className="text-sm font-semibold text-zinc-200">
+                                {t(lang, 'lyrics.notFound')}
+                            </h3>
+                            <p className="text-[11px] text-zinc-400 leading-relaxed max-w-[200px] mx-auto">
+                                {t(lang, 'lyrics.notFoundDesc')}
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="mt-1 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 transition-colors shadow-sm cursor-pointer"
+                        >
+                            {t(lang, 'lyrics.importBtn')}
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {/* Footer Bar */}
+            {lines.length > 0 && (
+                <div className="flex items-center justify-between px-4 py-2.5 border-t border-zinc-800/60 bg-zinc-900/40 text-[11px] text-zinc-400 shrink-0">
+                    <span>{isSynced ? '⚡ LRC Auto-Sync' : '📄 Plain Text'}</span>
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="hover:text-zinc-200 transition-colors underline cursor-pointer"
+                    >
+                        {t(lang, 'lyrics.importBtn')}
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function MetadataPanel({
+    lang,
+    selectedSong,
+    metadata,
+    accentColor,
+    coverDataUrl,
+    resetSidebarToken,
+    currentTime,
+    onSeek,
+    onContextMenu,
+    onOpenEditMetadata,
+}: MetadataPanelProps) {
     const accent = getAccent(accentColor);
     const songTitle = selectedSong
         ? (metadata?.title || selectedSong.name.replace(/\.[^/.]+$/, ''))
         : null;
 
+    const [activeTab, setActiveTab] = useState<'metadata' | 'lyrics'>('metadata');
     const [width, setWidth] = useState<number>(DEFAULT_WIDTH);
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
     const isDraggingRef = useRef(false);
@@ -230,158 +379,180 @@ function MetadataPanel({ lang, selectedSong, metadata, accentColor, coverDataUrl
                 className="absolute top-0 left-0 h-full w-1.5 cursor-col-resize transition-colors z-10 max-lg:hidden"
             />
 
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800/30">
-                <InfoIcon size={14} className="text-zinc-500" />
-                <span className="text-xs font-medium text-zinc-400 tracking-wide">{t(lang, 'metadata.heading')}</span>
+            {/* Navbar Header (Horizontal Tab Switcher) */}
+            <div className="flex items-center border-b border-zinc-800/40 bg-zinc-900/50 p-1.5 gap-1.5 select-none shrink-0">
+                <button
+                    onClick={() => setActiveTab('metadata')}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                        activeTab === 'metadata'
+                            ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/60'
+                            : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/30'
+                    }`}
+                >
+                    <DetailsIcon size={14} />
+                    <span>{t(lang, 'metadata.heading')}</span>
+                </button>
+                <button
+                    onClick={() => setActiveTab('lyrics')}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                        activeTab === 'lyrics'
+                            ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/60'
+                            : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/30'
+                    }`}
+                >
+                    <LyricsIcon size={14} />
+                    <span>{t(lang, 'lyrics.title')}</span>
+                </button>
             </div>
 
-            <div
-                className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-4 space-y-3 md:space-y-4 select-text [&_*::selection]:bg-(--selection-bg) [&_*::selection]:text-(--selection-color)"
-                style={{
-                    '--selection-bg': accent.hex500 + '80',
-                    '--selection-color': '#ffffff'
-                } as React.CSSProperties}
-                onContextMenu={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const sel = window.getSelection()?.toString().trim();
-                    setContextMenu({
-                        x: e.clientX,
-                        y: e.clientY,
-                        items: [
-                            {
-                                label: t(lang, 'contextMenu.copyText'),
-                                icon: <CopyIcon size={14} />,
-                                onClick: () => {
-                                    if (sel) navigator.clipboard.writeText(sel);
-                                },
-                                disabled: !sel
-                            }
-                        ]
-                    });
-                }}
-            >
-                <AnimatePresence mode="wait">
-                    {selectedSong ? (
-                        <motion.div
-                            key={selectedSong.path}
-                            {...contentMotion}
-                        >
-                            {/* Cover art small */}
-                            <div
-                                {...hCoverArt}
-                                onContextMenu={onContextMenu}
-                                className="w-full aspect-square max-w-40 mx-auto rounded-xl overflow-hidden bg-zinc-900/80 ring-1 ring-white/5 mb-4"
+            {/* Tab 1: Metadata View */}
+            {activeTab === 'metadata' && (
+                <div
+                    className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-4 space-y-3 md:space-y-4 select-text [&_*::selection]:bg-(--selection-bg) [&_*::selection]:text-(--selection-color)"
+                    style={{
+                        '--selection-bg': accent.hex500 + '80',
+                        '--selection-color': '#ffffff'
+                    } as React.CSSProperties}
+                    onContextMenu={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const sel = window.getSelection()?.toString().trim();
+                        setContextMenu({
+                            x: e.clientX,
+                            y: e.clientY,
+                            items: [
+                                {
+                                    label: t(lang, 'contextMenu.copyText'),
+                                    icon: <CopyIcon size={14} />,
+                                    onClick: () => {
+                                        if (sel) navigator.clipboard.writeText(sel);
+                                    },
+                                    disabled: !sel
+                                }
+                            ]
+                        });
+                    }}
+                >
+                    <AnimatePresence mode="wait">
+                        {selectedSong ? (
+                            <motion.div
+                                key={selectedSong.path}
+                                {...contentMotion}
                             >
-                                <AnimatePresence mode="wait">
-                                    {coverDataUrl ? (
-                                        <motion.img
-                                            key={selectedSong.path}
-                                            {...contentMotion}
-                                            src={coverDataUrl}
-                                            alt={t(lang, 'metadata.cover')}
-                                            className="w-full h-full object-contain"
-                                        />
-                                    ) : (
-                                        <motion.div
-                                            key="placeholder"
-                                            {...contentMotion}
-                                            animate={{ opacity: 0.12, y: 0 }}
-                                            className="w-full h-full flex items-center justify-center"
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">
-                                                <path d="M9 18V5l12-2v13" />
-                                                <circle cx="6" cy="18" r="3" />
-                                                <circle cx="18" cy="16" r="3" />
-                                            </svg>
-                                        </motion.div>
+                                {/* Cover art small */}
+                                <div
+                                    {...hCoverArt}
+                                    onContextMenu={onContextMenu}
+                                    className="w-full aspect-square max-w-40 mx-auto rounded-xl overflow-hidden bg-zinc-900/80 ring-1 ring-white/5 mb-4"
+                                >
+                                    <AnimatePresence mode="wait">
+                                        {coverDataUrl ? (
+                                            <motion.img
+                                                key={selectedSong.path}
+                                                {...contentMotion}
+                                                src={coverDataUrl}
+                                                alt={t(lang, 'metadata.cover')}
+                                                className="w-full h-full object-contain"
+                                            />
+                                        ) : (
+                                            <motion.div
+                                                key="placeholder"
+                                                {...contentMotion}
+                                                animate={{ opacity: 0.12, y: 0 }}
+                                                className="w-full h-full flex items-center justify-center"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">
+                                                    <path d="M9 18V5l12-2v13" />
+                                                    <circle cx="6" cy="18" r="3" />
+                                                    <circle cx="18" cy="16" r="3" />
+                                                </svg>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+
+                                <div className="flex items-center justify-between">
+                                    <SectionTitle title={t(lang, 'metadata.songInfo')} />
+                                    {metadata?.sample_rate != null && metadata.sample_rate > 44100 && (
+                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-widest bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase">
+                                            Hi-Res Audio
+                                        </span>
                                     )}
-                                </AnimatePresence>
-                            </div>
+                                </div>
+                                <div className="space-y-3 pl-1">
+                                    <MetaRow label={t(lang, 'metadata.title')} value={songTitle || '—'} hoverProps={hTitle} />
+                                    <MetaRow label={t(lang, 'metadata.artist')} value={metadata?.artist || t(lang, 'metadata.unknownArtist')} hoverProps={hArtist} />
+                                    {metadata?.album && <MetaRow label={t(lang, 'metadata.album')} value={metadata.album} hoverProps={hAlbum} />}
+                                    {metadata?.genre && <MetaRow label={t(lang, 'metadata.genre')} value={metadata.genre} hoverProps={hGenre} />}
+                                    {metadata?.year != null && <MetaRow label={t(lang, 'metadata.year')} value={String(metadata.year)} hoverProps={hYear} />}
+                                    {trackStr && <MetaRow label={t(lang, 'metadata.track')} value={trackStr} hoverProps={hTrack} />}
+                                    {discStr && <MetaRow label={t(lang, 'metadata.disc')} value={discStr} hoverProps={hDisc} />}
+                                    <MetaRow label={t(lang, 'metadata.duration')} value={formatDuration(metadata?.duration ?? null)} hoverProps={hDuration} />
+                                </div>
 
-                            <div className="flex items-center justify-between">
-                                <SectionTitle title={t(lang, 'metadata.songInfo')} />
-                                {metadata?.sample_rate != null && metadata.sample_rate > 44100 && (
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-widest bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase">
-                                        Hi-Res Audio
-                                    </span>
-                                )}
-                            </div>
-                            <div className="space-y-3 pl-1">
-                                <MetaRow label={t(lang, 'metadata.title')} value={songTitle || '—'} hoverProps={hTitle} />
-                                <MetaRow label={t(lang, 'metadata.artist')} value={metadata?.artist || t(lang, 'metadata.unknownArtist')} hoverProps={hArtist} />
-                                {metadata?.album && <MetaRow label={t(lang, 'metadata.album')} value={metadata.album} hoverProps={hAlbum} />}
-                                {metadata?.genre && <MetaRow label={t(lang, 'metadata.genre')} value={metadata.genre} hoverProps={hGenre} />}
-                                {metadata?.year != null && <MetaRow label={t(lang, 'metadata.year')} value={String(metadata.year)} hoverProps={hYear} />}
-                                {trackStr && <MetaRow label={t(lang, 'metadata.track')} value={trackStr} hoverProps={hTrack} />}
-                                {discStr && <MetaRow label={t(lang, 'metadata.disc')} value={discStr} hoverProps={hDisc} />}
-                                <MetaRow label={t(lang, 'metadata.duration')} value={formatDuration(metadata?.duration ?? null)} hoverProps={hDuration} />
-                            </div>
+                                <SectionTitle title='' />
+                                <div className="space-y-3 pl-1">
+                                    {metadata?.bitrate != null && (
+                                        <MetaRow label={t(lang, 'metadata.bitrate')} value={`${metadata.bitrate} kbps`} hoverProps={hBitrate} />
+                                    )}
+                                    {metadata?.sample_rate != null && (
+                                        <MetaRow label={t(lang, 'metadata.sampleRate')} value={`${(metadata.sample_rate / 1000).toFixed(1)} kHz`} hoverProps={hSample} />
+                                    )}
+                                    {metadata?.channels != null && (
+                                        <MetaRow label={t(lang, 'metadata.channel')} value={channelsLabel(lang, metadata.channels)} hoverProps={hChannel} />
+                                    )}
+                                    <MetaRow label={t(lang, 'metadata.format')} value={selectedSong.ext.toUpperCase()} hoverProps={hFormat} />
+                                    <MetaRow label={t(lang, 'metadata.size')} value={formatSize(selectedSong.size)} hoverProps={hSize} />
+                                    {metadata?.cover_b64 && (
+                                        <MetaRow
+                                            label={t(lang, 'metadata.coverSize')}
+                                            value={formatSize(Math.round(metadata.cover_b64.length * 3 / 4))}
+                                            hoverProps={hCoverSz}
+                                        />
+                                    )}
+                                </div>
+                                <div className="space-y-3 mt-3 pl-1">
+                                    <MetaRow label={t(lang, 'metadata.fileName')} value={selectedSong.name} hoverProps={hFileName} />
+                                    <MetaRow label={t(lang, 'metadata.created')} value={formatDate(selectedSong.ctime)} hoverProps={hCreated} />
+                                    <MetaRow label={t(lang, 'metadata.modified')} value={formatDate(selectedSong.mtime)} hoverProps={hModified} />
+                                </div>
 
-                            <SectionTitle title='' />
-                            <div className="space-y-3 pl-1">
-                                {metadata?.bitrate != null && (
-                                    <MetaRow label={t(lang, 'metadata.bitrate')} value={`${metadata.bitrate} kbps`} hoverProps={hBitrate} />
-                                )}
-                                {metadata?.sample_rate != null && (
-                                    <MetaRow label={t(lang, 'metadata.sampleRate')} value={`${(metadata.sample_rate / 1000).toFixed(1)} kHz`} hoverProps={hSample} />
-                                )}
-                                {metadata?.channels != null && (
-                                    <MetaRow label={t(lang, 'metadata.channel')} value={channelsLabel(lang, metadata.channels)} hoverProps={hChannel} />
-                                )}
-                                <MetaRow label={t(lang, 'metadata.format')} value={selectedSong.ext.toUpperCase()} hoverProps={hFormat} />
-                                <MetaRow label={t(lang, 'metadata.size')} value={formatSize(selectedSong.size)} hoverProps={hSize} />
-                                {metadata?.cover_b64 && (
-                                    <MetaRow
-                                        label={t(lang, 'metadata.coverSize')}
-                                        value={formatSize(Math.round(metadata.cover_b64.length * 3 / 4))}
-                                        hoverProps={hCoverSz}
-                                    />
-                                )}
-                            </div>
-                            <div className="space-y-3 mt-3 pl-1">
-                                <MetaRow label={t(lang, 'metadata.fileName')} value={selectedSong.name} hoverProps={hFileName} />
-                                <MetaRow label={t(lang, 'metadata.created')} value={formatDate(selectedSong.ctime)} hoverProps={hCreated} />
-                                <MetaRow label={t(lang, 'metadata.modified')} value={formatDate(selectedSong.mtime)} hoverProps={hModified} />
-                            </div>
-
-                            {metadata?.comment && (
-                                <>
-                                    <SectionTitle title={t(lang, 'metadata.comment')} />
-                                    <div className="pl-1" {...hComment}>
-                                        <p className="text-sm text-zinc-300 leading-relaxed wrap-break-word">
+                                {metadata?.comment && (
+                                    <>
+                                        <SectionTitle title={t(lang, 'metadata.comment')} />
+                                        <div className="mt-1 p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800/40 text-xs text-zinc-300 whitespace-pre-wrap break-words" {...(hComment ?? {})}>
                                             {metadata.comment}
-                                        </p>
-                                    </div>
-                                </>
-                            )}
+                                        </div>
+                                    </>
+                                )}
 
-                            {/* Path */}
-                            <SectionTitle title={t(lang, 'metadata.location')} />
-                            <div className="pl-1" {...hLocation}>
-                                <p className="text-xs text-zinc-500 break-all leading-relaxed font-mono">
-                                    {selectedSong.path}
-                                </p>
-                            </div>
-                        </motion.div>
-                    ) : (
-                        <motion.div
-                            key="no-song"
-                            {...contentMotion}
-                            className="flex flex-col items-center justify-center h-full text-center pt-24"
-                        >
-                            <div className="w-14 h-14 rounded-2xl bg-zinc-800/50 flex items-center justify-center mb-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-600">
-                                    <circle cx="12" cy="12" r="10" />
-                                    <path d="M12 16v-4M12 8h.01" />
-                                </svg>
-                            </div>
-                            <p className="text-sm text-zinc-500">{t(lang, 'metadata.emptyTitle')}</p>
-                            <p className="text-xs text-zinc-600 mt-1">{t(lang, 'metadata.emptyDesc')}</p>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
+                                {selectedSong.path && (
+                                    <>
+                                        <SectionTitle title={t(lang, 'metadata.fileLocation')} />
+                                        <div className="mt-1 p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800/40 text-[11px] text-zinc-400 font-mono break-all leading-relaxed" {...(hLocation ?? {})}>
+                                            {selectedSong.path}
+                                        </div>
+                                    </>
+                                )}
+                            </motion.div>
+                        ) : (
+                            <MetadataPanelSkeleton />
+                        )}
+                    </AnimatePresence>
+                </div>
+            )}
+
+            {/* Tab 2: Lyrics View */}
+            {activeTab === 'lyrics' && (
+                <LyricsSection
+                    lang={lang}
+                    selectedSong={selectedSong}
+                    currentTime={currentTime}
+                    onSeek={onSeek}
+                    accentColor={accentColor}
+                />
+            )}
+
             {contextMenu && (
                 <ContextMenu
                     x={contextMenu.x}
@@ -393,4 +564,5 @@ function MetadataPanel({ lang, selectedSong, metadata, accentColor, coverDataUrl
         </aside>
     );
 }
+
 export default memo(MetadataPanel);

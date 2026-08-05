@@ -60,6 +60,7 @@ interface HomePlayerAreaProps {
     setCurrentPath: (path: string) => void;
     playSong: (file: FileEntry, skipWallpaper?: boolean) => void;
     handleSeek: (e: ChangeEvent<HTMLInputElement>) => void;
+    seekTo?: (timeSec: number) => void;
     playPrev: () => void;
     togglePlayPause: () => void;
     playNext: () => void;
@@ -146,6 +147,7 @@ function HomePlayerArea({
     setCurrentPath,
     playSong,
     handleSeek,
+    seekTo,
     playPrev,
     togglePlayPause,
     playNext,
@@ -618,6 +620,8 @@ function HomePlayerArea({
                                         resetSidebarToken={resetSidebarToken}
                                         onContextMenu={showAlbumMenu}
                                         onOpenEditMetadata={onOpenEditMetadata}
+                                        currentTime={currentTime}
+                                        onSeek={seekTo}
                                     />
                                 </motion.aside>
                             )}

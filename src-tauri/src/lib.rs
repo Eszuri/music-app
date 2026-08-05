@@ -7,89 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, SystemTime};
 
-mod audio;
 
-use audio::engine::AudioEngineHandle;
-use audio::output::{get_audio_hosts_and_devices, AudioDeviceInfo};
-
-static AUDIO_ENGINE: std::sync::OnceLock<AudioEngineHandle> = std::sync::OnceLock::new();
-
-#[tauri::command]
-fn engine_play(path: String) -> Result<(), String> {
-    if let Some(engine) = AUDIO_ENGINE.get() {
-        engine.play(std::path::PathBuf::from(path));
-        Ok(())
-    } else {
-        Err("Audio engine not initialized".to_string())
-    }
-}
-
-#[tauri::command]
-fn engine_pause() -> Result<(), String> {
-    if let Some(engine) = AUDIO_ENGINE.get() {
-        engine.pause();
-        Ok(())
-    } else {
-        Err("Audio engine not initialized".to_string())
-    }
-}
-
-#[tauri::command]
-fn engine_resume() -> Result<(), String> {
-    if let Some(engine) = AUDIO_ENGINE.get() {
-        engine.resume();
-        Ok(())
-    } else {
-        Err("Audio engine not initialized".to_string())
-    }
-}
-
-#[tauri::command]
-fn engine_stop() -> Result<(), String> {
-    if let Some(engine) = AUDIO_ENGINE.get() {
-        engine.stop();
-        Ok(())
-    } else {
-        Err("Audio engine not initialized".to_string())
-    }
-}
-
-#[tauri::command]
-fn engine_seek(position_secs: f64) -> Result<(), String> {
-    if let Some(engine) = AUDIO_ENGINE.get() {
-        engine.seek(position_secs);
-        Ok(())
-    } else {
-        Err("Audio engine not initialized".to_string())
-    }
-}
-
-#[tauri::command]
-fn engine_set_volume(volume: f32) -> Result<(), String> {
-    if let Some(engine) = AUDIO_ENGINE.get() {
-        engine.set_volume(volume);
-        Ok(())
-    } else {
-        Err("Audio engine not initialized".to_string())
-    }
-}
-
-
-
-#[tauri::command]
-fn engine_get_output_devices() -> Result<Vec<AudioDeviceInfo>, String> {
-    Ok(get_audio_hosts_and_devices())
-}
-
-#[tauri::command]
-fn engine_set_output_device(name: Option<String>) -> Result<(), String> {
-    if let Some(engine) = AUDIO_ENGINE.get() {
-        engine.set_device(name);
-        Ok(())
-    } else {
-        Err("Audio engine not initialized".to_string())
-    }
-}
 
 #[cfg(windows)]
 use std::os::windows::ffi::OsStrExt;
@@ -198,6 +116,12 @@ impl Drop for VolumeCallbackWrapper {
             let _ = self.endpoint.UnregisterControlChangeNotify(&self.callback);
         }
     }
+}
+
+#[derive(Serialize)]
+struct LyricsResult {
+    raw_text: String,
+    source: String,
 }
 
 #[derive(Serialize)]
@@ -523,6 +447,48 @@ fn get_metadata(file_path: String) -> Result<SongMetadata, String> {
         sample_rate,
         channels,
     })
+}
+
+#[tauri::command]
+fn get_lyrics(file_path: String) -> Result<Option<LyricsResult>, String> {
+    let path = Path::new(&file_path);
+    if !path.exists() {
+        return Ok(None);
+    }
+
+    // 1. Check for .lrc file in the same directory
+    let lrc_path = path.with_extension("lrc");
+    if lrc_path.exists() {
+        if let Ok(content) = std::fs::read_to_string(&lrc_path) {
+            if !content.trim().is_empty() {
+                return Ok(Some(LyricsResult {
+                    raw_text: content,
+                    source: "lrc_file".to_string(),
+                }));
+            }
+        }
+    }
+
+    // 2. Check for embedded lyrics tag via lofty
+    if let Ok(tagged_file) = read_from_path(path) {
+        if let Some(tag) = tagged_file.primary_tag().or_else(|| tagged_file.first_tag()) {
+            for item in tag.items() {
+                let key_str = format!("{:?}", item.key());
+                if key_str.contains("Lyrics") || key_str.contains("UnsyncLyrics") {
+                    if let lofty::tag::ItemValue::Text(val) = item.value() {
+                        if !val.trim().is_empty() {
+                            return Ok(Some(LyricsResult {
+                                raw_text: val.clone(),
+                                source: "embedded".to_string(),
+                            }));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(None)
 }
 
 #[tauri::command]
@@ -1009,6 +975,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             list_files,
             get_metadata,
+            get_lyrics,
             save_metadata,
             get_system_volume,
             set_system_volume,
@@ -1026,15 +993,7 @@ pub fn run() {
             set_default_wallpaper_path,
             get_default_wallpaper_path,
             set_reset_on_close,
-            open_webview_stream,
-            engine_play,
-            engine_pause,
-            engine_resume,
-            engine_stop,
-            engine_seek,
-            engine_set_volume,
-            engine_get_output_devices,
-            engine_set_output_device
+            open_webview_stream
         ])
         .register_uri_scheme_protocol("stream", |_app, request| {
             if request.method() == tauri::http::Method::OPTIONS {
@@ -1152,9 +1111,6 @@ pub fn run() {
         })
         .plugin(tauri_plugin_updater::Builder::default().build())
         .setup(|app| {
-            let handle = app.handle().clone();
-            let _ = AUDIO_ENGINE.set(AudioEngineHandle::new(handle));
-
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()

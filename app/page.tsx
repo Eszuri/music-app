@@ -852,6 +852,7 @@ function HomeContent() {
                 setCurrentPath={player.setCurrentPath}
                 playSong={player.playSong}
                 handleSeek={player.handleSeek}
+                seekTo={player.seekTo}
                 playPrev={player.playPrev}
                 togglePlayPause={player.togglePlayPause}
                 playNext={player.playNext}

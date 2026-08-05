@@ -425,12 +425,6 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 autoPausedBySilenceRef.current = false;
                 restoredPendingPlayRef.current = false;
 
-                if (isBrowserTauri) {
-                    getTauri().then((mod) => {
-                        mod.invoke("engine_play", { path: file.path }).catch(() => {});
-                    });
-                }
-
                 if (token !== playTokenRef.current || !isMountedRef.current) return;
 
                 setSelectedSong(file);
@@ -465,12 +459,6 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 await audio.play();
                 autoPausedBySilenceRef.current = false;
 
-                if (isBrowserTauri) {
-                    getTauri().then((mod) => {
-                        mod.invoke("engine_resume").catch(() => {});
-                    });
-                }
-
                 if (restoredPendingPlayRef.current) {
                     restoredPendingPlayRef.current = false;
                     const meta = metadataRef.current;
@@ -481,11 +469,6 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         } else {
             autoPausedBySilenceRef.current = false;
             audio.pause();
-            if (isBrowserTauri) {
-                getTauri().then((mod) => {
-                    mod.invoke("engine_pause").catch(() => {});
-                });
-            }
         }
     }, [pauseIfMuted, isVolumeSilent, setMinimumResumeVolume, applyWallpaper]);
 
@@ -509,7 +492,6 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             getTauri()
                 .then((mod) => {
                     mod.invoke("clear_wallpaper").catch(() => {});
-                    mod.invoke("engine_stop").catch(() => {});
                 })
                 .catch(() => {});
         }
@@ -750,16 +732,15 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         ],
     );
 
-    const handleSeek = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        const t = parseFloat(e.target.value);
+    const seekTo = useCallback((t: number) => {
         setCurrentTime(t);
         if (audioRef.current) audioRef.current.currentTime = t;
-        if (isBrowserTauri) {
-            getTauri().then((mod) => {
-                mod.invoke("engine_seek", { positionSecs: t }).catch(() => {});
-            });
-        }
     }, []);
+
+    const handleSeek = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const t = parseFloat(e.target.value);
+        seekTo(t);
+    }, [seekTo]);
 
     const toggleSystemMute = useCallback(() => {
         if (!isBrowserTauri) return;
@@ -812,6 +793,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         playPrevRef,
         handleVolumeChange,
         handleSeek,
+        seekTo,
         toggleSystemMute,
         goUp,
         gainBoost: gainBoost.gain,
