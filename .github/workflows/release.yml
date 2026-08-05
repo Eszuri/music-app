@@ -96,5 +96,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $tag = "${{ github.ref_name }}"
-          Rename-Item -Path "src-audio-engine/publish/AudioEngine.exe" -NewName "symvonia-audio-engine.exe"
           gh release upload $tag "src-audio-engine/publish/symvonia-audio-engine.exe" --clobber
