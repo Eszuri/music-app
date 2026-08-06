@@ -53,7 +53,7 @@ export function Skeleton({
     );
 }
 
-export function FolderExplorerSkeleton({
+function FolderExplorerSkeleton({
     accentColor = "violet",
 }: {
     accentColor?: string;
@@ -95,7 +95,7 @@ export function FolderExplorerSkeleton({
     );
 }
 
-export function PlayerPanelSkeleton({
+function PlayerPanelSkeleton({
     accentColor = "violet",
     hideCover = false,
 }: {
@@ -120,7 +120,7 @@ export function PlayerPanelSkeleton({
     );
 }
 
-export function SeekBarSkeleton({accentColor = "violet"}: {accentColor?: string}) {
+function SeekBarSkeleton({accentColor = "violet"}: {accentColor?: string}) {
     return (
         <div className="w-full">
             <div className="relative w-full h-5 flex items-center">
@@ -134,7 +134,7 @@ export function SeekBarSkeleton({accentColor = "violet"}: {accentColor?: string}
     );
 }
 
-export function PlaybackControlsSkeleton({accentColor = "violet"}: {accentColor?: string}) {
+function PlaybackControlsSkeleton({accentColor = "violet"}: {accentColor?: string}) {
     return (
         <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
             <Skeleton accentColor={accentColor} variant="button" className="w-9" />
@@ -146,7 +146,7 @@ export function PlaybackControlsSkeleton({accentColor = "violet"}: {accentColor?
     );
 }
 
-export function VolumeControlSkeleton({accentColor = "violet"}: {accentColor?: string}) {
+function VolumeControlSkeleton({accentColor = "violet"}: {accentColor?: string}) {
     return (
         <div className="flex items-center gap-2 w-full justify-center">
             <Skeleton accentColor={accentColor} variant="circle" className="w-7 h-7 shrink-0" />
@@ -230,7 +230,7 @@ function StatusBarSkeleton({accentColor}: {accentColor: string}) {
     );
 }
 
-export function InitSkeleton({accentColor = "violet"}: {accentColor?: string}) {
+function InitSkeleton({accentColor = "violet"}: {accentColor?: string}) {
     return (
         <div className="flex-1 flex overflow-hidden">
             <div className="w-72 border-r border-zinc-800/50 bg-black/30 flex flex-col">
@@ -289,30 +289,4 @@ export function FullInitSkeleton() {
     );
 }
 
-export function PlayerAreaSkeleton({
-    accentColor = "violet",
-    isFullScreen = false,
-}: {
-    accentColor?: string;
-    isFullScreen?: boolean;
-}) {
-    return (
-        <div
-            className={`flex flex-col items-center gap-2.5 sm:gap-4 w-full min-w-0 ${isFullScreen
-                ? "mt-auto lg:max-w-2xl lg:mb-4 lg:p-4 lg:sm:p-6 bg-black/40 backdrop-blur-xl border-t border-white/10 lg:border lg:rounded-3xl p-4 sm:p-6 lg:shadow-2xl"
-                : "my-auto py-1 max-w-2xl"
-                }`}
-        >
-            <PlayerPanelSkeleton accentColor={accentColor} hideCover={isFullScreen} />
-            <div className="w-full px-2">
-                <SeekBarSkeleton accentColor={accentColor} />
-            </div>
-            <div className="w-full flex justify-center mt-2">
-                <PlaybackControlsSkeleton accentColor={accentColor} />
-            </div>
-            <div className="w-full flex justify-center mt-1">
-                <VolumeControlSkeleton accentColor={accentColor} />
-            </div>
-        </div>
-    );
-}
+

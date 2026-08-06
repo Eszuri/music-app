@@ -1,4 +1,4 @@
-export type AccentColor = 'green' | 'blue' | 'purple' | 'pink' | 'red' | 'orange' | 'yellow' | 'teal' | 'cyan' | 'indigo' | 'rose' | 'lime' | 'amber' | 'emerald' | 'custom';
+type AccentColor = 'green' | 'blue' | 'purple' | 'pink' | 'red' | 'orange' | 'yellow' | 'teal' | 'cyan' | 'indigo' | 'rose' | 'lime' | 'amber' | 'emerald' | 'custom';
 
 function hexToRgb(hex: string) {
   const clean = hex.replace('#', '');
@@ -39,7 +39,7 @@ export function removeCustomAccentVars() {
   ].forEach((k) => root.style.removeProperty(k));
 }
 
-export const ACCENT_MAP: Record<string, Record<string, string>> = {
+const ACCENT_MAP: Record<string, Record<string, string>> = {
   green: {
     bg500: 'bg-green-500',
     bg400: 'bg-green-400',

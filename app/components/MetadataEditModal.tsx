@@ -223,9 +223,10 @@ function MetadataEditModal({
                 onSaveSuccess();
             }
             onClose();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Failed to save metadata:', err);
-            setErrorMessage(err?.toString() || (lang === 'id' ? 'Gagal menyimpan metadata file' : 'Failed to save metadata'));
+            const errMsg = err instanceof Error ? err.message : String(err);
+            setErrorMessage(errMsg || (lang === 'id' ? 'Gagal menyimpan metadata file' : 'Failed to save metadata'));
         } finally {
             setIsSaving(false);
         }

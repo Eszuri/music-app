@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getTauri, isBrowserTauri } from '../lib/homeState';
 
-export interface LyricLine {
+interface LyricLine {
     id: number;
     timeSec: number | null;
     text: string;
@@ -19,7 +19,7 @@ export interface LyricsState {
 }
 
 /** Parses raw LRC format string into array of timestamped lines */
-export function parseLrcText(rawText: string): { lines: LyricLine[]; isSynced: boolean } {
+function parseLrcText(rawText: string): { lines: LyricLine[]; isSynced: boolean } {
     if (!rawText || !rawText.trim()) {
         return { lines: [], isSynced: false };
     }

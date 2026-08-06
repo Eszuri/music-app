@@ -111,7 +111,7 @@ export default function AutoHideTimerMenu({
                                         }
                                     }}
                                     className="w-full bg-black/50 text-xs px-2 py-1.5 rounded-md outline-none border border-transparent focus:border-(--accent) text-zinc-200 transition-colors"
-                                    style={{'--accent': accent.hex500} as any}
+                                    style={{'--accent': accent.hex500} as React.CSSProperties}
                                     min="500"
                                     step="500"
                                 />

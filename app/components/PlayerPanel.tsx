@@ -3,6 +3,7 @@
 import {memo} from 'react';
 import {motion, AnimatePresence} from 'framer-motion';
 import {FileEntry} from './FolderExplorer';
+import type {EngineStateEvent} from '../hooks/useBitPerfectEngine';
 import {getAccent} from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
 import {contentMotion} from '../lib/animations';
@@ -37,7 +38,7 @@ interface PlayerPanelProps {
     onContextMenu?: (e: React.MouseEvent) => void;
     hideCover?: boolean;
     outputMode?: 'default' | 'bitperfect';
-    bpEngineState?: any;
+    bpEngineState?: EngineStateEvent;
 }
 
 function PlayerPanel({lang, metadata, selectedSong, accentColor, coverDataUrl, onContextMenu, hideCover, outputMode, bpEngineState}: PlayerPanelProps) {

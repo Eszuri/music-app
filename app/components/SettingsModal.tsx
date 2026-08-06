@@ -19,7 +19,7 @@ import {getSections} from './settings/sectionsConfig';
 import {useBitPerfectEngine} from '../hooks/useBitPerfectEngine';
 import type {SectionId, SettingsModalProps} from './settings/types';
 
-export type {LogEntry} from '../types/log';
+
 
 export default function SettingsModal({
     lang,

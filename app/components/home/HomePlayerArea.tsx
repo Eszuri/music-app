@@ -11,6 +11,8 @@ import {
 } from "react";
 import FolderExplorer, {FileEntry} from "../FolderExplorer";
 import PlayerPanel, {SongMetadata} from "../PlayerPanel";
+import {Skeleton} from '../Skeleton';
+import type {EngineStateEvent} from '../../hooks/useBitPerfectEngine';
 import SeekBar from "../SeekBar";
 import PlaybackControls from "../PlaybackControls";
 import VolumeControl from "../VolumeControl";
@@ -72,7 +74,7 @@ interface HomePlayerAreaProps {
     onCoverSaved: () => void;
     onOpenEditMetadata?: (file?: FileEntry) => void;
     outputMode?: 'default' | 'bitperfect';
-    bpEngineState?: any;
+    bpEngineState?: EngineStateEvent;
 }
 
 async function openDevTools() {

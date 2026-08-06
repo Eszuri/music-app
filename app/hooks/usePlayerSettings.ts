@@ -31,13 +31,13 @@ import {
     type ShortcutAction,
 } from '../lib/homeState';
 
-export const PAUSE_IF_MUTED_KEY = 'music-app-pause-if-muted';
+const PAUSE_IF_MUTED_KEY = 'music-app-pause-if-muted';
 import type {Lang} from '../lib/translations';
 import {t} from '../lib/translations';
 
-export const APP_VOLUME_KEY = 'music-app-app-volume';
-export const FADE_AUDIO_KEY = 'music-app-fade-audio';
-export const FADE_DURATION_KEY = 'music-app-fade-duration';
+const APP_VOLUME_KEY = 'music-app-app-volume';
+const FADE_AUDIO_KEY = 'music-app-fade-audio';
+const FADE_DURATION_KEY = 'music-app-fade-duration';
 
 export function usePlayerSettings() {
     const [musicFolder, setMusicFolderState] = useState<string | null>(null);

@@ -2,7 +2,7 @@
 
 import {useEffect, useRef} from 'react';
 
-export interface ContextMenuActionItem {
+interface ContextMenuActionItem {
     label: string;
     icon?: React.ReactNode;
     onClick: () => void;
@@ -11,11 +11,11 @@ export interface ContextMenuActionItem {
     badge?: string;
 }
 
-export interface ContextMenuSeparator {
+interface ContextMenuSeparator {
     separator: true;
 }
 
-export interface ContextMenuLabel {
+interface ContextMenuLabel {
     heading: string;
 }
 

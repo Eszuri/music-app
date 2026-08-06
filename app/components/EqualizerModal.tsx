@@ -161,7 +161,7 @@ function EqualizerModal({
                             >
                                 {BAND_MODE_OPTIONS.map((bm) => (
                                     <option key={bm} value={bm} className="bg-zinc-900 text-zinc-200">
-                                        {t(lang, `equalizer.bandMode.${bm}` as any)}
+                                        {t(lang, `equalizer.bandMode.${bm}`)}
                                     </option>
                                 ))}
                             </select>
@@ -178,7 +178,7 @@ function EqualizerModal({
                             >
                                 {PRESET_OPTIONS.map((key) => (
                                     <option key={key} value={key} className="bg-zinc-900 text-zinc-200">
-                                        {t(lang, `equalizer.preset.${key}` as any)}
+                                        {t(lang, `equalizer.preset.${key}`)}
                                     </option>
                                 ))}
                             </select>

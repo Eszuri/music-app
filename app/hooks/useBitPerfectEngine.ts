@@ -17,7 +17,7 @@ export interface EngineStateEvent {
     deviceName?: string | null;
 }
 
-export interface EngineProgressEvent {
+interface EngineProgressEvent {
     position: number;
     duration: number;
 }

@@ -70,7 +70,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
 
             if (e.key === 'F12') {
                 import('@tauri-apps/api/webview').then(m =>
-                    (m as any).getCurrentWebview().openDevTools()
+                    (m as unknown as { getCurrentWebview: () => { openDevTools: () => void } }).getCurrentWebview().openDevTools()
                 ).catch(() => {});
                 return;
             }

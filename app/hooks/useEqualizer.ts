@@ -1,11 +1,11 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {safeSetLocalStorage} from '../lib/homeState';
 
-export const EQ_STORAGE_KEY = 'music-app-equalizer-state';
+const EQ_STORAGE_KEY = 'music-app-equalizer-state';
 
 export type EQBandMode = 5 | 10 | 15 | 31;
 
-export const EQ_BAND_FREQUENCIES: Record<EQBandMode, number[]> = {
+const EQ_BAND_FREQUENCIES: Record<EQBandMode, number[]> = {
     5: [60, 230, 910, 3600, 14000],
     10: [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000],
     15: [25, 40, 63, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000, 16000],
@@ -29,7 +29,7 @@ export type EQPresetKey =
     | 'custom';
 
 // Generator for default preset values according to band count
-export function getPresetGains(bandMode: EQBandMode, presetKey: EQPresetKey): number[] {
+function getPresetGains(bandMode: EQBandMode, presetKey: EQPresetKey): number[] {
     const count = bandMode;
     if (presetKey === 'flat' || presetKey === 'custom') {
         return new Array(count).fill(0);

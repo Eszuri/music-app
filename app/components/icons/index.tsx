@@ -236,14 +236,7 @@ export function MinusIcon({size = 14, className = '', ...props}: IconProps) {
     );
 }
 
-export function SearchIcon({size = 16, className = '', ...props}: IconProps) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-    );
-}
+
 
 export function EditIcon({size = 14, className = '', ...props}: IconProps) {
     return (
@@ -272,13 +265,7 @@ export function InfoIcon({size = 14, className = '', ...props}: IconProps) {
     );
 }
 
-export function CheckIcon({size = 14, className = '', ...props}: IconProps) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
-            <polyline points="20 6 9 17 4 12" />
-        </svg>
-    );
-}
+
 
 export function CopyIcon({size = 14, className = '', ...props}: IconProps) {
     return (
@@ -289,50 +276,17 @@ export function CopyIcon({size = 14, className = '', ...props}: IconProps) {
     );
 }
 
-export function ExternalLinkIcon({size = 14, className = '', ...props}: IconProps) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-            <polyline points="15 3 21 3 21 9" />
-            <line x1="10" y1="14" x2="21" y2="3" />
-        </svg>
-    );
-}
 
-export function TimerIcon({size = 16, className = '', ...props}: IconProps) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-        </svg>
-    );
-}
 
-export function RefreshIcon({size = 14, className = '', ...props}: IconProps) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
-            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
-        </svg>
-    );
-}
+
+
+
 
 // ─── Files & Folders ───────────────────────────────────────────────────────
 
-export function FolderIcon({size = 16, className = '', ...props}: IconProps) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-        </svg>
-    );
-}
 
-export function FolderOpenIcon({size = 16, className = '', ...props}: IconProps) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
-            <path d="M6 14l1.45-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.55 6a2 2 0 0 1-1.94 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.69.9H18a2 2 0 0 1 2 2v2" />
-        </svg>
-    );
-}
+
+
 
 export function MusicNoteIcon({size = 16, className = '', ...props}: IconProps) {
     return (
@@ -344,26 +298,8 @@ export function MusicNoteIcon({size = 16, className = '', ...props}: IconProps) 
     );
 }
 
-export function ChevronRightIcon({size = 14, className = '', ...props}: IconProps) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
-            <path d="m9 18 6-6-6-6" />
-        </svg>
-    );
-}
 
-export function ChevronUpIcon({size = 14, className = '', ...props}: IconProps) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
-            <path d="m18 15-6-6-6 6" />
-        </svg>
-    );
-}
 
-export function ChevronDownIcon({size = 14, className = '', ...props}: IconProps) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
-            <path d="m6 9 6 6 6-6" />
-        </svg>
-    );
-}
+
+
+

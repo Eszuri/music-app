@@ -828,7 +828,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
     useEffect(() => {
         const flush = () => {
-            if ((window as any).__symvoniaResetInProgress) return;
+            if ((window as unknown as { __symvoniaResetInProgress?: boolean }).__symvoniaResetInProgress) return;
             const song = selectedSongRef.current;
             const audio = audioRef.current;
             if (song && audio && audio.currentTime > 0) {

@@ -1,7 +1,7 @@
 import type {Transition} from "framer-motion";
 
 
-export const contentTransition: Transition = {
+const contentTransition: Transition = {
     duration: 0.25,
     ease: "easeInOut",
 };
