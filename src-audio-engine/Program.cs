@@ -7,6 +7,19 @@ using Symvonia.AudioEngine;
 Console.InputEncoding = System.Text.Encoding.UTF8;
 Console.OutputEncoding = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
+if (args.Length >= 2 && args[0] == "--verify")
+{
+    var token = args[1];
+    Protocol.Emit(new
+    {
+        @event = "verify_response",
+        token = token,
+        engine = "Symvonia Audio Engine",
+        version = "1.0.0"
+    });
+    return;
+}
+
 using var player = new AudioPlayer();
 
 player.PlaybackEnded += () =>

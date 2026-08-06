@@ -156,6 +156,19 @@ export function useBitPerfectEngine(handlers: EngineEventHandlers = {}) {
         }
     }, [setStatusGlobal]);
 
+    const cancelDownload = useCallback(async () => {
+        if (!isBrowserTauri) return;
+        try {
+            const mod = await getTauri();
+            await mod.invoke("cancel_bit_perfect_plugin_download");
+        } catch (e) {
+            console.error("Error cancelling download:", e);
+        } finally {
+            setDownloading(false);
+            setDownloadProgress(null);
+        }
+    }, []);
+
     const installFromFile = useCallback(async (path: string) => {
         if (!isBrowserTauri) return;
         const mod = await getTauri();
@@ -226,6 +239,7 @@ export function useBitPerfectEngine(handlers: EngineEventHandlers = {}) {
         refreshStatus,
         sendCommand,
         download,
+        cancelDownload,
         installFromFile,
         uninstall,
         stopEngine,

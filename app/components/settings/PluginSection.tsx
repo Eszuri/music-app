@@ -22,6 +22,7 @@ export default function PluginSection({
         downloading,
         downloadProgress,
         download,
+        cancelDownload,
         installFromFile,
         uninstall,
         refreshStatus,
@@ -45,7 +46,19 @@ export default function PluginSection({
         try {
             await download();
         } catch (e) {
-            setActionError(String(e));
+            const msg = String(e);
+            if (!msg.toLowerCase().includes("dibatalkan") && !msg.toLowerCase().includes("cancel")) {
+                setActionError(msg);
+            }
+        }
+    };
+
+    const handleCancelDownload = async () => {
+        setActionError(null);
+        try {
+            await cancelDownload();
+        } catch {
+            // Silently handle cancellation without alert
         }
     };
 
@@ -121,29 +134,41 @@ export default function PluginSection({
                 >
                     <div className="flex flex-col gap-2 items-end">
                         {!installed ? (
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={handleInstallFromFile}
-                                    disabled={installingFromFile || downloading}
-                                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/50 transition-colors disabled:opacity-50 cursor-pointer"
-                                >
-                                    {t(lang, 'audio.bitperfect.plugin.installFromFile') || 'Install dari File'}
-                                </button>
-                                <button
-                                    onClick={handleInstall}
-                                    disabled={downloading || installingFromFile}
-                                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg ${accent.bg500} text-white hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2 cursor-pointer`}
-                                >
-                                    {downloading ? (
-                                        <>
-                                            <div className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                                            {downloadPct}%
-                                        </>
-                                    ) : (
-                                        t(lang, 'audio.bitperfect.plugin.install') || 'Unduh & Install'
-                                    )}
-                                </button>
-                            </div>
+                            downloading ? (
+                                <div className="flex items-center gap-2">
+                                    <div className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-zinc-800 text-zinc-200 border border-zinc-700/50 flex items-center gap-2 select-none">
+                                        <div className="w-3 h-3 rounded-full border-2 border-zinc-400 border-t-transparent animate-spin" />
+                                        <span>{t(lang, 'audio.bitperfect.plugin.installing', { pct: downloadPct })}</span>
+                                    </div>
+                                    <button
+                                        onClick={handleCancelDownload}
+                                        className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition-colors flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <line x1="18" y1="6" x2="6" y2="18"/>
+                                            <line x1="6" y1="6" x2="18" y2="18"/>
+                                        </svg>
+                                        <span>{t(lang, 'audio.bitperfect.plugin.cancel') || 'Batal Unduh'}</span>
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={handleInstallFromFile}
+                                        disabled={installingFromFile}
+                                        className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/50 transition-colors disabled:opacity-50 cursor-pointer"
+                                    >
+                                        {t(lang, 'audio.bitperfect.plugin.installFromFile') || 'Install dari File'}
+                                    </button>
+                                    <button
+                                        onClick={handleInstall}
+                                        disabled={installingFromFile}
+                                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg ${accent.bg500} text-white hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2 cursor-pointer`}
+                                    >
+                                        {t(lang, 'audio.bitperfect.plugin.install') || 'Unduh & Install'}
+                                    </button>
+                                </div>
+                            )
                         ) : (
                             <button
                                 onClick={handleUninstall}

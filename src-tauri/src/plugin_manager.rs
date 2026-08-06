@@ -1,10 +1,21 @@
 use std::fs;
-use std::io::{Read, Write};
-use std::path::PathBuf;
+use std::io::{BufRead, Read, Write};
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
+
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
 
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Emitter, Manager};
+
+static DOWNLOAD_CANCELLED: AtomicBool = AtomicBool::new(false);
+
+pub fn cancel_download() {
+    DOWNLOAD_CANCELLED.store(true, Ordering::SeqCst);
+}
 
 /// Download URL for the self-contained C# audio engine (GitHub Releases).
 pub const PLUGIN_DOWNLOAD_URL: &str =
@@ -85,6 +96,7 @@ pub fn compute_sha256(path: &PathBuf) -> Result<String, String> {
 /// Downloads the plugin exe to a temp file, verifies the hash, then moves it
 /// into place. Emits `bit-perfect-download-progress` events along the way.
 pub fn download_and_install(app: &AppHandle, url: Option<String>) -> Result<PluginStatus, String> {
+    DOWNLOAD_CANCELLED.store(false, Ordering::SeqCst);
     let url = url.unwrap_or_else(|| PLUGIN_DOWNLOAD_URL.to_string());
     let dir = plugin_dir(app)?;
     fs::create_dir_all(&dir).map_err(|e| format!("Failed to create plugin dir: {}", e))?;
@@ -109,12 +121,36 @@ pub fn download_and_install(app: &AppHandle, url: Option<String>) -> Result<Plug
     let mut buf = [0u8; 65536];
     let mut last_emit = std::time::Instant::now();
     loop {
-        let n = reader
-            .read(&mut buf)
-            .map_err(|e| format!("Download stream error: {}", e))?;
-        if n == 0 {
-            break;
+        if DOWNLOAD_CANCELLED.load(Ordering::SeqCst) {
+            drop(file);
+            let _ = fs::remove_file(&tmp_path);
+            let _ = app.emit(
+                "bit-perfect-download-progress",
+                DownloadProgress { downloaded: 0, total: 0 },
+            );
+            return Err("Pengunduhan plugin dibatalkan oleh pengguna.".into());
         }
+
+        let n = match reader.read(&mut buf) {
+            Ok(0) => break,
+            Ok(n) => n,
+            Err(e) => {
+                drop(file);
+                let _ = fs::remove_file(&tmp_path);
+                return Err(format!("Download stream error: {}", e));
+            }
+        };
+
+        if DOWNLOAD_CANCELLED.load(Ordering::SeqCst) {
+            drop(file);
+            let _ = fs::remove_file(&tmp_path);
+            let _ = app.emit(
+                "bit-perfect-download-progress",
+                DownloadProgress { downloaded: 0, total: 0 },
+            );
+            return Err("Pengunduhan plugin dibatalkan oleh pengguna.".into());
+        }
+
         file.write_all(&buf[..n])
             .map_err(|e| format!("Failed to write temp file: {}", e))?;
         downloaded += n as u64;
@@ -126,6 +162,13 @@ pub fn download_and_install(app: &AppHandle, url: Option<String>) -> Result<Plug
             );
         }
     }
+
+    if DOWNLOAD_CANCELLED.load(Ordering::SeqCst) {
+        drop(file);
+        let _ = fs::remove_file(&tmp_path);
+        return Err("Pengunduhan plugin dibatalkan oleh pengguna.".into());
+    }
+
     file.flush().ok();
     drop(file);
     let _ = app.emit(
@@ -159,13 +202,120 @@ pub fn download_and_install(app: &AppHandle, url: Option<String>) -> Result<Plug
     get_status(app)
 }
 
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+/// Verifies that a local file is a valid Symvonia Audio Engine executable.
+pub fn verify_plugin_executable(src: &Path) -> Result<(), String> {
+    if !src.exists() {
+        return Err(format!("Berkas tidak ditemukan: {}", src.display()));
+    }
+
+    // 1. Size Check (500 KB to 500 MB)
+    let meta = fs::metadata(src).map_err(|e| format!("Gagal membaca metadata berkas: {}", e))?;
+    let len = meta.len();
+    if len < 500 * 1024 || len > 500 * 1024 * 1024 {
+        return Err(format!(
+            "Ukuran berkas ({:.2} MB) tidak valid untuk plugin Symvonia Audio Engine (harus 0.5 MB - 500 MB).",
+            len as f64 / (1024.0 * 1024.0)
+        ));
+    }
+
+    // 2. PE Header Check (MZ & PE\0\0)
+    let mut file = fs::File::open(src).map_err(|e| format!("Gagal membuka berkas: {}", e))?;
+    let mut header = [0u8; 512];
+    let n = file.read(&mut header).map_err(|e| format!("Gagal membaca header berkas: {}", e))?;
+    if n < 64 || &header[0..2] != b"MZ" {
+        return Err("Berkas bukan merupakan executable Windows yang valid (Missing MZ header).".into());
+    }
+
+    // Read e_lfanew offset (bytes 60..64)
+    let pe_offset = u32::from_le_bytes([header[60], header[61], header[62], header[63]]) as usize;
+    if pe_offset + 4 <= n {
+        if &header[pe_offset..pe_offset + 4] != b"PE\0\0" {
+            return Err("Berkas bukan merupakan PE Executable Windows yang valid (Missing PE signature).".into());
+        }
+    }
+
+    // 3. Challenge-Response Token Verification (Mode 1 - CLI Challenge)
+    let nonce: u64 = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos() as u64)
+        .unwrap_or(123456789);
+    let token = format!("symvonia_token_{:x}", nonce);
+
+    let mut cmd = Command::new(src);
+    cmd.arg("--verify").arg(&token);
+    cmd.stdout(Stdio::piped()).stderr(Stdio::null()).stdin(Stdio::null());
+
+    #[cfg(target_os = "windows")]
+    cmd.creation_flags(CREATE_NO_WINDOW);
+
+    if let Ok(mut child) = cmd.spawn() {
+        if let Some(stdout) = child.stdout.take() {
+            let mut reader = std::io::BufReader::new(stdout);
+            let mut line = String::new();
+
+            let start = std::time::Instant::now();
+            let mut read_success = false;
+
+            while start.elapsed().as_millis() < 2500 {
+                if reader.read_line(&mut line).unwrap_or(0) > 0 {
+                    read_success = true;
+                    break;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+            let _ = child.kill();
+
+            if read_success && (line.contains(&token) || line.contains("verify_response")) {
+                return Ok(());
+            }
+        } else {
+            let _ = child.kill();
+        }
+    }
+
+    // 4. Fallback Verification (Mode 2 - Standard Startup Probe)
+    let mut fallback_cmd = Command::new(src);
+    fallback_cmd.stdout(Stdio::piped()).stderr(Stdio::null()).stdin(Stdio::null());
+
+    #[cfg(target_os = "windows")]
+    fallback_cmd.creation_flags(CREATE_NO_WINDOW);
+
+    if let Ok(mut child) = fallback_cmd.spawn() {
+        if let Some(stdout) = child.stdout.take() {
+            let mut reader = std::io::BufReader::new(stdout);
+            let mut line = String::new();
+            let start = std::time::Instant::now();
+            let mut read_success = false;
+
+            while start.elapsed().as_millis() < 2500 {
+                if reader.read_line(&mut line).unwrap_or(0) > 0 {
+                    read_success = true;
+                    break;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+            let _ = child.kill();
+
+            if read_success && (line.contains("ready") || line.contains("Symvonia")) {
+                return Ok(());
+            }
+        } else {
+            let _ = child.kill();
+        }
+    }
+
+    Err("Verifikasi Gagal: Berkas yang dipilih bukan merupakan plugin Symvonia Audio Engine yang valid.".into())
+}
+
 /// Installs the plugin from a local exe file (used for development/testing
 /// and for users who prefer sideloading over downloading).
 pub fn install_from_file(app: &AppHandle, source: &str) -> Result<PluginStatus, String> {
     let src = PathBuf::from(source);
-    if !src.exists() {
-        return Err(format!("Source file not found: {}", source));
-    }
+    verify_plugin_executable(&src)?;
+
     let dir = plugin_dir(app)?;
     fs::create_dir_all(&dir).map_err(|e| format!("Failed to create plugin dir: {}", e))?;
     let dest = dir.join(PLUGIN_EXE_NAME);

@@ -934,6 +934,11 @@ async fn download_bit_perfect_plugin(
     .map_err(|e| format!("Task error: {}", e))?
 }
 
+#[tauri::command]
+fn cancel_bit_perfect_plugin_download() {
+    plugin_manager::cancel_download();
+}
+
 /// Installs the engine from a local exe path (development / sideload).
 #[tauri::command]
 async fn install_bit_perfect_plugin_from_file(
@@ -1127,6 +1132,7 @@ pub fn run() {
             open_webview_stream,
             get_bit_perfect_plugin_status,
             download_bit_perfect_plugin,
+            cancel_bit_perfect_plugin_download,
             install_bit_perfect_plugin_from_file,
             uninstall_bit_perfect_plugin,
             send_audio_command,
@@ -1272,6 +1278,7 @@ pub fn run() {
         if let tauri::RunEvent::Exit = event {
             // Kill the sidecar engine so it never outlives the host app.
             let _ = sidecar::stop_engine();
+            plugin_manager::cancel_download();
             if RESET_ON_CLOSE.load(Ordering::SeqCst) {
                 let has_default = DEFAULT_WALLPAPER_PATH.lock()
                     .map(|p| p.is_some())
