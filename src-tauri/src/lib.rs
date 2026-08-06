@@ -649,10 +649,29 @@ fn clear_wallpaper_internal() -> Result<(), String> {
         }
         let img = image::open(path).map_err(|e| format!("Failed to open image: {}", e))?;
         let temp_dir = std::env::temp_dir();
-        let bmp_path = temp_dir.join("mw-def.bmp");
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis())
+            .unwrap_or(0);
+        let bmp_path = temp_dir.join(format!("mw-def-{}.bmp", timestamp));
+
         img.save_with_format(&bmp_path, image::ImageFormat::Bmp)
             .map_err(|e| format!("Failed to save BMP: {}", e))?;
-        apply_wallpaper(&bmp_path)
+
+        let res = apply_wallpaper(&bmp_path);
+
+        if let Ok(entries) = std::fs::read_dir(&temp_dir) {
+            for entry in entries.flatten() {
+                let p = entry.path();
+                if let Some(name) = p.file_name().and_then(|n| n.to_str()) {
+                    if (name.starts_with("mw-def-") || name == "mw-def.bmp") && name.ends_with(".bmp") && p != bmp_path {
+                        let _ = std::fs::remove_file(p);
+                    }
+                }
+            }
+        }
+
+        res
     } else {
         Ok(())
     }
@@ -867,12 +886,29 @@ async fn set_wallpaper(cover_b64: String) -> Result<(), String> {
             .map_err(|e| format!("Failed to decode image: {}", e))?;
 
         let temp_dir = std::env::temp_dir();
-        let bmp_path = temp_dir.join("mw-cover.bmp");
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis())
+            .unwrap_or(0);
+        let bmp_path = temp_dir.join(format!("mw-cover-{}.bmp", timestamp));
 
         img.save_with_format(&bmp_path, image::ImageFormat::Bmp)
             .map_err(|e| format!("Gagal save BMP: {}", e))?;
 
-        apply_wallpaper(&bmp_path)
+        let res = apply_wallpaper(&bmp_path);
+
+        if let Ok(entries) = std::fs::read_dir(&temp_dir) {
+            for entry in entries.flatten() {
+                let p = entry.path();
+                if let Some(name) = p.file_name().and_then(|n| n.to_str()) {
+                    if (name.starts_with("mw-cover-") || name == "mw-cover.bmp") && name.ends_with(".bmp") && p != bmp_path {
+                        let _ = std::fs::remove_file(p);
+                    }
+                }
+            }
+        }
+
+        res
     })
     .await
     .map_err(|e| format!("Task error: {}", e))?
