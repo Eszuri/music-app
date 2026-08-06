@@ -126,10 +126,33 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     const bpSendCommandRef = useRef<(cmd: Record<string, unknown>) => Promise<void>>(async () => {});
     const enginePlayRef = useRef<(file: FileEntry, seekPosition?: number) => Promise<void>>(async () => {});
 
+    const currentPathRef = useRef<string | null>(currentPath);
+    useEffect(() => {
+        currentPathRef.current = currentPath;
+    }, [currentPath]);
+
     useEffect(() => {
         fadeAudioRef.current = fadeAudio;
         fadeDurationRef.current = fadeDuration;
     }, [fadeAudio, fadeDuration]);
+
+    const makeTempFileEntry = (filePath: string): FileEntry => {
+        const name = filePath.split(/[/\\]/).pop() || filePath;
+        const ext = name.includes('.') ? name.split('.').pop() || '' : '';
+        return {
+            name,
+            path: filePath,
+            is_dir: false,
+            ext,
+            mtime: Date.now(),
+            size: 0,
+            ctime: Date.now(),
+            display_name: name,
+            sort_key: name,
+        };
+    };
+
+
 
     const fadeVolumeTo = useCallback((targetVol: number, durationMs: number, onComplete?: () => void) => {
         const audio = audioRef.current;
@@ -319,6 +342,44 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         [applyWallpaper],
     );
 
+    const syncSongPlaylist = useCallback(async (filePath: string) => {
+        const songParent = filePath.replace(/[/\\][^/\\]+$/, "");
+        try {
+            let fileList = filesRef.current;
+            if (currentPathRef.current !== songParent || fileList.length === 0) {
+                if (isBrowserTauri) {
+                    const mod = await getTauri();
+                    fileList = await mod.invoke<FileEntry[]>("list_files", {
+                        path: songParent,
+                        folderSort: folderSortRef.current,
+                        fileSort: fileSortRef.current,
+                        sortDir: sortDirRef.current,
+                        nameSource: nameSourceRef.current,
+                        formats: formatsRef.current,
+                    });
+                    if (isMountedRef.current) {
+                        setFiles(fileList);
+                        setCurrentPath(songParent);
+                    }
+                }
+            }
+            const songFile = fileList.find((f) => !f.is_dir && f.path === filePath);
+            const targetSong = songFile || makeTempFileEntry(filePath);
+            if (isMountedRef.current) {
+                setSelectedSong(targetSong);
+                loadMetadata(filePath, true);
+            }
+            playlistRef.current = fileList.filter((f) => !f.is_dir);
+            playlistFolderRef.current = songParent;
+        } catch {
+            const tempFile = makeTempFileEntry(filePath);
+            if (isMountedRef.current) {
+                setSelectedSong(tempFile);
+                loadMetadata(filePath, true);
+            }
+        }
+    }, [loadMetadata]);
+
     // ─── path / folder effects ─────────────────────────────────────────────────
 
     useEffect(() => {
@@ -362,14 +423,14 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     useEffect(() => {
         if (!filesLoadedOnce) return;
         if (sessionRestoreAttemptedRef.current) return;
-        sessionRestoreAttemptedRef.current = true;
 
         const done = () => {
             if (isMountedRef.current) setSessionRestored(true);
         };
 
         const session = loadSessionState();
-        if (!session || !files.length) {
+        if (!session) {
+            sessionRestoreAttemptedRef.current = true;
             done();
             return;
         }
@@ -377,6 +438,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         const savedParent = session.filePath.replace(/[/\\][^/\\]+$/, "");
 
         if (savedParent !== currentPath) {
+            sessionRestoreAttemptedRef.current = true;
             const doNavAndRestore = async () => {
                 try {
                     const token = ++loadFilesTokenRef.current;
@@ -404,6 +466,11 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             return;
         }
 
+        if (!files.length && loadingFiles) {
+            return;
+        }
+
+        sessionRestoreAttemptedRef.current = true;
         restoreFromFileList(files, session).finally(done);
 
         async function restoreFromFileList(
@@ -727,8 +794,23 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             switch (e.state) {
                 case "playing":
                     setIsPlaying(true);
+                    if (e.path) {
+                        restoredPendingPlayRef.current = false;
+                        const currentSong = selectedSongRef.current;
+                        if (!currentSong || currentSong.path !== e.path || playlistRef.current.length === 0) {
+                            syncSongPlaylist(e.path);
+                        }
+                    }
                     break;
                 case "paused":
+                    setIsPlaying(false);
+                    if (e.path) {
+                        const currentSong = selectedSongRef.current;
+                        if (!currentSong || currentSong.path !== e.path || playlistRef.current.length === 0) {
+                            syncSongPlaylist(e.path);
+                        }
+                    }
+                    break;
                 case "stopped":
                     setIsPlaying(false);
                     break;
@@ -759,7 +841,10 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     const bpActive = outputMode === "bitperfect" && bp.status?.installed === true;
     useEffect(() => {
         bpActiveRef.current = bpActive;
-    }, [bpActive]);
+        if (bpActive) {
+            bp.sendCommand({command: "get_state"}).catch(() => {});
+        }
+    }, [bpActive, bp.sendCommand]);
 
     // Switching playback engine: silence whichever side is being left behind.
     useEffect(() => {
