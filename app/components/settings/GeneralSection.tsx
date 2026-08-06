@@ -40,6 +40,7 @@ export default function GeneralSection({
     updateDownloaded,
     updateTotal,
     onResetAllSettings,
+    outputMode,
 }: {
     lang: Lang;
     setLang: (v: Lang) => void;
@@ -72,6 +73,7 @@ export default function GeneralSection({
     updateDownloaded: number;
     updateTotal: number;
     onResetAllSettings: () => void;
+    outputMode?: 'default' | 'bitperfect';
 }) {
     const accent = getAccent(accentColor);
     const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -215,18 +217,31 @@ export default function GeneralSection({
                 </SettingRow>
                 <SettingRow
                     title={t(lang, 'general.fadeAudio.title')}
-                    description={t(lang, 'general.fadeAudio.desc')}
+                    description={
+                        outputMode === 'bitperfect'
+                            ? t(lang, 'general.fadeAudio.disabledBp')
+                            : t(lang, 'general.fadeAudio.desc')
+                    }
                 >
-                    <SelectStub
-                        options={[
-                            ['true', t(lang, 'general.pauseIfMuted.on')],
-                            ['false', t(lang, 'general.pauseIfMuted.off')],
-                        ]}
-                        value={String(fadeAudio)}
-                        onChange={(v) => setFadeAudio(v === 'true')}
-                    />
+                    <div className="flex flex-col items-end gap-1.5">
+                        <div className={outputMode === 'bitperfect' ? 'opacity-50 pointer-events-none' : ''}>
+                            <SelectStub
+                                options={[
+                                    ['true', t(lang, 'general.pauseIfMuted.on')],
+                                    ['false', t(lang, 'general.pauseIfMuted.off')],
+                                ]}
+                                value={outputMode === 'bitperfect' ? 'false' : String(fadeAudio)}
+                                onChange={(v) => setFadeAudio(v === 'true')}
+                            />
+                        </div>
+                        {outputMode === 'bitperfect' && (
+                            <span className="text-[10px] font-semibold text-amber-400/90 bg-amber-950/40 border border-amber-800/40 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                🔒 {t(lang, 'general.fadeAudio.disabledBp')}
+                            </span>
+                        )}
+                    </div>
                 </SettingRow>
-                {fadeAudio && (
+                {fadeAudio && outputMode !== 'bitperfect' && (
                     <SettingRow
                         title={t(lang, 'general.fadeDuration.title')}
                         description={t(lang, 'general.fadeDuration.desc')}

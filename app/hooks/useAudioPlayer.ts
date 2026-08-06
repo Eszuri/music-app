@@ -120,6 +120,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     const fadeAudioRef = useRef(fadeAudio);
     const fadeDurationRef = useRef(fadeDuration);
     const fadeAnimationRef = useRef<number | null>(null);
+    const fadeTokenRef = useRef(0);
     const outputDeviceRef = useRef<string | null>(outputDevice);
     const bpActiveRef = useRef(false);
     const prevBpActiveRef = useRef<boolean | null>(null);
@@ -156,6 +157,8 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
     const fadeVolumeTo = useCallback((targetVol: number, durationMs: number, onComplete?: () => void) => {
         const audio = audioRef.current;
+        const currentToken = fadeTokenRef.current;
+
         if (fadeAnimationRef.current) {
             cancelAnimationFrame(fadeAnimationRef.current);
             fadeAnimationRef.current = null;
@@ -165,7 +168,9 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
         if (!audio || !fadeAudioRef.current || durationMs <= 0) {
             if (audio) audio.volume = clampedTarget;
-            onComplete?.();
+            if (currentToken === fadeTokenRef.current) {
+                onComplete?.();
+            }
             return;
         }
 
@@ -173,6 +178,8 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         const startTime = performance.now();
 
         const step = (now: number) => {
+            if (currentToken !== fadeTokenRef.current) return;
+
             const elapsed = now - startTime;
             const progress = Math.min(1, elapsed / durationMs);
             const current = startVol + (clampedTarget - startVol) * progress;
@@ -183,7 +190,9 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             } else {
                 fadeAnimationRef.current = null;
                 if (audio) audio.volume = clampedTarget;
-                onComplete?.();
+                if (currentToken === fadeTokenRef.current) {
+                    onComplete?.();
+                }
             }
         };
 
@@ -618,7 +627,10 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         const audio = audioRef.current;
         if (!audio || !audio.src) return;
 
-        if (audio.paused) {
+        fadeTokenRef.current++;
+
+        if (audio.paused || !isPlaying) {
+            setIsPlaying(true);
             const resume = async () => {
                 let resumeVolume: number | null = null;
                 if (pauseIfMuted && isVolumeSilent()) {
@@ -644,6 +656,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             resume().catch(() => {});
         } else {
             autoPausedBySilenceRef.current = false;
+            setIsPlaying(false);
             const targetVol = volumeModeRef.current === "app" ? appVolume : 1;
             if (fadeAudioRef.current && fadeDurationRef.current > 0) {
                 fadeVolumeTo(0, fadeDurationRef.current, () => {

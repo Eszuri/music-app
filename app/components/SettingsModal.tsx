@@ -189,6 +189,7 @@ export default function SettingsModal({
                                     updateDownloaded={updateDownloaded}
                                     updateTotal={updateTotal}
                                     onResetAllSettings={onResetAllSettings}
+                                    outputMode={outputMode}
                                 />
                             )}
                             {activeSection === 'sort' && (
