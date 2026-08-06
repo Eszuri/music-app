@@ -47,14 +47,20 @@ while ((line = Console.In.ReadLine()) != null)
             }
 
             case "pause":
+            {
                 player.Pause();
-                Protocol.EmitState("paused", player.CurrentPath, player.IsExclusive, null, null, player.DeviceName);
+                var (rate, bits) = player.CurrentFormat;
+                Protocol.EmitState("paused", player.CurrentPath, player.IsExclusive, rate, bits, player.DeviceName);
                 break;
+            }
 
             case "resume":
+            {
                 player.Resume();
-                Protocol.EmitState("playing", player.CurrentPath, player.IsExclusive, null, null, player.DeviceName);
+                var (rate, bits) = player.CurrentFormat;
+                Protocol.EmitState("playing", player.CurrentPath, player.IsExclusive, rate, bits, player.DeviceName);
                 break;
+            }
 
             case "stop":
                 player.Stop();

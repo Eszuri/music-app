@@ -82,7 +82,12 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     const [selectedSong, setSelectedSong] = useState<FileEntry | null>(null);
     const [metadata, setMetadata] = useState<SongMetadata | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
-    const [currentTime, setCurrentTime] = useState(0);
+    const [currentTime, setCurrentTimeState] = useState(0);
+    const currentTimeRef = useRef(0);
+    const setCurrentTime = useCallback((t: number) => {
+        currentTimeRef.current = t;
+        setCurrentTimeState(t);
+    }, []);
     const [duration, setDuration] = useState(0);
     const coverDataUrl = metadata?.cover_b64
         ? `data:${metadata.cover_mime || 'image/jpeg'};base64,${metadata.cover_b64}`
@@ -414,20 +419,26 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             if (!audio) return;
 
             try {
-                const src = getAudioSrc(savedFile.path);
+                if (bpActiveRef.current) {
+                    audio.pause();
+                    audio.removeAttribute("src");
+                    audio.load();
+                } else {
+                    const src = getAudioSrc(savedFile.path);
 
-                audio.src = src;
-                audio.volume = volumeModeRef.current === "app" ? appVolume : 1;
-                audio.loop = repeatRef.current === "one";
+                    audio.src = src;
+                    audio.volume = volumeModeRef.current === "app" ? appVolume : 1;
+                    audio.loop = repeatRef.current === "one";
 
-                const onCanPlay = () => {
-                    audio.removeEventListener("canplay", onCanPlay);
-                    if (selectedSongRef.current?.path === savedFile.path) {
-                        audio.currentTime = sess.currentTime;
-                    }
-                };
-                audio.addEventListener("canplay", onCanPlay);
-                audio.load();
+                    const onCanPlay = () => {
+                        audio.removeEventListener("canplay", onCanPlay);
+                        if (selectedSongRef.current?.path === savedFile.path) {
+                            audio.currentTime = sess.currentTime;
+                        }
+                    };
+                    audio.addEventListener("canplay", onCanPlay);
+                    audio.load();
+                }
 
                 setSelectedSong(savedFile);
                 setCurrentTime(sess.currentTime);
@@ -527,7 +538,12 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             if (isPlaying) {
                 bpSendCommandRef.current({command: "pause"}).catch(() => {});
             } else {
-                bpSendCommandRef.current({command: "resume"}).catch(() => {});
+                if (restoredPendingPlayRef.current && selectedSongRef.current) {
+                    restoredPendingPlayRef.current = false;
+                    enginePlayRef.current(selectedSongRef.current, currentTimeRef.current).catch(() => {});
+                } else {
+                    bpSendCommandRef.current({command: "resume"}).catch(() => {});
+                }
             }
             return;
         }
@@ -830,11 +846,11 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         const flush = () => {
             if ((window as unknown as { __symvoniaResetInProgress?: boolean }).__symvoniaResetInProgress) return;
             const song = selectedSongRef.current;
-            const audio = audioRef.current;
-            if (song && audio && audio.currentTime > 0) {
+            const curTime = bpActiveRef.current ? currentTimeRef.current : audioRef.current?.currentTime;
+            if (song && curTime && curTime > 0) {
                 saveSessionState({
                     filePath: song.path,
-                    currentTime: audio.currentTime,
+                    currentTime: curTime,
                     timestamp: Date.now(),
                 });
             }
@@ -942,8 +958,12 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
     const seekTo = useCallback((t: number) => {
         setCurrentTime(t);
-        if (audioRef.current) audioRef.current.currentTime = t;
-    }, []);
+        if (bpActiveRef.current) {
+            bpSendCommandRef.current({command: "seek", position: t}).catch(() => {});
+        } else if (audioRef.current) {
+            audioRef.current.currentTime = t;
+        }
+    }, [setCurrentTime]);
 
     const handleSeek = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const t = parseFloat(e.target.value);
