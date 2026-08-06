@@ -31,6 +31,7 @@ const MIN_WIDTH = 200;
 const MAX_WIDTH = 640;
 const DEFAULT_WIDTH = 320;
 const STORAGE_KEY = 'music-app-meta-width';
+const TAB_STORAGE_KEY = 'music-app-meta-tab';
 
 function loadSavedWidth(): number {
     if (typeof window === 'undefined') return DEFAULT_WIDTH;
@@ -38,7 +39,13 @@ function loadSavedWidth(): number {
     if (!raw) return DEFAULT_WIDTH;
     const n = Number(raw);
     if (!Number.isFinite(n)) return DEFAULT_WIDTH;
-    return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, n));
+    return Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, n));
+}
+
+function loadSavedTab(): 'metadata' | 'lyrics' {
+    if (typeof window === 'undefined') return 'metadata';
+    const raw = window.localStorage.getItem(TAB_STORAGE_KEY);
+    return raw === 'lyrics' ? 'lyrics' : 'metadata';
 }
 
 function formatSize(bytes: number): string {
@@ -262,6 +269,17 @@ function MetadataPanel({
         : null;
 
     const [activeTab, setActiveTab] = useState<'metadata' | 'lyrics'>('metadata');
+
+    useEffect(() => {
+        setActiveTab(loadSavedTab());
+    }, []);
+
+    const changeTab = useCallback((tab: 'metadata' | 'lyrics') => {
+        setActiveTab(tab);
+        if (typeof window !== 'undefined') {
+            window.localStorage.setItem(TAB_STORAGE_KEY, tab);
+        }
+    }, []);
     const [width, setWidth] = useState<number>(DEFAULT_WIDTH);
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
     const isDraggingRef = useRef(false);
@@ -299,7 +317,11 @@ function MetadataPanel({
     useEffect(() => {
         if (resetSidebarToken === 0) return;
         setWidth(DEFAULT_WIDTH);
-        window.localStorage.removeItem(STORAGE_KEY);
+        setActiveTab('metadata');
+        if (typeof window !== 'undefined') {
+            window.localStorage.removeItem(STORAGE_KEY);
+            window.localStorage.removeItem(TAB_STORAGE_KEY);
+        }
     }, [resetSidebarToken]);
 
     useEffect(() => {
@@ -403,7 +425,7 @@ function MetadataPanel({
             {/* Navbar Header (Horizontal Tab Switcher) */}
             <div className="flex items-center border-b border-zinc-800/40 bg-zinc-900/50 p-1.5 gap-1.5 select-none shrink-0">
                 <button
-                    onClick={() => setActiveTab('metadata')}
+                    onClick={() => changeTab('metadata')}
                     className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                         activeTab === 'metadata'
                             ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/60'
@@ -414,7 +436,7 @@ function MetadataPanel({
                     <span>{t(lang, 'metadata.heading')}</span>
                 </button>
                 <button
-                    onClick={() => setActiveTab('lyrics')}
+                    onClick={() => changeTab('lyrics')}
                     className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                         activeTab === 'lyrics'
                             ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/60'
