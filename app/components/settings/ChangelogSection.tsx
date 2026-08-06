@@ -5,6 +5,18 @@ import {type Lang} from '../../lib/translations';
 
 const changelogEn = [
     {
+        version: '1.0.2',
+        items: [
+            'Bit-Perfect Engine Enhancements: Fixed WASAPI Exclusive pause/resume audio distortion, realtime seekbar tracking, and playlist/state sync across page reloads.',
+            'Multi-Layer Local Plugin Security: Added a 5-layer verification pipeline (PE Header, CUI Subsystem, & Dynamic Challenge-Response Token) for local .exe plugin imports.',
+            'Plugin Download Controls: Added a dedicated "Cancel Download" button and automatic background stream termination on app close.',
+            'Metadata & Lyrics Tab Persistence: Remembers and restores your last active tab (Metadata / Lyrics) in the right panel upon application startup or reload.',
+            'Clean Alert Toast Notifications: Relocated inline file explorer error banners into floating toast popups.',
+            'Refined Plugin Manager UI: Redesigned plugin management interface with capsule status badges, executable path info, SVG icons, and polished terminology.',
+            'Resolved Windows OS Error 1224: Timestamped wallpaper temp files to eliminate file mapping locks on startup.',
+        ],
+    },
+    {
         version: '1.0.1',
         items: [
             'Added Audio Fade In & Fade Out on play, pause, resume, and track skipping with customizable duration in Settings.',
@@ -148,6 +160,18 @@ const changelogEn = [
 ];
 
 const changelogId = [
+    {
+        version: '1.0.2',
+        items: [
+            'Peningkatan Pemutaran Bit-Perfect: Perbaikan komprehensif WASAPI Exclusive mode (jeda/resume tanpa distorsi, sinkronisasi seekbar realtime, serta pemulihan playlist & tombol play/pause saat reload).',
+            'Verifikasi Keamanan Plugin Lokal: Fitur verifikasi otomatis 5 lapis (Header PE, Subsystem CUI, & Dynamic Challenge-Response Token) saat impor berkas plugin .exe lokal.',
+            'Kontrol Pengunduhan Plugin: Penambahan tombol "Batal Unduh" beserta penghentian otomatis unduhan latar belakang saat aplikasi ditutup.',
+            'Penyimpanan Tab Aktif Panel Kanan: Otomatis menyimpan dan memulihkan tab terakhir (Metadata / Lirik) pada panel kanan saat startup atau reload.',
+            'Notifikasi Alert Toast Melayang: Memindahkan banner error di bawah playlist ke notifikasi toast melayang agar tampilan daftar lagu tetap bersih.',
+            'Pembaruan Antarmuka Pengelola Plugin: Tampilan baru menu plugin dengan lencana status kapsul, detail lokasi berkas, dan ikon SVG modern.',
+            'Pencegahan Error Wallpaper 1224: Penulisan berkas temporer wallpaper dengan timestamp dinamis untuk mencegah konflik file mapping Windows.',
+        ],
+    },
     {
         version: '1.0.1',
         items: [
