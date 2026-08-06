@@ -28,7 +28,7 @@ interface FolderExplorerProps {
     selectedSong: FileEntry | null;
     playingAncestorPrefix: string | null;
     displayPath: string;
-    debugError: string;
+    debugError?: string;
     goUp: () => void;
     setCurrentPath: (path: string) => void;
     playSong: (file: FileEntry, skipWallpaper?: boolean) => void;
@@ -328,19 +328,7 @@ function FolderExplorer({
                         />
                     )}
                 </AnimatePresence>
-                <AnimatePresence>
-                    {debugError && (
-                        <motion.div
-                            initial={{opacity: 0, height: 0}}
-                            animate={{opacity: 1, height: 'auto'}}
-                            exit={{opacity: 0, height: 0}}
-                            transition={{duration: 0.2}}
-                            className="p-2 text-[10px] text-red-400/70 border-t border-zinc-800/30 truncate overflow-hidden"
-                        >
-                            {debugError}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+
             </div>
             <div
                 onMouseDown={onMouseDown}

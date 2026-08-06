@@ -7,6 +7,7 @@ import {contentMotion} from '../../lib/animations';
 interface HomeAlertsProps {
     lang: Lang;
     toastVisible: boolean;
+    debugError?: string;
     onCloseToast: () => void;
     updateAlertInfo: {version: string} | null;
     updateAlertDownloading: boolean;
@@ -20,6 +21,7 @@ interface HomeAlertsProps {
 export default function HomeAlerts({
     lang,
     toastVisible,
+    debugError,
     onCloseToast,
     updateAlertInfo,
     updateAlertDownloading,
@@ -45,7 +47,14 @@ export default function HomeAlerts({
                         <circle cx="12" cy="12" r="10" />
                         <path d="M12 8v4M12 16h.01" />
                     </svg>
-                    <span dangerouslySetInnerHTML={{__html: t(lang, 'alert.error')}} />
+                    <div className="flex flex-col">
+                        <span dangerouslySetInnerHTML={{__html: t(lang, 'alert.error')}} />
+                        {debugError && (
+                            <span className="text-[11px] text-red-300/80 mt-0.5 line-clamp-2" title={debugError}>
+                                {debugError}
+                            </span>
+                        )}
+                    </div>
                     <button
                         onClick={onCloseToast}
                         className="ml-2 w-5 h-5 rounded flex items-center justify-center text-red-300 hover:text-red-100 hover:bg-red-800/60 cursor-pointer"

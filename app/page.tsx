@@ -558,6 +558,7 @@ function HomeContent() {
             <HomeAlerts
                 lang={lang}
                 toastVisible={toastVisible}
+                debugError={debugError}
                 onCloseToast={() => setToastVisible(false)}
                 updateAlertInfo={autoUpdateInfo}
                 updateAlertDownloading={autoUpdateDownloading}
