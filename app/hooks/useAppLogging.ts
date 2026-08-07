@@ -43,16 +43,26 @@ export function useAppLogging() {
             addLog('error', `[PROMISE] ${text.slice(0, 200)}`);
         };
         console.error = (...args: unknown[]) => {
-            const text = args.map(a => String(a)).join(' ');
-            if (!text.includes('AbortError')) {
-                addLog('error', `[CONSOLE] ${text.slice(0, 200)}`);
-            }
             orig.error(...args);
+            const text = args.map(a => String(a)).join(' ');
+            if (
+                text.includes('AbortError') ||
+                text.includes('Expected static flag') ||
+                text.includes('React team')
+            ) {
+                return;
+            }
+            setTimeout(() => {
+                addLog('error', `[CONSOLE] ${text.slice(0, 200)}`);
+            }, 0);
         };
         console.warn = (...args: unknown[]) => {
-            const text = args.map(a => String(a)).join(' ');
-            addLog('warn', `[CONSOLE] ${text.slice(0, 200)}`);
             orig.warn(...args);
+            const text = args.map(a => String(a)).join(' ');
+            if (text.includes('Expected static flag') || text.includes('React team')) return;
+            setTimeout(() => {
+                addLog('warn', `[CONSOLE] ${text.slice(0, 200)}`);
+            }, 0);
         };
         window.addEventListener('error', handler);
         window.addEventListener('unhandledrejection', rejectionHandler);
