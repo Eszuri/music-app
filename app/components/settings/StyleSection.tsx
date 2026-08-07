@@ -18,8 +18,8 @@ export default function StyleSection({
     setAccentColor: (v: string) => void;
     customAccentHex: string;
     setCustomAccentHex: (v: string) => void;
-    layoutMode?: 'default' | 'compact' | 'immersive';
-    setLayoutMode?: (v: 'default' | 'compact' | 'immersive') => void;
+    layoutMode?: 'default' | 'spotify';
+    setLayoutMode?: (v: 'default' | 'spotify') => void;
     onResetSidebarWidth: () => void;
 }) {
     const swatches: {id: string; bg: string}[] = [
@@ -95,18 +95,23 @@ export default function StyleSection({
                 <div className="flex flex-col gap-2">
                     {[
                         { id: 'default', labelKey: 'style.layoutMode.default' },
+                        { id: 'spotify', labelKey: 'style.layoutMode.spotify' },
                     ].map((mode) => (
                         <label
                             key={mode.id}
-                            className="flex items-center gap-3 p-2.5 rounded-xl border border-zinc-600 bg-zinc-800/80 cursor-pointer"
+                            className={`flex items-center gap-3 p-2.5 rounded-xl border transition-colors cursor-pointer ${
+                                layoutMode === mode.id
+                                    ? 'border-emerald-500/60 bg-emerald-950/20'
+                                    : 'border-zinc-700 bg-zinc-800/80 hover:bg-zinc-700/50'
+                            }`}
                         >
                             <input
                                 type="radio"
                                 name="layoutMode"
                                 value={mode.id}
-                                checked={true}
-                                onChange={() => setLayoutMode?.('default')}
-                                className="w-4 h-4 text-zinc-100 bg-zinc-800 border-zinc-600 focus:ring-zinc-500 cursor-pointer"
+                                checked={layoutMode === mode.id}
+                                onChange={() => setLayoutMode?.(mode.id as 'default' | 'spotify')}
+                                className="w-4 h-4 text-emerald-500 bg-zinc-800 border-zinc-600 focus:ring-emerald-500 cursor-pointer"
                             />
                             <span className="text-sm text-zinc-200 font-medium select-none">
                                 {t(lang, mode.labelKey)}

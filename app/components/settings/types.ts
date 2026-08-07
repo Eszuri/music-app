@@ -50,8 +50,8 @@ export interface SettingsModalProps {
     setAccentColor: (v: string) => void;
     customAccentHex: string;
     setCustomAccentHex: (v: string) => void;
-    layoutMode?: 'default' | 'compact' | 'immersive';
-    setLayoutMode?: (v: 'default' | 'compact' | 'immersive') => void;
+    layoutMode?: 'default' | 'spotify';
+    setLayoutMode?: (v: 'default' | 'spotify') => void;
     outputDevice: string | null;
     setOutputDevice: (v: string | null) => void;
     outputMode: 'default' | 'bitperfect';

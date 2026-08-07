@@ -65,7 +65,7 @@ export function usePlayerSettings() {
     const [defaultWallpaper, setDefaultWallpaperState] = useState<string | null>(null);
     const [outputDevice, setOutputDeviceStateInternal] = useState<string | null>(null);
     const [outputMode, setOutputModeStateInternal] = useState<'default' | 'bitperfect'>('default');
-    const [layoutMode, setLayoutModeStateInternal] = useState<'default' | 'compact' | 'immersive'>('default');
+    const [layoutMode, setLayoutModeStateInternal] = useState<'default' | 'spotify'>('default');
     const [shortcuts, setShortcutsState] = useState<Record<ShortcutAction, string>>(DEFAULT_SHORTCUTS);
     const [pauseIfMuted, setPauseIfMutedState] = useState(true);
     const [fadeAudio, setFadeAudioStateInternal] = useState(true);
@@ -239,6 +239,10 @@ export function usePlayerSettings() {
         if (fd !== null) {
             const num = parseInt(fd, 10);
             if (!isNaN(num) && num > 0) setFadeDurationStateInternal(num);
+        }
+        const lm = window.localStorage.getItem(LAYOUT_MODE_KEY);
+        if (lm === 'default' || lm === 'spotify') {
+            setLayoutModeStateInternal(lm);
         }
         setInitialized(true);
     }, []);
@@ -481,7 +485,7 @@ export function usePlayerSettings() {
         safeSetLocalStorage(OUTPUT_MODE_KEY, mode);
     }, []);
 
-    const setLayoutModeState = useCallback((mode: 'default' | 'compact' | 'immersive') => {
+    const setLayoutModeState = useCallback((mode: 'default' | 'spotify') => {
         setLayoutModeStateInternal(mode);
         safeSetLocalStorage(LAYOUT_MODE_KEY, mode);
     }, []);

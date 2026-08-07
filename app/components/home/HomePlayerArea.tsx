@@ -23,11 +23,13 @@ import {EmptyFolderState, NoFolderEmptyState} from "./HomeEmptyStates";
 import ContextMenu, {type ContextMenuItem} from "../ContextMenu";
 import {EditIcon} from "../icons";
 import {getTauri} from "../../lib/homeState";
+import SpotifyLayout from "../layout/SpotifyLayout";
 import {t, type Lang} from "../../lib/translations";
 import {contentMotion} from "../../lib/animations";
 
 interface HomePlayerAreaProps {
     lang: Lang;
+    layoutMode?: 'default' | 'spotify';
     musicFolder: string | null;
     isCompact: boolean;
     showLeftSidebar: boolean;
@@ -164,7 +166,47 @@ function HomePlayerArea({
     onOpenEditMetadata,
     outputMode,
     bpEngineState,
+    layoutMode = 'default',
 }: HomePlayerAreaProps) {
+    if (layoutMode === 'spotify') {
+        return (
+            <SpotifyLayout
+                lang={lang}
+                musicFolder={musicFolder}
+                displayPath={displayPath}
+                files={files}
+                selectedSong={selectedSong}
+                metadata={metadata}
+                coverDataUrl={coverDataUrl}
+                currentTime={currentTime}
+                duration={duration}
+                isPlaying={isPlaying}
+                shuffle={shuffle}
+                repeat={repeat}
+                volume={volume}
+                volumeStep={volumeStep}
+                volumeMode={volumeMode}
+                systemMuted={systemMuted}
+                volumeLimit={volumeLimit}
+                accentColor={accentColor}
+                handlePickFolder={handlePickFolder}
+                goUp={goUp}
+                setCurrentPath={setCurrentPath}
+                playSong={playSong}
+                togglePlayPause={togglePlayPause}
+                playNext={playNext}
+                playPrev={playPrev}
+                handleSeek={handleSeek}
+                seekTo={seekTo}
+                setShuffle={setShuffle}
+                setRepeat={setRepeat}
+                handleVolumeChange={handleVolumeChange}
+                toggleSystemMute={toggleSystemMute}
+                onOpenEditMetadata={onOpenEditMetadata}
+            />
+        );
+    }
+
     const leftVisible = showLeftSidebar || !isCompact;
     const rightVisible = showRightSidebar || !isCompact;
 

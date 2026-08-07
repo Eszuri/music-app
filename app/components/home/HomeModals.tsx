@@ -37,8 +37,8 @@ interface HomeModalsProps {
     defaultWallpaper: string | null;
     onPickWallpaper: () => void;
     onClearWallpaper: () => void;
-    layoutMode?: 'default' | 'compact' | 'immersive';
-    setLayoutMode?: (v: 'default' | 'compact' | 'immersive') => void;
+    layoutMode?: 'default' | 'spotify';
+    setLayoutMode?: (v: 'default' | 'spotify') => void;
     outputDevice: string | null;
     setOutputDevice: (v: string | null) => void;
     outputMode: 'default' | 'bitperfect';

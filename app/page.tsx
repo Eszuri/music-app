@@ -457,6 +457,7 @@ function HomeContent() {
                 onOpenEditMetadata={openMetadataEdit}
                 outputMode={settings.outputMode}
                 bpEngineState={player.bpEngineState ?? undefined}
+                layoutMode={settings.layoutMode}
             />
 
             <HomeModals
@@ -513,6 +514,8 @@ function HomeContent() {
                 setAccentColor={settings.setAccentColorState}
                 customAccentHex={settings.customAccentHex}
                 setCustomAccentHex={settings.setCustomAccentHexState}
+                layoutMode={settings.layoutMode}
+                setLayoutMode={settings.setLayoutModeState}
                 onResetSidebarWidth={() => setResetSidebarToken((t) => t + 1)}
                 onResetAllSettings={handleResetAllSettings}
                 logs={logs}
