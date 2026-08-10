@@ -307,6 +307,11 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 if (token !== loadFilesTokenRef.current || !isMountedRef.current)
                     return;
                 setFiles(result);
+                setSelectedSong((prev) => {
+                    if (!prev) return null;
+                    const updated = result.find((f) => f.path === prev.path);
+                    return updated || prev;
+                });
             } catch (e) {
                 if (token !== loadFilesTokenRef.current || !isMountedRef.current)
                     return;

@@ -58,12 +58,17 @@ function formatDuration(seconds: number | null): string {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 }
 
-function formatDate(timestamp: number | null): string {
+function formatDate(timestamp: number | null, lang: Lang = 'id'): string {
     if (!timestamp) return '—';
-    return new Date(timestamp).toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'short',
+    // Convert Rust UNIX timestamp (seconds) to JS Date (milliseconds)
+    const ms = timestamp < 1e11 ? timestamp * 1000 : timestamp;
+    const locale = lang === 'id' ? 'id-ID' : 'en-US';
+    return new Date(ms).toLocaleString(locale, {
         day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
     });
 }
 
@@ -713,8 +718,8 @@ function MetadataPanel({
                                 <SectionTitle title={t(lang, 'metadata.fileInfo')} />
                                 <div className="grid grid-cols-2 gap-3.5 pl-0.5">
                                     <MetaRow label={t(lang, 'metadata.fileName')} value={selectedSong.name} hoverProps={hFileName} />
-                                    <MetaRow label={t(lang, 'metadata.created')} value={formatDate(selectedSong.ctime)} hoverProps={hCreated} />
-                                    <MetaRow label={t(lang, 'metadata.modified')} value={formatDate(selectedSong.mtime)} hoverProps={hModified} />
+                                    <MetaRow label={t(lang, 'metadata.modified')} value={formatDate(selectedSong.mtime, lang)} hoverProps={hModified} />
+                                    <MetaRow label={t(lang, 'metadata.created')} value={formatDate(selectedSong.ctime, lang)} hoverProps={hCreated} />
                                 </div>
 
                                 {metadata?.comment && (
