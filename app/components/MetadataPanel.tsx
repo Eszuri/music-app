@@ -13,6 +13,7 @@ import { useHoverInfo } from '../contexts/HoverInfoContext';
 import { MetadataPanelSkeleton } from './Skeleton';
 import { InfoIcon, CopyIcon, MusicNoteIcon, EditIcon, LyricsIcon, DetailsIcon } from './icons';
 import { useLyrics } from '../hooks/useLyrics';
+import { LyricsSearchModal } from './LyricsSearchModal';
 
 interface MetadataPanelProps {
     lang: Lang;
@@ -120,18 +121,41 @@ function checkIsHiRes(selectedSong: FileEntry | null, metadata: SongMetadata | n
 function LyricsSection({
     lang,
     selectedSong,
+    metadata,
     currentTime,
     onSeek,
     accentColor,
 }: {
     lang: Lang;
     selectedSong: FileEntry | null;
+    metadata: SongMetadata | null;
     currentTime?: number;
     onSeek?: (timeSec: number) => void;
     accentColor: string;
 }) {
     const songPath = selectedSong?.path ?? null;
-    const { lines, isSynced, source, loading, activeIndex, importLyricsFile } = useLyrics(songPath, currentTime ?? 0);
+    const songTitle = metadata?.title || selectedSong?.name.replace(/\.[^/.]+$/, '') || undefined;
+    const artistName = metadata?.artist || undefined;
+    const albumName = metadata?.album || undefined;
+    const duration = metadata?.duration || undefined;
+
+    const {
+        lines,
+        isSynced,
+        source,
+        loading,
+        isFetchingOnline,
+        activeIndex,
+        importLyricsFile,
+        fetchOnlineLyrics,
+        searchOnlineLyrics,
+        applyLyrics,
+        saveAsLrcFile,
+    } = useLyrics(songPath, currentTime ?? 0, songTitle, artistName, albumName, duration);
+
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
     const activeLineRef = useRef<HTMLDivElement | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -161,6 +185,47 @@ function LyricsSection({
         reader.readAsText(file);
     };
 
+    const handleManualSearchClick = async () => {
+        if (!songTitle) {
+            setIsSearchOpen(true);
+            return;
+        }
+
+        const found = await fetchOnlineLyrics(songTitle, artistName, albumName, duration);
+        if (!found) {
+            // Tampilkan modal pencarian manual jika tidak ditemukan otomatis
+            setIsSearchOpen(true);
+        }
+    };
+
+    const handleSaveLrc = async () => {
+        setIsSaving(true);
+        const ok = await saveAsLrcFile();
+        setIsSaving(false);
+        if (ok) {
+            setToastMessage({ type: 'success', text: t(lang, 'lyrics.saveSuccess') });
+        } else {
+            setToastMessage({ type: 'error', text: t(lang, 'lyrics.saveError') });
+        }
+        setTimeout(() => setToastMessage(null), 3500);
+    };
+
+    const getSourceLabel = (src: string | null) => {
+        if (!src) return '';
+        if (src === 'lrc_file') return `📁 ${t(lang, 'lyrics.source.lrc_file')}`;
+        if (src === 'embedded') return `🏷️ ${t(lang, 'lyrics.source.embedded')}`;
+        if (src === 'lrclib') return `🌐 ${t(lang, 'lyrics.source.lrclib')}`;
+        if (src === 'custom') return `📄 ${t(lang, 'lyrics.source.custom')}`;
+        return src;
+    };
+
+    // Hover descriptions for status bar (bottom-left)
+    const hSource = useHoverDescription(source ? t(lang, 'status.lyrics.source') : null);
+    const hType = useHoverDescription(isSynced ? t(lang, 'status.lyrics.typeSynced') : t(lang, 'status.lyrics.typePlain'));
+    const hSaveLrc = useHoverDescription(t(lang, 'status.lyrics.saveLrc'));
+    const hSearchOnline = useHoverDescription(t(lang, 'status.lyrics.searchOnline'));
+    const hImportFile = useHoverDescription(t(lang, 'status.lyrics.importFile'));
+
     return (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             {/* Hidden File Input */}
@@ -172,15 +237,39 @@ function LyricsSection({
                 className="hidden"
             />
 
+            {/* Toast Notification Banner */}
+            {toastMessage && (
+                <div
+                    className={`mx-3 my-1.5 px-3 py-2 rounded-xl text-xs font-medium flex items-center justify-between border shadow-lg transition-all animate-fade-in shrink-0 ${
+                        toastMessage.type === 'success'
+                            ? 'bg-emerald-950/90 text-emerald-300 border-emerald-500/40'
+                            : 'bg-rose-950/90 text-rose-300 border-rose-500/40'
+                    }`}
+                >
+                    <div className="flex items-center space-x-2 truncate">
+                        <span>{toastMessage.type === 'success' ? '✓' : '⚠️'}</span>
+                        <span className="truncate">{toastMessage.text}</span>
+                    </div>
+                    <button
+                        onClick={() => setToastMessage(null)}
+                        className="text-xs opacity-70 hover:opacity-100 cursor-pointer ml-2"
+                    >
+                        ✕
+                    </button>
+                </div>
+            )}
+
             {/* Lyrics Content Container */}
             <div
                 ref={containerRef}
                 className="flex-1 overflow-y-auto p-4 space-y-4 text-center select-none scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent"
             >
-                {loading ? (
+                {loading || isFetchingOnline ? (
                     <div className="h-full flex flex-col items-center justify-center space-y-3 text-zinc-400 py-16">
                         <div className="w-6 h-6 border-2 border-zinc-600 border-t-zinc-200 rounded-full animate-spin" />
-                        <p className="text-xs font-medium">{t(lang, 'general.update.checking')}</p>
+                        <p className="text-xs font-medium">
+                            {isFetchingOnline ? t(lang, 'lyrics.autoFetching') : t(lang, 'general.update.checking')}
+                        </p>
                     </div>
                 ) : lines.length > 0 ? (
                     lines.map((line, idx) => {
@@ -221,32 +310,90 @@ function LyricsSection({
                             <h3 className="text-sm font-semibold text-zinc-200">
                                 {t(lang, 'lyrics.notFound')}
                             </h3>
-                            <p className="text-[11px] text-zinc-400 leading-relaxed max-w-[200px] mx-auto">
+                            <p className="text-[11px] text-zinc-400 leading-relaxed max-w-[220px] mx-auto">
                                 {t(lang, 'lyrics.notFoundDesc')}
                             </p>
                         </div>
-                        <button
-                            onClick={() => fileInputRef.current?.click()}
-                            className="mt-1 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 transition-colors shadow-sm cursor-pointer"
-                        >
-                            {t(lang, 'lyrics.importBtn')}
-                        </button>
+                        <div className="flex flex-col space-y-2 pt-1 w-full max-w-[180px]">
+                            <button
+                                onClick={handleManualSearchClick}
+                                disabled={isFetchingOnline}
+                                {...hSearchOnline}
+                                className="px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all shadow-md cursor-pointer flex items-center justify-center space-x-1.5 disabled:opacity-50"
+                                style={{ backgroundColor: accent.hex || '#22c55e' }}
+                            >
+                                <LyricsIcon size={14} />
+                                <span>{t(lang, 'lyrics.searchBtn')}</span>
+                            </button>
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                {...hImportFile}
+                                className="px-3.5 py-1.5 rounded-xl text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700/60 transition-colors cursor-pointer"
+                            >
+                                {t(lang, 'lyrics.importBtn')}
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
 
             {/* Footer Bar */}
             {lines.length > 0 && (
-                <div className="flex items-center justify-between px-4 py-2.5 border-t border-zinc-800/60 bg-zinc-900/40 text-[11px] text-zinc-400 shrink-0">
-                    <span>{isSynced ? '⚡ LRC Auto-Sync' : '📄 Plain Text'}</span>
-                    <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="hover:text-zinc-200 transition-colors underline cursor-pointer"
-                    >
-                        {t(lang, 'lyrics.importBtn')}
-                    </button>
+                <div className="flex flex-col border-t border-zinc-800/60 bg-zinc-900/40 text-[11px] text-zinc-400 shrink-0">
+                    <div className="flex items-center justify-between px-3.5 py-2">
+                        <div className="flex items-center space-x-2 truncate">
+                            <span className="font-medium text-zinc-300 truncate cursor-help" {...hSource}>
+                                {getSourceLabel(source)}
+                            </span>
+                            <span className="text-zinc-500">•</span>
+                            <span className="cursor-help" {...hType}>
+                                {isSynced ? t(lang, 'lyrics.typeSynced') : t(lang, 'lyrics.typePlain')}
+                            </span>
+                        </div>
+                        <div className="flex items-center space-x-2 shrink-0">
+                            {(source === 'lrclib' || source === 'custom') && (
+                                <button
+                                    onClick={handleSaveLrc}
+                                    disabled={isSaving}
+                                    {...hSaveLrc}
+                                    className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 transition-all flex items-center space-x-1 cursor-pointer disabled:opacity-50 shadow-sm"
+                                    title={t(lang, 'lyrics.saveLrcBtn')}
+                                >
+                                    <span>💾</span>
+                                    <span>{isSaving ? '...' : t(lang, 'lyrics.saveLrcBtn')}</span>
+                                </button>
+                            )}
+                            <button
+                                onClick={() => setIsSearchOpen(true)}
+                                {...hSearchOnline}
+                                className="px-2 py-1 rounded-lg hover:bg-zinc-800 text-zinc-300 transition-colors cursor-pointer"
+                                title={t(lang, 'lyrics.searchBtn')}
+                            >
+                                🔍
+                            </button>
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                {...hImportFile}
+                                className="hover:text-zinc-200 transition-colors underline cursor-pointer"
+                            >
+                                {t(lang, 'lyrics.importBtn')}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
+
+            {/* Search Modal */}
+            <LyricsSearchModal
+                isOpen={isSearchOpen}
+                onClose={() => setIsSearchOpen(false)}
+                lang={lang}
+                initialTitle={songTitle}
+                initialArtist={artistName}
+                accentColor={accent.hex || '#22c55e'}
+                searchOnlineLyrics={searchOnlineLyrics}
+                onSelectLyric={(content) => applyLyrics(content, 'lrclib')}
+            />
         </div>
     );
 }
@@ -601,6 +748,7 @@ function MetadataPanel({
                 <LyricsSection
                     lang={lang}
                     selectedSong={selectedSong}
+                    metadata={metadata}
                     currentTime={currentTime}
                     onSeek={onSeek}
                     accentColor={accentColor}

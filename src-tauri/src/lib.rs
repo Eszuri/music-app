@@ -20,7 +20,7 @@ use lofty::file::AudioFile;
 use lofty::file::TaggedFileExt;
 use lofty::read_from_path;
 use lofty::tag::Accessor;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, Url};
 
 #[cfg(windows)]
@@ -125,6 +125,38 @@ impl Drop for VolumeCallbackWrapper {
 struct LyricsResult {
     raw_text: String,
     source: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct LrclibItem {
+    id: Option<u64>,
+    #[serde(rename = "trackName")]
+    track_name: Option<String>,
+    #[serde(rename = "artistName")]
+    artist_name: Option<String>,
+    #[serde(rename = "albumName")]
+    album_name: Option<String>,
+    duration: Option<f64>,
+    instrumental: Option<bool>,
+    #[serde(rename = "plainLyrics")]
+    plain_lyrics: Option<String>,
+    #[serde(rename = "syncedLyrics")]
+    synced_lyrics: Option<String>,
+}
+
+fn url_encode(input: &str) -> String {
+    let mut encoded = String::new();
+    for byte in input.bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                encoded.push(byte as char);
+            }
+            _ => {
+                encoded.push_str(&format!("%{:02X}", byte));
+            }
+        }
+    }
+    encoded
 }
 
 #[derive(Serialize)]
@@ -522,6 +554,100 @@ fn get_lyrics(file_path: String) -> Result<Option<LyricsResult>, String> {
     }
 
     Ok(None)
+}
+
+#[tauri::command]
+fn search_online_lyrics(query: String) -> Result<Vec<LrclibItem>, String> {
+    let trimmed = query.trim();
+    if trimmed.is_empty() {
+        return Ok(Vec::new());
+    }
+    let url = format!("https://lrclib.net/api/search?q={}", url_encode(trimmed));
+    let req = ureq::get(&url).set("User-Agent", "Symvonia/1.0.2 (https://github.com/Eszuri/symvonia)");
+    match req.call() {
+        Ok(res) => {
+            let body = res.into_string().map_err(|e| format!("Failed to read response: {}", e))?;
+            let items: Vec<LrclibItem> = serde_json::from_str(&body).map_err(|e| format!("Failed to parse search response: {}", e))?;
+            Ok(items)
+        }
+        Err(e) => Err(format!("Search request failed: {}", e)),
+    }
+}
+
+#[tauri::command]
+fn fetch_online_lyrics(
+    track_name: String,
+    artist_name: Option<String>,
+    album_name: Option<String>,
+    duration: Option<f64>,
+) -> Result<Option<LyricsResult>, String> {
+    if track_name.trim().is_empty() {
+        return Ok(None);
+    }
+    let mut query_params = vec![format!("track_name={}", url_encode(track_name.trim()))];
+    if let Some(artist) = &artist_name {
+        if !artist.trim().is_empty() {
+            query_params.push(format!("artist_name={}", url_encode(artist.trim())));
+        }
+    }
+    if let Some(album) = &album_name {
+        if !album.trim().is_empty() {
+            query_params.push(format!("album_name={}", url_encode(album.trim())));
+        }
+    }
+    if let Some(dur) = duration {
+        if dur > 0.0 {
+            query_params.push(format!("duration={}", dur.round() as u64));
+        }
+    }
+
+    let get_url = format!("https://lrclib.net/api/get?{}", query_params.join("&"));
+    let req = ureq::get(&get_url).set("User-Agent", "Symvonia/1.0.2 (https://github.com/Eszuri/symvonia)");
+
+    if let Ok(res) = req.call() {
+        if let Ok(body) = res.into_string() {
+            if let Ok(item) = serde_json::from_str::<LrclibItem>(&body) {
+                let text = item.synced_lyrics.or(item.plain_lyrics);
+                if let Some(raw_text) = text {
+                    if !raw_text.trim().is_empty() {
+                        return Ok(Some(LyricsResult {
+                            raw_text,
+                            source: "lrclib".to_string(),
+                        }));
+                    }
+                }
+            }
+        }
+    }
+
+    // Fallback search
+    let search_q = format!("{} {}", track_name.trim(), artist_name.as_deref().unwrap_or("").trim());
+    if let Ok(items) = search_online_lyrics(search_q) {
+        for item in items {
+            let text = item.synced_lyrics.or(item.plain_lyrics);
+            if let Some(raw_text) = text {
+                if !raw_text.trim().is_empty() {
+                    return Ok(Some(LyricsResult {
+                        raw_text,
+                        source: "lrclib".to_string(),
+                    }));
+                }
+            }
+        }
+    }
+
+    Ok(None)
+}
+
+#[tauri::command]
+fn save_lrc_file(file_path: String, lrc_content: String) -> Result<(), String> {
+    let audio_path = Path::new(&file_path);
+    if !audio_path.exists() {
+        return Err("File audio tidak ditemukan".to_string());
+    }
+    let lrc_path = audio_path.with_extension("lrc");
+    std::fs::write(&lrc_path, lrc_content).map_err(|e| format!("Gagal menyimpan file LRC: {}", e))?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -1111,6 +1237,9 @@ pub fn run() {
             list_files,
             get_metadata,
             get_lyrics,
+            fetch_online_lyrics,
+            search_online_lyrics,
+            save_lrc_file,
             save_metadata,
             get_system_volume,
             set_system_volume,

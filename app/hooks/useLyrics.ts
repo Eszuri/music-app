@@ -3,19 +3,36 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getTauri, isBrowserTauri } from '../lib/homeState';
 
-interface LyricLine {
+export interface LyricLine {
     id: number;
     timeSec: number | null;
     text: string;
 }
 
+export interface OnlineLyricItem {
+    id?: number;
+    trackName?: string;
+    artistName?: string;
+    albumName?: string;
+    duration?: number;
+    instrumental?: boolean;
+    plainLyrics?: string;
+    syncedLyrics?: string;
+}
+
 export interface LyricsState {
+    rawText: string | null;
     lines: LyricLine[];
     isSynced: boolean;
-    source: string | null; // "lrc_file" | "embedded" | "custom"
+    source: string | null; // "lrc_file" | "embedded" | "custom" | "lrclib"
     loading: boolean;
+    isFetchingOnline: boolean;
     activeIndex: number;
     importLyricsFile: (fileContent: string, fileName: string) => void;
+    fetchOnlineLyrics: (title?: string, artist?: string, album?: string, duration?: number) => Promise<boolean>;
+    searchOnlineLyrics: (query: string) => Promise<OnlineLyricItem[]>;
+    applyLyrics: (content: string, sourceName?: string) => void;
+    saveAsLrcFile: () => Promise<boolean>;
 }
 
 /** Parses raw LRC format string into array of timestamped lines */
@@ -72,12 +89,51 @@ function parseLrcText(rawText: string): { lines: LyricLine[]; isSynced: boolean 
     return { lines: parsed, isSynced: hasTimestamps };
 }
 
-export function useLyrics(songPath: string | null, currentTime: number): LyricsState {
+export function useLyrics(
+    songPath: string | null,
+    currentTime: number,
+    songTitle?: string,
+    artistName?: string,
+    albumName?: string,
+    duration?: number
+): LyricsState {
     const [rawText, setRawText] = useState<string | null>(null);
     const [source, setSource] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
+    const [isFetchingOnline, setIsFetchingOnline] = useState<boolean>(false);
 
-    // Load lyrics from Rust IPC whenever songPath changes
+    // Function to manually trigger online search for lyrics
+    const fetchOnlineLyrics = useCallback(
+        async (title?: string, artist?: string, album?: string, dur?: number): Promise<boolean> => {
+            const queryTitle = title || songTitle;
+            if (!queryTitle || !isBrowserTauri) return false;
+
+            setIsFetchingOnline(true);
+            try {
+                const mod = await getTauri();
+                const res = await mod.invoke<{ raw_text: string; source: string } | null>('fetch_online_lyrics', {
+                    trackName: queryTitle,
+                    artistName: artist || artistName || null,
+                    albumName: album || albumName || null,
+                    duration: dur || duration || null,
+                });
+
+                if (res && res.raw_text) {
+                    setRawText(res.raw_text);
+                    setSource('lrclib');
+                    return true;
+                }
+            } catch (err) {
+                console.warn('Failed to fetch online lyrics:', err);
+            } finally {
+                setIsFetchingOnline(false);
+            }
+            return false;
+        },
+        [songTitle, artistName, albumName, duration]
+    );
+
+    // Load lyrics from Rust IPC whenever songPath changes (local .lrc or embedded)
     useEffect(() => {
         if (!songPath) {
             setRawText(null);
@@ -122,6 +178,36 @@ export function useLyrics(songPath: string | null, currentTime: number): LyricsS
         };
     }, [songPath]);
 
+    const searchOnlineLyrics = useCallback(async (query: string): Promise<OnlineLyricItem[]> => {
+        if (!query.trim() || !isBrowserTauri) return [];
+        try {
+            const mod = await getTauri();
+            const results = await mod.invoke<OnlineLyricItem[]>('search_online_lyrics', { query });
+            return results || [];
+        } catch (err) {
+            console.error('Error searching online lyrics:', err);
+            return [];
+        }
+    }, []);
+
+    const applyLyrics = useCallback((content: string, sourceName = 'lrclib') => {
+        setRawText(content);
+        setSource(sourceName);
+    }, []);
+
+    const saveAsLrcFile = useCallback(async (): Promise<boolean> => {
+        if (!songPath || !rawText || !isBrowserTauri) return false;
+        try {
+            const mod = await getTauri();
+            await mod.invoke('save_lrc_file', { filePath: songPath, lrcContent: rawText });
+            setSource('lrc_file');
+            return true;
+        } catch (err) {
+            console.error('Failed to save LRC file:', err);
+            return false;
+        }
+    }, [songPath, rawText]);
+
     const { lines, isSynced } = useMemo(() => {
         if (!rawText) return { lines: [], isSynced: false };
         return parseLrcText(rawText);
@@ -133,7 +219,7 @@ export function useLyrics(songPath: string | null, currentTime: number): LyricsS
         let index = -1;
         for (let i = 0; i < lines.length; i++) {
             const timeSec = lines[i].timeSec;
-            if (timeSec !== null && timeSec <= currentTime + 0.25) { // 250ms lead-in threshold
+            if (timeSec !== null && timeSec <= currentTime + 0.25) {
                 index = i;
             } else if (timeSec !== null && timeSec > currentTime + 0.25) {
                 break;
@@ -148,11 +234,18 @@ export function useLyrics(songPath: string | null, currentTime: number): LyricsS
     }, []);
 
     return {
+        rawText,
         lines,
         isSynced,
         source,
         loading,
+        isFetchingOnline,
         activeIndex,
         importLyricsFile,
+        fetchOnlineLyrics,
+        searchOnlineLyrics,
+        applyLyrics,
+        saveAsLrcFile,
     };
 }
+

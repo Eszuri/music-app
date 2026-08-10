@@ -6,8 +6,9 @@ src-tauri/gen
 *.tsbuildinfo
 next-env.d.ts
 /.PrivateKey
-/.commandcode
 .env
 RELEASE.md
 src-audio-engine/bin
 src-audio-engine/obj
+release setup.txt
+src-audio-engine/publish/*
