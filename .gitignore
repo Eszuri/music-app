@@ -8,7 +8,7 @@ next-env.d.ts
 /.PrivateKey
 .env
 RELEASE.md
-src-audio-engine/bin
-src-audio-engine/obj
+plugin/src-audio-engine/bin
+plugin/src-audio-engine/obj
 release setup.txt
-src-audio-engine/publish/*
+plugin/src-audio-engine/publish/*

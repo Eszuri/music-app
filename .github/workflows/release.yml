@@ -54,7 +54,7 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Build C# Audio Engine Plugin
-        run: dotnet publish src-audio-engine/AudioEngine.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o src-audio-engine/publish
+        run: dotnet publish plugin/src-audio-engine/AudioEngine.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o plugin/src-audio-engine/publish
 
       - name: Build & Sign with tauri-action
         uses: tauri-apps/tauri-action@v1
@@ -96,4 +96,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $tag = "${{ github.ref_name }}"
-          gh release upload $tag "src-audio-engine/publish/symvonia-audio-engine.exe" --clobber
+          gh release upload $tag "plugin/src-audio-engine/publish/symvonia-audio-engine.exe" --clobber
