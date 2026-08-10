@@ -431,7 +431,10 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
     useEffect(() => {
         if (!filesLoadedOnce) return;
-        if (sessionRestoreAttemptedRef.current) return;
+        if (sessionRestoreAttemptedRef.current) {
+            if (!sessionRestored) setSessionRestored(true);
+            return;
+        }
 
         const done = () => {
             if (isMountedRef.current) setSessionRestored(true);

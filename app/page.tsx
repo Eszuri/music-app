@@ -389,10 +389,7 @@ function HomeContent() {
 
     const displayPath = player.currentPath || "";
 
-    const showSkeleton =
-        !settings.initialized ||
-        (settings.musicFolder !== null &&
-            (!player.filesLoadedOnce || !player.sessionRestored));
+    const showSkeleton = !settings.initialized;
 
     if (showSkeleton) {
         return (
