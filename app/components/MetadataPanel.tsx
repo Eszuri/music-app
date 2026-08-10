@@ -372,13 +372,6 @@ function LyricsSection({
                             >
                                 🔍
                             </button>
-                            <button
-                                onClick={() => fileInputRef.current?.click()}
-                                {...hImportFile}
-                                className="hover:text-zinc-200 transition-colors underline cursor-pointer"
-                            >
-                                {t(lang, 'lyrics.importBtn')}
-                            </button>
                         </div>
                     </div>
                 </div>

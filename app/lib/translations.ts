@@ -528,6 +528,7 @@ const en: Record<string, string> = {
     'status.lyrics.importFile': 'Import a local .lrc or .txt lyrics file from your computer',
 
     'notification.coverSaved': 'Cover art saved',
+    'notification.metadataSaved': 'Metadata saved',
     'notification.volumeLimit': 'Volume exceeds safe limit ({limit}%)',
 
     'log.playing': 'Playing: {name}',
@@ -1065,6 +1066,7 @@ const id: Record<string, string> = {
     'status.lyrics.importFile': 'Impor file lirik lokal .lrc atau .txt dari komputer',
 
     'notification.coverSaved': 'Cover art berhasil disimpan',
+    'notification.metadataSaved': 'Metadata berhasil disimpan',
     'notification.volumeLimit': 'Volume melebihi batas aman ({limit}%)',
 
     'log.playing': 'Memutar: {name}',

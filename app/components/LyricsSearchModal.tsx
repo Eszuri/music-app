@@ -39,6 +39,7 @@ export function LyricsSearchModal({
     const [loading, setLoading] = useState<boolean>(false);
     const [searched, setSearched] = useState<boolean>(false);
     const [previewItem, setPreviewItem] = useState<OnlineLyricItem | null>(null);
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
     const mouseDownOnBackdropRef = useRef<boolean>(false);
 
     useEffect(() => {
@@ -51,6 +52,18 @@ export function LyricsSearchModal({
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, onClose]);
+
+    // Close context menu on outside click or scroll
+    useEffect(() => {
+        if (!contextMenu) return;
+        const handleOutside = () => setContextMenu(null);
+        window.addEventListener('click', handleOutside);
+        window.addEventListener('scroll', handleOutside, true);
+        return () => {
+            window.removeEventListener('click', handleOutside);
+            window.removeEventListener('scroll', handleOutside, true);
+        };
+    }, [contextMenu]);
 
     useEffect(() => {
         if (isOpen) {
@@ -81,6 +94,17 @@ export function LyricsSearchModal({
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleCopyText = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const selection = window.getSelection()?.toString();
+        const lyricContent = previewItem?.syncedLyrics || previewItem?.plainLyrics || '';
+        const textToCopy = selection && selection.trim().length > 0 ? selection : lyricContent;
+        if (textToCopy) {
+            navigator.clipboard.writeText(textToCopy);
+        }
+        setContextMenu(null);
     };
 
     return (
@@ -201,7 +225,20 @@ export function LyricsSearchModal({
                                             </button>
                                         </div>
                                     </div>
-                                    <div className="flex-1 overflow-y-auto p-4 rounded-xl bg-zinc-950/80 border border-zinc-800/80 font-mono text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap max-h-80 select-text">
+                                    <div
+                                        className="lyrics-preview-box flex-1 overflow-y-auto p-4 rounded-xl bg-zinc-950/80 border border-zinc-800/80 font-mono text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap max-h-80 select-text"
+                                        onContextMenu={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setContextMenu({ x: e.clientX, y: e.clientY });
+                                        }}
+                                    >
+                                        <style>{`
+                                            .lyrics-preview-box::selection, .lyrics-preview-box *::selection {
+                                                background-color: ${accentColor}66 !important;
+                                                color: #ffffff !important;
+                                            }
+                                        `}</style>
                                         {previewItem.syncedLyrics || previewItem.plainLyrics || t(lang, 'lyrics.emptyContent')}
                                     </div>
                                 </div>
@@ -281,6 +318,27 @@ export function LyricsSearchModal({
                             )}
                         </div>
                     </motion.div>
+
+                    {/* Custom Context Menu for Lyric Preview Box */}
+                    {contextMenu && (
+                        <div
+                            className="fixed z-[70] bg-zinc-900/95 border border-zinc-800 rounded-xl shadow-2xl py-1 px-1 min-w-[140px] text-xs font-medium backdrop-blur-md animate-fade-in"
+                            style={{ top: contextMenu.y, left: contextMenu.x }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <button
+                                type="button"
+                                onClick={handleCopyText}
+                                className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg text-zinc-200 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer text-left"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-zinc-400">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                <span>{t(lang, 'contextMenu.copyText')}</span>
+                            </button>
+                        </div>
+                    )}
                 </motion.div>
             )}
         </AnimatePresence>

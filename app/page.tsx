@@ -167,23 +167,29 @@ function HomeContent() {
 
     // ── Status bar notification ──────────────────────────────────────────────
     const [statusNotif, setStatusNotif] = useState<{
-        type: 'cover-saved' | 'volume-limit';
+        type: 'cover-saved' | 'metadata-saved' | 'volume-limit';
         msgKey: string;
         vars?: Record<string, string | number>;
     } | null>(null);
     const notifTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const showStatusNotif = useCallback(
-        (type: 'cover-saved' | 'volume-limit', vars?: Record<string, string | number>) => {
+        (type: 'cover-saved' | 'metadata-saved' | 'volume-limit', vars?: Record<string, string | number>) => {
             if (notifTimerRef.current) clearTimeout(notifTimerRef.current);
+            const msgKey =
+                type === 'cover-saved'
+                    ? 'notification.coverSaved'
+                    : type === 'metadata-saved'
+                    ? 'notification.metadataSaved'
+                    : 'notification.volumeLimit';
             setStatusNotif({
                 type,
-                msgKey: type === 'cover-saved' ? 'notification.coverSaved' : 'notification.volumeLimit',
+                msgKey,
                 vars,
             });
-            if (type === 'cover-saved') {
+            if (type === 'cover-saved' || type === 'metadata-saved') {
                 notifTimerRef.current = setTimeout(() => {
-                    setStatusNotif((prev) => prev?.type === 'cover-saved' ? null : prev);
+                    setStatusNotif((prev) => (prev?.type === type ? null : prev));
                 }, 3000);
             }
         },
@@ -569,7 +575,7 @@ function HomeContent() {
                     if (activeSong && editedPath === activeSong.path) {
                         player.playSong(activeSong);
                     }
-                    showStatusNotif('cover-saved');
+                    showStatusNotif('metadata-saved');
                 }}
             />
 

@@ -266,9 +266,9 @@ function MetadataEditModal({
                                     <h2 className="text-base font-semibold text-zinc-100 flex items-center gap-2 truncate">
                                         {t(lang, 'metadataEdit.title')}
                                     </h2>
-                                    <p className="text-[11px] text-zinc-400 truncate">
+                                    <p className="text-[11px] text-zinc-400 truncate font-mono" title={activeSong?.path || ''}>
                                         {activeSong
-                                            ? (activeSong.display_name || activeSong.name || activeSong.path?.split(/[/\\]/).pop() || 'File audio')
+                                            ? (activeSong.path || activeSong.display_name || activeSong.name || 'File audio')
                                             : t(lang, 'metadataEdit.noFileSelectedSub')}
                                     </p>
                                 </div>

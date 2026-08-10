@@ -20,6 +20,7 @@ use lofty::file::AudioFile;
 use lofty::file::TaggedFileExt;
 use lofty::read_from_path;
 use lofty::tag::Accessor;
+use id3::TagLike;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, Url};
 
@@ -432,25 +433,53 @@ fn get_metadata(file_path: String) -> Result<SongMetadata, String> {
     let tagged_file = match read_from_path(path) {
         Ok(t) => t,
         Err(_) => {
-            return Ok(SongMetadata {
-                title: None,
-                artist: None,
-                album: None,
-                duration: None,
-                cover_b64: None,
-                cover_mime: None,
-                genre: None,
-                year: None,
-                track_number: None,
-                total_tracks: None,
-                disc_number: None,
-                total_discs: None,
-                comment: None,
-                bitrate: None,
-                sample_rate: None,
-                channels: None,
-                bit_depth: None,
-            });
+            if let Ok(probe) = lofty::probe::Probe::open(path) {
+                let probe = probe.options(lofty::config::ParseOptions::new().parsing_mode(lofty::config::ParsingMode::Relaxed));
+                match probe.read() {
+                    Ok(t) => t,
+                    Err(_) => {
+                        return Ok(SongMetadata {
+                            title: None,
+                            artist: None,
+                            album: None,
+                            duration: None,
+                            cover_b64: None,
+                            cover_mime: None,
+                            genre: None,
+                            year: None,
+                            track_number: None,
+                            total_tracks: None,
+                            disc_number: None,
+                            total_discs: None,
+                            comment: None,
+                            bitrate: None,
+                            sample_rate: None,
+                            channels: None,
+                            bit_depth: None,
+                        });
+                    }
+                }
+            } else {
+                return Ok(SongMetadata {
+                    title: None,
+                    artist: None,
+                    album: None,
+                    duration: None,
+                    cover_b64: None,
+                    cover_mime: None,
+                    genre: None,
+                    year: None,
+                    track_number: None,
+                    total_tracks: None,
+                    disc_number: None,
+                    total_discs: None,
+                    comment: None,
+                    bitrate: None,
+                    sample_rate: None,
+                    channels: None,
+                    bit_depth: None,
+                });
+            }
         }
     };
 
@@ -671,7 +700,92 @@ fn save_metadata(
         return Err("File not found".to_string());
     }
 
-    let mut tagged_file = read_from_path(path).map_err(|e| format!("Failed to read metadata: {}", e))?;
+    let is_mp3 = path.extension().and_then(|s| s.to_str()).map(|s| s.eq_ignore_ascii_case("mp3")).unwrap_or(false);
+
+    if is_mp3 {
+        let mut id3_tag = id3::Tag::read_from_path(path).unwrap_or_else(|_| id3::Tag::new());
+        if let Some(t) = &title { id3_tag.set_title(t); } else { id3_tag.remove_title(); }
+        if let Some(a) = &artist { id3_tag.set_artist(a); } else { id3_tag.remove_artist(); }
+        if let Some(al) = &album { id3_tag.set_album(al); } else { id3_tag.remove_album(); }
+        if let Some(g) = &genre { id3_tag.set_genre(g); } else { id3_tag.remove_genre(); }
+        if let Some(y) = year { id3_tag.set_year(y as i32); } else { id3_tag.remove_year(); }
+        if let Some(tn) = track_number { id3_tag.set_track(tn); } else { id3_tag.remove_track(); }
+        if let Some(tt) = total_tracks { id3_tag.set_total_tracks(tt); } else { id3_tag.remove_total_tracks(); }
+        if let Some(dn) = disc_number { id3_tag.set_disc(dn); } else { id3_tag.remove_disc(); }
+        if let Some(td) = total_discs { id3_tag.set_total_discs(td); } else { id3_tag.remove_total_discs(); }
+        if let Some(c) = &comment {
+            id3_tag.remove_comment(None, None);
+            id3_tag.add_frame(id3::frame::Comment {
+                lang: "eng".to_string(),
+                description: String::new(),
+                text: c.clone(),
+            });
+        } else {
+            id3_tag.remove_comment(None, None);
+        }
+
+        if let (Some(b64), Some(mime)) = (&cover_b64, &cover_mime) {
+            let engine = base64::engine::general_purpose::STANDARD;
+            if let Ok(bytes) = engine.decode(b64) {
+                id3_tag.remove_picture_by_type(id3::frame::PictureType::CoverFront);
+                id3_tag.add_frame(id3::frame::Picture {
+                    mime_type: mime.clone(),
+                    picture_type: id3::frame::PictureType::CoverFront,
+                    description: String::new(),
+                    data: bytes,
+                });
+            }
+        }
+        if let Ok(()) = id3_tag.write_to_path(path, id3::Version::Id3v24) {
+            return Ok(());
+        }
+        if let Ok(()) = id3_tag.write_to_path(path, id3::Version::Id3v23) {
+            return Ok(());
+        }
+
+        let mut clean_tag = id3::Tag::new();
+        if let Some(t) = &title { clean_tag.set_title(t); }
+        if let Some(a) = &artist { clean_tag.set_artist(a); }
+        if let Some(al) = &album { clean_tag.set_album(al); }
+        if let Some(g) = &genre { clean_tag.set_genre(g); }
+        if let Some(y) = year { clean_tag.set_year(y as i32); }
+        if let Some(tn) = track_number { clean_tag.set_track(tn); }
+        if let Some(tt) = total_tracks { clean_tag.set_total_tracks(tt); }
+        if let Some(dn) = disc_number { clean_tag.set_disc(dn); }
+        if let Some(td) = total_discs { clean_tag.set_total_discs(td); }
+        if let Some(c) = &comment {
+            clean_tag.add_frame(id3::frame::Comment {
+                lang: "eng".to_string(),
+                description: String::new(),
+                text: c.clone(),
+            });
+        }
+        if let (Some(b64), Some(mime)) = (&cover_b64, &cover_mime) {
+            let engine = base64::engine::general_purpose::STANDARD;
+            if let Ok(bytes) = engine.decode(b64) {
+                clean_tag.add_frame(id3::frame::Picture {
+                    mime_type: mime.clone(),
+                    picture_type: id3::frame::PictureType::CoverFront,
+                    description: String::new(),
+                    data: bytes,
+                });
+            }
+        }
+        if let Ok(()) = clean_tag.write_to_path(path, id3::Version::Id3v23) {
+            return Ok(());
+        }
+    }
+
+    let mut tagged_file = match read_from_path(path) {
+        Ok(t) => t,
+        Err(_) => {
+            lofty::probe::Probe::open(path)
+                .map_err(|e| format!("Failed to open file: {}", e))?
+                .options(lofty::config::ParseOptions::new().parsing_mode(lofty::config::ParsingMode::Relaxed))
+                .read()
+                .map_err(|e| format!("Failed to read metadata: {}", e))?
+        }
+    };
 
     let tag_type = tagged_file.primary_tag_type();
     if tagged_file.primary_tag().is_none() {
