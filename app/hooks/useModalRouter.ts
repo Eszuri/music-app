@@ -6,6 +6,7 @@ export function useModalRouter() {
     const [streamingOpen, setStreamingOpen] = useState(false);
     const [equalizerOpen, setEqualizerOpen] = useState(false);
     const [metadataEditOpen, setMetadataEditOpen] = useState(false);
+    const [lyricsSearchOpen, setLyricsSearchOpen] = useState(false);
     const [editingTargetFile, setEditingTargetFile] = useState<FileEntry | null>(null);
 
     const openEqualizer = useCallback(() => {
@@ -66,6 +67,20 @@ export function useModalRouter() {
         }
     }, []);
 
+    const openLyricsSearch = useCallback(() => {
+        setLyricsSearchOpen(true);
+        if (typeof window !== 'undefined' && window.location.pathname !== '/lyrics-search') {
+            window.history.pushState({modal: 'lyrics-search'}, '', '/lyrics-search');
+        }
+    }, []);
+
+    const closeLyricsSearch = useCallback(() => {
+        setLyricsSearchOpen(false);
+        if (typeof window !== 'undefined' && window.location.pathname.includes('/lyrics-search')) {
+            window.history.pushState(null, '', '/');
+        }
+    }, []);
+
     useEffect(() => {
         const syncModalFromUrl = () => {
             const path = window.location.pathname.toLowerCase();
@@ -74,26 +89,37 @@ export function useModalRouter() {
                 setSettingsOpen(false);
                 setStreamingOpen(false);
                 setMetadataEditOpen(false);
+                setLyricsSearchOpen(false);
             } else if (path.includes('/setting')) {
                 setSettingsOpen(true);
                 setEqualizerOpen(false);
                 setStreamingOpen(false);
                 setMetadataEditOpen(false);
+                setLyricsSearchOpen(false);
             } else if (path.includes('/streaming')) {
                 setStreamingOpen(true);
                 setEqualizerOpen(false);
                 setSettingsOpen(false);
                 setMetadataEditOpen(false);
+                setLyricsSearchOpen(false);
             } else if (path.includes('/metadata')) {
                 setMetadataEditOpen(true);
                 setEqualizerOpen(false);
                 setSettingsOpen(false);
                 setStreamingOpen(false);
+                setLyricsSearchOpen(false);
+            } else if (path.includes('/lyrics-search')) {
+                setLyricsSearchOpen(true);
+                setEqualizerOpen(false);
+                setSettingsOpen(false);
+                setStreamingOpen(false);
+                setMetadataEditOpen(false);
             } else if (path === '/' || path === '') {
                 setEqualizerOpen(false);
                 setSettingsOpen(false);
                 setStreamingOpen(false);
                 setMetadataEditOpen(false);
+                setLyricsSearchOpen(false);
             }
         };
 
@@ -112,6 +138,8 @@ export function useModalRouter() {
         setEqualizerOpen,
         metadataEditOpen,
         setMetadataEditOpen,
+        lyricsSearchOpen,
+        setLyricsSearchOpen,
         editingTargetFile,
         setEditingTargetFile,
         openEqualizer,
@@ -122,5 +150,7 @@ export function useModalRouter() {
         closeStreaming,
         openMetadataEdit,
         closeMetadataEdit,
+        openLyricsSearch,
+        closeLyricsSearch,
     };
 }

@@ -119,6 +119,34 @@ function HomeHeader({
         setContextMenu({x: e.clientX, y: e.clientY, items: [...items, ...appendDevTools(items, lang)]});
     }, [lang, onOpenSettings]);
 
+    const showEqualizerMenu = useCallback((e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!onOpenEqualizer) return;
+        const items: ContextMenuItem[] = [
+            {
+                label: t(lang, 'contextMenu.openEqualizer'),
+                icon: <EQIcon size={14} />,
+                onClick: onOpenEqualizer,
+            },
+        ];
+        setContextMenu({x: e.clientX, y: e.clientY, items: [...items, ...appendDevTools(items, lang)]});
+    }, [lang, onOpenEqualizer]);
+
+    const showEditMetadataMenu = useCallback((e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!onOpenEditMetadata) return;
+        const items: ContextMenuItem[] = [
+            {
+                label: t(lang, 'contextMenu.openMetadataEdit'),
+                icon: <EditIcon size={14} />,
+                onClick: onOpenEditMetadata,
+            },
+        ];
+        setContextMenu({x: e.clientX, y: e.clientY, items: [...items, ...appendDevTools(items, lang)]});
+    }, [lang, onOpenEditMetadata]);
+
     const streamingHover = useHoverDescription(t(lang, 'status.streaming'));
     const settingsHover = useHoverDescription(t(lang, 'status.settings'));
     const leftSidebarHover = useHoverDescription(t(lang, 'status.toggleLeftSidebar'));
@@ -156,6 +184,7 @@ function HomeHeader({
                         <button
                             {...eqHover}
                             onClick={onOpenEqualizer}
+                            onContextMenu={showEqualizerMenu}
                             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-800/50 hover:bg-zinc-700/60 text-zinc-300 hover:text-zinc-100 text-xs font-medium cursor-pointer transition-colors"
                             title={t(lang, 'equalizer.title')}
                         >
@@ -168,6 +197,7 @@ function HomeHeader({
                         <button
                             {...editMetaHover}
                             onClick={onOpenEditMetadata}
+                            onContextMenu={showEditMetadataMenu}
                             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-800/50 hover:bg-zinc-700/60 text-zinc-300 hover:text-zinc-100 text-xs font-medium cursor-pointer transition-colors"
                             title={t(lang, 'contextMenu.editMetadata')}
                         >

@@ -1,6 +1,6 @@
 'use client';
 
-import React, {memo, useEffect, useState} from 'react';
+import React, {memo, useEffect, useState, useRef} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
 import {getAccent} from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
@@ -29,6 +29,7 @@ function MetadataEditModal({
     onSaveSuccess,
 }: MetadataEditModalProps) {
     const accent = getAccent(accentColor);
+    const mouseDownOnBackdropRef = useRef<boolean>(false);
 
     const [customSong, setCustomSong] = useState<FileEntry | null>(null);
 
@@ -238,7 +239,15 @@ function MetadataEditModal({
                 <motion.div
                     key="metadata-backdrop"
                     {...backdropMotion}
-                    onClick={onClose}
+                    onMouseDown={(e) => {
+                        mouseDownOnBackdropRef.current = e.target === e.currentTarget;
+                    }}
+                    onClick={(e) => {
+                        if (mouseDownOnBackdropRef.current && e.target === e.currentTarget) {
+                            onClose();
+                        }
+                        mouseDownOnBackdropRef.current = false;
+                    }}
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm cursor-pointer p-4"
                 >
                     <motion.div

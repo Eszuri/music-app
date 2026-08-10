@@ -26,11 +26,14 @@ interface MetadataPanelProps {
     onSeek?: (timeSec: number) => void;
     onContextMenu?: (e: React.MouseEvent) => void;
     onOpenEditMetadata?: () => void;
+    lyricsSearchOpen?: boolean;
+    onOpenLyricsSearch?: () => void;
+    onCloseLyricsSearch?: () => void;
 }
 
-const MIN_WIDTH = 200;
+const MIN_WIDTH = 360;
 const MAX_WIDTH = 640;
-const DEFAULT_WIDTH = 320;
+const DEFAULT_WIDTH = 360;
 const STORAGE_KEY = 'music-app-meta-width';
 const TAB_STORAGE_KEY = 'music-app-meta-tab';
 
@@ -38,9 +41,8 @@ function loadSavedWidth(): number {
     if (typeof window === 'undefined') return DEFAULT_WIDTH;
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_WIDTH;
-    const n = Number(raw);
-    if (!Number.isFinite(n)) return DEFAULT_WIDTH;
-    return Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, n));
+    const num = parseInt(raw, 10);
+    return isNaN(num) ? DEFAULT_WIDTH : Math.min(Math.max(num, MIN_WIDTH), MAX_WIDTH);
 }
 
 function loadSavedTab(): 'metadata' | 'lyrics' {
@@ -49,73 +51,76 @@ function loadSavedTab(): 'metadata' | 'lyrics' {
     return raw === 'lyrics' ? 'lyrics' : 'metadata';
 }
 
-function formatSize(bytes: number): string {
-    if (bytes === 0) return '0 B';
-    const units = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    const v = bytes / Math.pow(1024, i);
-    return `${v.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+function formatDuration(seconds: number | null): string {
+    if (seconds == null || isNaN(seconds)) return '—';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 }
 
-function formatDate(ts: number): string {
-    const d = new Date(ts * 1000);
-    return d.toLocaleDateString(undefined, {
+function formatDate(timestamp: number | null): string {
+    if (!timestamp) return '—';
+    return new Date(timestamp).toLocaleDateString(undefined, {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
     });
 }
 
-function formatDuration(seconds: number | null): string {
-    if (!seconds) return '—';
-    const m = Math.floor(seconds / 60);
-    const s = Math.floor(seconds % 60);
-    return `${m}:${s.toString().padStart(2, '0')}`;
+function formatSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function MetaRow({ label, value, hoverProps }: { label: string; value: string; hoverProps?: Record<string, unknown> }) {
+function checkIsHiRes(song: FileEntry | null, meta: SongMetadata | null): boolean {
+    if (!song) return false;
+    const ext = song.ext.toLowerCase();
+    const isLosslessFormat = ext === 'flac' || ext === 'wav' || ext === 'alac' || ext === 'aiff' || ext === 'dsd' || ext === 'dsf';
+    const hasHiResSampleRate = meta?.sample_rate != null && meta.sample_rate >= 88200;
+    const hasHiResBitDepth = meta?.bit_depth != null && meta.bit_depth > 16;
+    return isLosslessFormat && (hasHiResSampleRate || hasHiResBitDepth);
+}
+
+function SectionTitle({ title }: { title: string }) {
+    return (
+        <h4 className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-5 mb-2.5 first:mt-0 border-b border-zinc-800/40 pb-1">
+            {title}
+        </h4>
+    );
+}
+
+function MetaRow({ label, value, hoverProps }: { label: string; value: string; hoverProps?: Record<string, any> }) {
     return (
         <div className="flex flex-col gap-0.5 min-w-0" {...(hoverProps ?? {})}>
-            <span className="text-[10px] font-medium tracking-wider text-zinc-500 uppercase truncate">{label}</span>
-            <span className={`text-sm ${value === '—' ? 'text-zinc-600' : 'text-zinc-200'} break-all`} title={value}>
+            <span className="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase truncate cursor-help">{label}</span>
+            <span className={`text-xs font-medium ${value === '—' ? 'text-zinc-600' : 'text-zinc-200'} truncate cursor-help select-text`} title={value}>
                 {value}
             </span>
         </div>
     );
 }
 
-function SectionTitle({ title }: { title: string }) {
-    return <h4 className="text-[11px] font-semibold tracking-wider text-zinc-400 uppercase mt-5 first:mt-0 mb-2.5">{title}</h4>;
+function channelsLabel(lang: Lang, n: number): string {
+    if (n === 1) return t(lang, 'metadata.mono');
+    if (n === 2) return t(lang, 'metadata.stereo');
+    return `${n}${t(lang, 'metadata.ch')}`;
 }
 
-function channelsLabel(lang: Lang, ch: number | null): string {
-    if (ch === null) return '—';
-    if (ch === 1) return t(lang, 'metadata.mono');
-    if (ch === 2) return t(lang, 'metadata.stereo');
-    return `${ch}${t(lang, 'metadata.ch')}`;
-}
-
-function checkIsHiRes(selectedSong: FileEntry | null, metadata: SongMetadata | null): boolean {
-    if (!selectedSong || !metadata) return false;
-
-    // 1. Lossy formats (mp3, aac, ogg, wma) are NEVER Hi-Res Audio
-    const ext = selectedSong.ext.toLowerCase();
-    const isLossless = ['flac', 'wav', 'alac', 'aiff', 'aif', 'dsf', 'dff'].includes(ext);
-    if (!isLossless) return false;
-
-    const sr = metadata.sample_rate ?? 0;
-    const bd = metadata.bit_depth ?? null;
-
-    // 2. Official Hi-Res Audio criteria:
-    // - Bit Depth > 16 (24-bit, 32-bit) with Sample Rate >= 44100 Hz
-    // - OR Sample Rate >= 88200 Hz (88.2kHz, 96kHz, 192kHz, DSD)
-    if (bd != null) {
-        return bd > 16 && sr >= 44100;
+function getSourceLabel(lang: Lang, source: string | null): string {
+    if (!source) return `❓ ${t(lang, 'lyrics.source.unknown')}`;
+    switch (source) {
+        case 'lrc_file':
+            return `📄 ${t(lang, 'lyrics.source.lrc_file')}`;
+        case 'embedded':
+            return `🎵 ${t(lang, 'lyrics.source.embedded')}`;
+        case 'lrclib':
+            return `🌐 ${t(lang, 'lyrics.source.lrclib')}`;
+        case 'custom':
+            return `✏️ ${t(lang, 'lyrics.source.custom')}`;
+        default:
+            return `❓ ${t(lang, 'lyrics.source.unknown')}`;
     }
-
-    return sr >= 88200;
 }
 
 function LyricsSection({
@@ -125,6 +130,9 @@ function LyricsSection({
     currentTime,
     onSeek,
     accentColor,
+    lyricsSearchOpen,
+    onOpenLyricsSearch,
+    onCloseLyricsSearch,
 }: {
     lang: Lang;
     selectedSong: FileEntry | null;
@@ -132,6 +140,9 @@ function LyricsSection({
     currentTime?: number;
     onSeek?: (timeSec: number) => void;
     accentColor: string;
+    lyricsSearchOpen?: boolean;
+    onOpenLyricsSearch?: () => void;
+    onCloseLyricsSearch?: () => void;
 }) {
     const songPath = selectedSong?.path ?? null;
     const songTitle = metadata?.title || selectedSong?.name.replace(/\.[^/.]+$/, '') || undefined;
@@ -153,7 +164,6 @@ function LyricsSection({
         saveAsLrcFile,
     } = useLyrics(songPath, currentTime ?? 0, songTitle, artistName, albumName, duration);
 
-    const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -187,14 +197,14 @@ function LyricsSection({
 
     const handleManualSearchClick = async () => {
         if (!songTitle) {
-            setIsSearchOpen(true);
+            onOpenLyricsSearch?.();
             return;
         }
 
         const found = await fetchOnlineLyrics(songTitle, artistName, albumName, duration);
         if (!found) {
             // Tampilkan modal pencarian manual jika tidak ditemukan otomatis
-            setIsSearchOpen(true);
+            onOpenLyricsSearch?.();
         }
     };
 
@@ -208,15 +218,6 @@ function LyricsSection({
             setToastMessage({ type: 'error', text: t(lang, 'lyrics.saveError') });
         }
         setTimeout(() => setToastMessage(null), 3500);
-    };
-
-    const getSourceLabel = (src: string | null) => {
-        if (!src) return '';
-        if (src === 'lrc_file') return `📁 ${t(lang, 'lyrics.source.lrc_file')}`;
-        if (src === 'embedded') return `🏷️ ${t(lang, 'lyrics.source.embedded')}`;
-        if (src === 'lrclib') return `🌐 ${t(lang, 'lyrics.source.lrclib')}`;
-        if (src === 'custom') return `📄 ${t(lang, 'lyrics.source.custom')}`;
-        return src;
     };
 
     // Hover descriptions for status bar (bottom-left)
@@ -343,7 +344,7 @@ function LyricsSection({
                     <div className="flex items-center justify-between px-3.5 py-2">
                         <div className="flex items-center space-x-2 truncate">
                             <span className="font-medium text-zinc-300 truncate cursor-help" {...hSource}>
-                                {getSourceLabel(source)}
+                                {getSourceLabel(lang, source)}
                             </span>
                             <span className="text-zinc-500">•</span>
                             <span className="cursor-help" {...hType}>
@@ -360,11 +361,11 @@ function LyricsSection({
                                     title={t(lang, 'lyrics.saveLrcBtn')}
                                 >
                                     <span>💾</span>
-                                    <span>{isSaving ? '...' : t(lang, 'lyrics.saveLrcBtn')}</span>
+                                    <span>{isSaving ? t(lang, 'lyrics.saving') : t(lang, 'lyrics.saveLrcBtn')}</span>
                                 </button>
                             )}
                             <button
-                                onClick={() => setIsSearchOpen(true)}
+                                onClick={() => onOpenLyricsSearch?.()}
                                 {...hSearchOnline}
                                 className="px-2 py-1 rounded-lg hover:bg-zinc-800 text-zinc-300 transition-colors cursor-pointer"
                                 title={t(lang, 'lyrics.searchBtn')}
@@ -385,8 +386,8 @@ function LyricsSection({
 
             {/* Search Modal */}
             <LyricsSearchModal
-                isOpen={isSearchOpen}
-                onClose={() => setIsSearchOpen(false)}
+                isOpen={!!lyricsSearchOpen}
+                onClose={() => onCloseLyricsSearch?.()}
                 lang={lang}
                 initialTitle={songTitle}
                 initialArtist={artistName}
@@ -409,6 +410,9 @@ function MetadataPanel({
     onSeek,
     onContextMenu,
     onOpenEditMetadata,
+    lyricsSearchOpen,
+    onOpenLyricsSearch,
+    onCloseLyricsSearch,
 }: MetadataPanelProps) {
     const accent = getAccent(accentColor);
     const songTitle = selectedSong
@@ -420,6 +424,12 @@ function MetadataPanel({
     useEffect(() => {
         setActiveTab(loadSavedTab());
     }, []);
+
+    useEffect(() => {
+        if (lyricsSearchOpen) {
+            setActiveTab('lyrics');
+        }
+    }, [lyricsSearchOpen]);
 
     const changeTab = useCallback((tab: 'metadata' | 'lyrics') => {
         setActiveTab(tab);
@@ -475,8 +485,8 @@ function MetadataPanel({
         const handleWindowResize = () => {
             const currentWinW = window.innerWidth;
             const folderWidth = typeof window !== 'undefined'
-                ? Number(window.localStorage.getItem('music-app-sidebar-width') || 288)
-                : 288;
+                ? Number(window.localStorage.getItem('music-app-sidebar-width') || 360)
+                : 360;
             const maxAllowed = Math.max(MIN_WIDTH, currentWinW - folderWidth - 300);
             const effectiveMax = Math.min(MAX_WIDTH, maxAllowed);
             setWidth(prev => (prev > effectiveMax ? effectiveMax : prev));
@@ -490,8 +500,8 @@ function MetadataPanel({
         const delta = startXRef.current - e.clientX;
         const currentWinW = window.innerWidth;
         const folderWidth = typeof window !== 'undefined'
-            ? Number(window.localStorage.getItem('music-app-sidebar-width') || 288)
-            : 288;
+            ? Number(window.localStorage.getItem('music-app-sidebar-width') || 360)
+            : 360;
         const maxAllowed = Math.max(MIN_WIDTH, currentWinW - folderWidth - 300);
         const effectiveMax = Math.min(MAX_WIDTH, maxAllowed);
         const next = Math.min(effectiveMax, Math.max(MIN_WIDTH, startWidthRef.current + delta));
@@ -661,15 +671,17 @@ function MetadataPanel({
                                     </AnimatePresence>
                                 </div>
 
-                                <div className="flex items-center justify-between">
-                                    <SectionTitle title={t(lang, 'metadata.songInfo')} />
+                                <div className="flex items-center justify-between border-b border-zinc-800/40 pb-1 mb-2.5">
+                                    <h4 className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
+                                        {t(lang, 'metadata.songInfo')}
+                                    </h4>
                                     {checkIsHiRes(selectedSong, metadata) && (
-                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-widest bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase">
-                                            Hi-Res Audio
+                                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold tracking-widest bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase shrink-0">
+                                            {t(lang, 'metadata.hiRes')}
                                         </span>
                                     )}
                                 </div>
-                                <div className="space-y-3 pl-1">
+                                <div className="grid grid-cols-2 gap-3.5 pl-0.5">
                                     <MetaRow label={t(lang, 'metadata.title')} value={songTitle || '—'} hoverProps={hTitle} />
                                     <MetaRow label={t(lang, 'metadata.artist')} value={metadata?.artist || t(lang, 'metadata.unknownArtist')} hoverProps={hArtist} />
                                     {metadata?.album && <MetaRow label={t(lang, 'metadata.album')} value={metadata.album} hoverProps={hAlbum} />}
@@ -680,8 +692,8 @@ function MetadataPanel({
                                     <MetaRow label={t(lang, 'metadata.duration')} value={formatDuration(metadata?.duration ?? null)} hoverProps={hDuration} />
                                 </div>
 
-                                <SectionTitle title='' />
-                                <div className="space-y-3 pl-1">
+                                <SectionTitle title={t(lang, 'metadata.audioSpec')} />
+                                <div className="grid grid-cols-2 gap-3.5 pl-0.5">
                                     {metadata?.bitrate != null && (
                                         <MetaRow label={t(lang, 'metadata.bitrate')} value={`${metadata.bitrate} kbps`} hoverProps={hBitrate} />
                                     )}
@@ -704,7 +716,9 @@ function MetadataPanel({
                                         />
                                     )}
                                 </div>
-                                <div className="space-y-3 mt-3 pl-1">
+
+                                <SectionTitle title={t(lang, 'metadata.fileInfo')} />
+                                <div className="grid grid-cols-2 gap-3.5 pl-0.5">
                                     <MetaRow label={t(lang, 'metadata.fileName')} value={selectedSong.name} hoverProps={hFileName} />
                                     <MetaRow label={t(lang, 'metadata.created')} value={formatDate(selectedSong.ctime)} hoverProps={hCreated} />
                                     <MetaRow label={t(lang, 'metadata.modified')} value={formatDate(selectedSong.mtime)} hoverProps={hModified} />
@@ -713,7 +727,7 @@ function MetadataPanel({
                                 {metadata?.comment && (
                                     <>
                                         <SectionTitle title={t(lang, 'metadata.comment')} />
-                                        <div className="mt-1 p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800/40 text-xs text-zinc-300 whitespace-pre-wrap break-words" {...(hComment ?? {})}>
+                                        <div className="mt-1.5 p-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800/40 text-xs text-zinc-300 whitespace-pre-wrap break-words" {...(hComment ?? {})}>
                                             {metadata.comment}
                                         </div>
                                     </>
@@ -722,7 +736,7 @@ function MetadataPanel({
                                 {selectedSong.path && (
                                     <>
                                         <SectionTitle title={t(lang, 'metadata.fileLocation')} />
-                                        <div className="mt-1 p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800/40 text-[11px] text-zinc-400 font-mono break-all leading-relaxed" {...(hLocation ?? {})}>
+                                        <div className="mt-1.5 p-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800/40 text-[11px] text-zinc-400 font-mono break-all leading-relaxed" {...(hLocation ?? {})}>
                                             {selectedSong.path}
                                         </div>
                                     </>
@@ -734,8 +748,8 @@ function MetadataPanel({
                                     <MusicNoteIcon size={40} className="text-zinc-500" />
                                 </div>
                                 <div className="space-y-1 text-center">
-                                    <p className="text-sm font-medium text-zinc-300">Tidak ada lagu</p>
-                                    <p className="text-xs text-zinc-500">Pilih lagu untuk melihat detail</p>
+                                    <p className="text-sm font-medium text-zinc-300">{t(lang, 'metadata.emptyTitle')}</p>
+                                    <p className="text-xs text-zinc-500">{t(lang, 'metadata.emptyDesc')}</p>
                                 </div>
                             </div>
                         )}
@@ -744,7 +758,7 @@ function MetadataPanel({
             )}
 
             {/* Tab 2: Lyrics View */}
-            {activeTab === 'lyrics' && (
+            {(activeTab === 'lyrics' || lyricsSearchOpen) && (
                 <LyricsSection
                     lang={lang}
                     selectedSong={selectedSong}
@@ -752,6 +766,9 @@ function MetadataPanel({
                     currentTime={currentTime}
                     onSeek={onSeek}
                     accentColor={accentColor}
+                    lyricsSearchOpen={lyricsSearchOpen}
+                    onOpenLyricsSearch={onOpenLyricsSearch}
+                    onCloseLyricsSearch={onCloseLyricsSearch}
                 />
             )}
 

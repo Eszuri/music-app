@@ -1,6 +1,6 @@
 'use client';
 
-import React, {memo, useEffect} from 'react';
+import React, {memo, useEffect, useRef} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
 import {getAccent} from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
@@ -61,7 +61,7 @@ function EqualizerModal({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, onClose]);
 
-    if (!isOpen) return null;
+    const mouseDownOnBackdropRef = useRef<boolean>(false);
 
     const accent = getAccent(accentColor);
     const {
@@ -91,7 +91,15 @@ function EqualizerModal({
                 <motion.div
                     key="eq-backdrop"
                     {...backdropMotion}
-                    onClick={onClose}
+                    onMouseDown={(e) => {
+                        mouseDownOnBackdropRef.current = e.target === e.currentTarget;
+                    }}
+                    onClick={(e) => {
+                        if (mouseDownOnBackdropRef.current && e.target === e.currentTarget) {
+                            onClose();
+                        }
+                        mouseDownOnBackdropRef.current = false;
+                    }}
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm cursor-pointer"
                 >
                     {/* Modal Box */}
@@ -114,13 +122,13 @@ function EqualizerModal({
                                     {bandMode} Bands
                                 </span>
                                 {disabled && (
-                                    <span className="text-[10px] px-2 py-0.5 rounded uppercase font-bold tracking-widest bg-amber-500/20 text-amber-500 border border-amber-500/30">
-                                        Dinonaktifkan
+                                    <span className="text-[10px] px-2 py-0.5 rounded uppercase font-bold tracking-widest bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                        {t(lang, 'equalizer.disabledTag')}
                                     </span>
                                 )}
                             </h2>
                             <p className="text-[11px] text-zinc-400">
-                                {disabled ? "Equalizer tidak berlaku di mode Bit-Perfect" : t(lang, 'equalizer.subtitle')}
+                                {disabled ? t(lang, 'equalizer.bitperfectDisabled') : t(lang, 'equalizer.subtitle')}
                             </p>
                         </div>
                     </div>
@@ -156,7 +164,7 @@ function EqualizerModal({
                             <select
                                 value={bandMode}
                                 onChange={(e) => setBandMode(parseInt(e.target.value) as EQBandMode)}
-                                disabled={!enabled}
+                                disabled={disabled || !enabled}
                                 className="bg-transparent text-zinc-100 font-semibold focus:outline-none disabled:opacity-50 cursor-pointer text-xs"
                             >
                                 {BAND_MODE_OPTIONS.map((bm) => (
@@ -173,7 +181,7 @@ function EqualizerModal({
                             <select
                                 value={preset}
                                 onChange={(e) => setPreset(e.target.value as EQPresetKey)}
-                                disabled={!enabled}
+                                disabled={disabled || !enabled}
                                 className="bg-transparent text-zinc-100 font-semibold focus:outline-none disabled:opacity-50 cursor-pointer text-xs"
                             >
                                 {PRESET_OPTIONS.map((key) => (
@@ -187,7 +195,7 @@ function EqualizerModal({
                         {/* Auto Headroom Guard Toggle */}
                         <button
                             onClick={toggleAutoPreamp}
-                            disabled={!enabled}
+                            disabled={disabled || !enabled}
                             title={t(lang, 'equalizer.autoPreampTip')}
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all cursor-pointer disabled:opacity-50 ${
                                 autoPreamp
@@ -206,7 +214,7 @@ function EqualizerModal({
                         <div className="flex items-center gap-1 bg-zinc-900/80 border border-zinc-800 rounded-xl px-1.5 py-1">
                             <button
                                 onClick={() => setZoomLevel(Math.max(1, +(zoomLevel - 0.25).toFixed(2)))}
-                                disabled={!enabled || zoomLevel <= 1}
+                                disabled={disabled || !enabled || zoomLevel <= 1}
                                 title="Zoom Out Sliders"
                                 className="p-1 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 disabled:opacity-30 cursor-pointer transition-colors"
                             >
@@ -217,7 +225,7 @@ function EqualizerModal({
                             </span>
                             <button
                                 onClick={() => setZoomLevel(Math.min(2, +(zoomLevel + 0.25).toFixed(2)))}
-                                disabled={!enabled || zoomLevel >= 2}
+                                disabled={disabled || !enabled || zoomLevel >= 2}
                                 title="Zoom In Sliders"
                                 className="p-1 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 disabled:opacity-30 cursor-pointer transition-colors"
                             >
@@ -228,7 +236,7 @@ function EqualizerModal({
                         {/* Reset Button */}
                         <button
                             onClick={resetFlat}
-                            disabled={!enabled}
+                            disabled={disabled || !enabled}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 transition-colors disabled:opacity-50 cursor-pointer font-medium"
                         >
                             <ResetIcon size={14} />
@@ -238,7 +246,7 @@ function EqualizerModal({
                 </div>
 
                 {/* Main Sliders View: Preamp + N-Band Grid */}
-                <div className={`p-6 flex gap-6 transition-opacity duration-200 ${enabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
+                <div className={`p-6 flex gap-6 transition-opacity duration-200 ${enabled && !disabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
                     {/* Preamp Column */}
                     <div
                         className="flex flex-col items-center shrink-0 pr-4 border-r border-zinc-800/80 transition-all duration-200"
@@ -260,8 +268,8 @@ function EqualizerModal({
                         </span>
 
                         <div
-                            className={`relative flex-1 ${zoomLevel >= 1.5 ? 'w-7' : 'w-5.5'} bg-zinc-900 rounded-md border border-zinc-800/90 flex items-end overflow-hidden cursor-pointer transition-all duration-200`}
-                            onDoubleClick={() => setPreampDb(0)}
+                            className={`relative flex-1 ${zoomLevel >= 1.5 ? 'w-7' : 'w-5.5'} bg-zinc-900 rounded-md border border-zinc-800/90 flex items-end overflow-hidden ${disabled || !enabled ? 'cursor-not-allowed' : 'cursor-pointer'} transition-all duration-200`}
+                            onDoubleClick={disabled || !enabled ? undefined : () => setPreampDb(0)}
                             title={`Preamp: ${preampDb > 0 ? '+' : ''}${preampDb} dB (Double-click to reset)`}
                         >
                             <div
@@ -282,12 +290,13 @@ function EqualizerModal({
                                 max="12"
                                 step="1"
                                 value={preampDb}
+                                disabled={disabled || !enabled}
                                 onChange={(e) => setPreampDb(parseFloat(e.target.value))}
                                 style={{
                                     writingMode: 'vertical-lr',
                                     direction: 'rtl',
                                 }}
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                             />
                         </div>
 
@@ -336,8 +345,8 @@ function EqualizerModal({
                                                 isCompactMode
                                                     ? (zoomLevel >= 1.5 ? 'w-5.5' : 'w-4')
                                                     : (zoomLevel >= 1.5 ? 'w-8' : 'w-6')
-                                            } bg-zinc-900 rounded-md border border-zinc-800/90 flex items-end overflow-hidden cursor-pointer group transition-all duration-200`}
-                                            onDoubleClick={() => setBandGain(index, 0)}
+                                            } bg-zinc-900 rounded-md border border-zinc-800/90 flex items-end overflow-hidden ${disabled || !enabled ? 'cursor-not-allowed' : 'cursor-pointer'} group transition-all duration-200`}
+                                            onDoubleClick={disabled || !enabled ? undefined : () => setBandGain(index, 0)}
                                             title={`${formatFreqLabel(freqHz)} Hz: ${db > 0 ? '+' : ''}${db} dB (Double-click to reset)`}
                                         >
                                             <div
@@ -358,12 +367,13 @@ function EqualizerModal({
                                                 max="12"
                                                 step="1"
                                                 value={db}
+                                                disabled={disabled || !enabled}
                                                 onChange={(e) => setBandGain(index, parseFloat(e.target.value))}
                                                 style={{
                                                     writingMode: 'vertical-lr',
                                                     direction: 'rtl',
                                                 }}
-                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                                             />
                                         </div>
 

@@ -48,9 +48,9 @@ function isAncestorOf(folderPath: string, targetPath: string): boolean {
     return t.startsWith(f + '\\') || t.startsWith(f + '/');
 }
 
-const MIN_WIDTH = 160;
+const MIN_WIDTH = 360;
 const MAX_WIDTH = 640;
-const DEFAULT_WIDTH = 288;
+const DEFAULT_WIDTH = 360;
 const STORAGE_KEY = 'music-app-sidebar-width';
 const ROW_HEIGHT = 36;
 const VIRTUAL_BUFFER = 5;
@@ -132,8 +132,8 @@ function FolderExplorer({
         const handleWindowResize = () => {
             const currentWinW = window.innerWidth;
             const metaWidth = typeof window !== 'undefined'
-                ? Number(window.localStorage.getItem('music-app-meta-width') || 320)
-                : 320;
+                ? Number(window.localStorage.getItem('music-app-meta-width') || 360)
+                : 360;
             const maxAllowed = Math.max(MIN_WIDTH, currentWinW - metaWidth - 300);
             const effectiveMax = Math.min(MAX_WIDTH, maxAllowed);
             setWidth(prev => (prev > effectiveMax ? effectiveMax : prev));
@@ -147,8 +147,8 @@ function FolderExplorer({
         const delta = e.clientX - startXRef.current;
         const currentWinW = window.innerWidth;
         const metaWidth = typeof window !== 'undefined'
-            ? Number(window.localStorage.getItem('music-app-meta-width') || 320)
-            : 320;
+            ? Number(window.localStorage.getItem('music-app-meta-width') || 360)
+            : 360;
         const maxAllowed = Math.max(MIN_WIDTH, currentWinW - metaWidth - 300);
         const effectiveMax = Math.min(MAX_WIDTH, maxAllowed);
         const next = Math.min(effectiveMax, Math.max(MIN_WIDTH, startWidthRef.current + delta));

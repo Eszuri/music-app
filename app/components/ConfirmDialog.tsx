@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
 import {getAccent} from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
@@ -32,6 +32,8 @@ export default function ConfirmDialog({
     const resolvedConfirm = confirmLabel ?? t(lang, 'confirm.defaultConfirm');
     const resolvedCancel = cancelLabel ?? t(lang, 'confirm.defaultCancel');
     const accent = getAccent(accentColor);
+    const mouseDownOnBackdropRef = useRef<boolean>(false);
+
     useEffect(() => {
         if (!open) return;
         const onKey = (e: KeyboardEvent) => {
@@ -47,8 +49,16 @@ export default function ConfirmDialog({
                 <motion.div
                     key="confirm-backdrop"
                     {...backdropMotion}
+                    onMouseDown={(e) => {
+                        mouseDownOnBackdropRef.current = e.target === e.currentTarget;
+                    }}
+                    onClick={(e) => {
+                        if (mouseDownOnBackdropRef.current && e.target === e.currentTarget) {
+                            onCancel();
+                        }
+                        mouseDownOnBackdropRef.current = false;
+                    }}
                     className="fixed inset-0 z-60 flex items-center justify-center bg-black/70 backdrop-blur-sm"
-                    onClick={onCancel}
                 >
                     <motion.div
                         key="confirm-modal"

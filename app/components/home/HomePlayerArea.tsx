@@ -77,6 +77,9 @@ interface HomePlayerAreaProps {
     onOpenEditMetadata?: (file?: FileEntry) => void;
     outputMode?: 'default' | 'bitperfect';
     bpEngineState?: EngineStateEvent;
+    lyricsSearchOpen?: boolean;
+    onOpenLyricsSearch?: () => void;
+    onCloseLyricsSearch?: () => void;
 }
 
 async function openDevTools() {
@@ -166,6 +169,9 @@ function HomePlayerArea({
     onOpenEditMetadata,
     outputMode,
     bpEngineState,
+    lyricsSearchOpen,
+    onOpenLyricsSearch,
+    onCloseLyricsSearch,
     layoutMode = 'default',
 }: HomePlayerAreaProps) {
     if (layoutMode === 'spotify') {
@@ -673,6 +679,9 @@ function HomePlayerArea({
                                         onOpenEditMetadata={onOpenEditMetadata}
                                         currentTime={currentTime}
                                         onSeek={seekTo}
+                                        lyricsSearchOpen={lyricsSearchOpen}
+                                        onOpenLyricsSearch={onOpenLyricsSearch}
+                                        onCloseLyricsSearch={onCloseLyricsSearch}
                                     />
                                 </motion.aside>
                             )}

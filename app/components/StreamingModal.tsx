@@ -328,14 +328,24 @@ export default function StreamingModal({lang, open, onClose}: StreamingModalProp
             return maxB - maxA;
         });
 
+    const mouseDownOnBackdropRef = useRef<boolean>(false);
+
     return (
         <AnimatePresence>
             {open && (
                 <motion.div
                     key="streaming-backdrop"
                     {...backdropMotion}
+                    onMouseDown={(e) => {
+                        mouseDownOnBackdropRef.current = e.target === e.currentTarget;
+                    }}
+                    onClick={(e) => {
+                        if (mouseDownOnBackdropRef.current && e.target === e.currentTarget) {
+                            onClose();
+                        }
+                        mouseDownOnBackdropRef.current = false;
+                    }}
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm cursor-pointer"
-                    onClick={onClose}
                 >
                     <motion.div
                         key="streaming-modal"

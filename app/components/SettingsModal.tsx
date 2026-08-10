@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useState} from 'react';
+import {useEffect, useState, useRef} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
 import {getAccent} from '../lib/colors';
 import {t} from '../lib/translations';
@@ -84,6 +84,7 @@ export default function SettingsModal({
     const [activeSection, setActiveSection] = useState<SectionId>('general');
     const closeHover = useHoverDescription(t(lang, 'status.closeSettings'));
     const settingItemHover = useHoverDescription(t(lang, 'status.settingItem'));
+    const mouseDownOnBackdropRef = useRef<boolean>(false);
 
     useEffect(() => {
         if (!open) return;
@@ -112,8 +113,16 @@ export default function SettingsModal({
                 <motion.div
                     key="settings-backdrop"
                     {...backdropMotion}
+                    onMouseDown={(e) => {
+                        mouseDownOnBackdropRef.current = e.target === e.currentTarget;
+                    }}
+                    onClick={(e) => {
+                        if (mouseDownOnBackdropRef.current && e.target === e.currentTarget) {
+                            onClose();
+                        }
+                        mouseDownOnBackdropRef.current = false;
+                    }}
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm cursor-pointer"
-                    onClick={onClose}
                 >
                     <motion.div
                         key="settings-modal"

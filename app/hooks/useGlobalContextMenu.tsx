@@ -36,6 +36,9 @@ interface UseGlobalContextMenuProps {
     setStreamingOpen: (open: boolean) => void;
     settingsOpenRef: React.MutableRefObject<boolean>;
     streamingOpenRef: React.MutableRefObject<boolean>;
+    equalizerOpenRef?: React.MutableRefObject<boolean>;
+    metadataEditOpenRef?: React.MutableRefObject<boolean>;
+    lyricsSearchOpenRef?: React.MutableRefObject<boolean>;
 }
 
 export function useGlobalContextMenu({
@@ -46,6 +49,9 @@ export function useGlobalContextMenu({
     setStreamingOpen,
     settingsOpenRef,
     streamingOpenRef,
+    equalizerOpenRef,
+    metadataEditOpenRef,
+    lyricsSearchOpenRef,
 }: UseGlobalContextMenuProps) {
     const [globalContextMenu, setGlobalContextMenu] = useState<{
         x: number;
@@ -57,7 +63,13 @@ export function useGlobalContextMenu({
 
     const showGlobalContextMenu = useCallback(
         (e: React.MouseEvent) => {
-            if (settingsOpenRef.current || streamingOpenRef.current) return;
+            if (
+                settingsOpenRef.current ||
+                streamingOpenRef.current ||
+                equalizerOpenRef?.current ||
+                metadataEditOpenRef?.current ||
+                lyricsSearchOpenRef?.current
+            ) return;
 
             e.preventDefault();
             e.stopPropagation();

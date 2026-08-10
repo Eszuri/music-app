@@ -125,6 +125,8 @@ function HomeContent() {
         setEqualizerOpen,
         metadataEditOpen,
         setMetadataEditOpen,
+        lyricsSearchOpen,
+        setLyricsSearchOpen,
         editingTargetFile,
         setEditingTargetFile,
         openEqualizer,
@@ -135,6 +137,8 @@ function HomeContent() {
         closeStreaming,
         openMetadataEdit,
         closeMetadataEdit,
+        openLyricsSearch,
+        closeLyricsSearch,
     } = useModalRouter();
 
     const settingsOpenRef = useRef(false);
@@ -142,6 +146,7 @@ function HomeContent() {
     const pendingFolderChangeRef = useRef(false);
     const equalizerOpenRef = useRef(false);
     const metadataEditOpenRef = useRef(false);
+    const lyricsSearchOpenRef = useRef(false);
 
     useEffect(() => {
         settingsOpenRef.current = settingsOpen;
@@ -149,7 +154,8 @@ function HomeContent() {
         pendingFolderChangeRef.current = pendingFolderChange;
         equalizerOpenRef.current = equalizerOpen;
         metadataEditOpenRef.current = metadataEditOpen;
-    }, [settingsOpen, streamingOpen, pendingFolderChange, equalizerOpen, metadataEditOpen]);
+        lyricsSearchOpenRef.current = lyricsSearchOpen;
+    }, [settingsOpen, streamingOpen, pendingFolderChange, equalizerOpen, metadataEditOpen, lyricsSearchOpen]);
 
 
 
@@ -309,7 +315,16 @@ function HomeContent() {
         setStreamingOpen,
         settingsOpenRef,
         streamingOpenRef,
+        equalizerOpenRef,
+        metadataEditOpenRef,
+        lyricsSearchOpenRef,
     });
+
+    useEffect(() => {
+        if (settingsOpen || streamingOpen || equalizerOpen || metadataEditOpen || lyricsSearchOpen) {
+            hideGlobalContextMenu();
+        }
+    }, [settingsOpen, streamingOpen, equalizerOpen, metadataEditOpen, lyricsSearchOpen, hideGlobalContextMenu]);
 
     const doPickFolder = useCallback(async () => {
         try {
@@ -458,6 +473,9 @@ function HomeContent() {
                 outputMode={settings.outputMode}
                 bpEngineState={player.bpEngineState ?? undefined}
                 layoutMode={settings.layoutMode}
+                lyricsSearchOpen={lyricsSearchOpen}
+                onOpenLyricsSearch={openLyricsSearch}
+                onCloseLyricsSearch={closeLyricsSearch}
             />
 
             <HomeModals
