@@ -329,6 +329,7 @@ const en: Record<string, string> = {
     'contextMenu.copyText': 'Copy Text',
 
     'metadataEdit.title': 'Edit Song Metadata',
+    'metadataEdit.betaNotice': 'This feature is currently in Beta.',
     'metadataEdit.noFileTitle': 'No File Selected',
     'metadataEdit.noFileDesc': 'No song is currently playing or selected to edit. Please choose an audio file from your computer using the "Open Another File" button in the top right.',
     'metadataEdit.noFileSelectedSub': 'No file selected',
@@ -867,6 +868,7 @@ const id: Record<string, string> = {
     'contextMenu.copyText': 'Salin Teks',
 
     'metadataEdit.title': 'Edit Metadata Lagu',
+    'metadataEdit.betaNotice': 'Fitur ini masih dalam tahap Beta.',
     'metadataEdit.noFileTitle': 'Tidak Ada File Yang Dipilih',
     'metadataEdit.noFileDesc': 'Tidak ada lagu yang sedang diputar atau dipilih untuk diedit. Harap pilih file audio dari komputer Anda menggunakan tombol "Buka File Lain" di pojok kanan atas.',
     'metadataEdit.noFileSelectedSub': 'Belum ada file dipilih',
