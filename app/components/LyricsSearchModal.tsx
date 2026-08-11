@@ -6,6 +6,8 @@ import { Lang, t } from '../lib/translations';
 import { OnlineLyricItem } from '../hooks/useLyrics';
 import { LyricsIcon } from './icons';
 
+import { useAiLyricsPlugin } from '../hooks/useAiLyricsPlugin';
+
 interface LyricsSearchModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -13,6 +15,7 @@ interface LyricsSearchModalProps {
     initialTitle?: string;
     initialArtist?: string;
     accentColor: string;
+    songPath?: string | null;
     searchOnlineLyrics: (query: string) => Promise<OnlineLyricItem[]>;
     onSelectLyric: (lrcContent: string) => void;
 }
@@ -24,6 +27,27 @@ function formatDuration(seconds?: number): string {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 }
 
+const AI_LANGUAGES = [
+    { code: 'auto', label: '🌐 Otomatis / Auto Detect' },
+    { code: 'id', label: '🇮🇩 Bahasa Indonesia' },
+    { code: 'en', label: '🇺🇸 English' },
+    { code: 'ja', label: '🇯🇵 日本語 (Japanese)' },
+    { code: 'ko', label: '🇰🇷 한국어 (Korean)' },
+    { code: 'zh', label: '🇨🇳 中文 (Chinese)' },
+    { code: 'es', label: '🇪🇸 Español' },
+    { code: 'fr', label: '🇫🇷 Français' },
+    { code: 'de', label: '🇩🇪 Deutsch' },
+    { code: 'ru', label: '🇷🇺 Русский' },
+    { code: 'pt', label: '🇵🇹 Português' },
+    { code: 'it', label: '🇮🇹 Italiano' },
+];
+
+const AI_MODELS = [
+    { code: 'base', label: 'Base (Standard - 147MB)' },
+    { code: 'tiny', label: 'Tiny (Ringan - 77MB)' },
+    { code: 'small', label: 'Small (Presisi - 466MB)' },
+];
+
 export function LyricsSearchModal({
     isOpen,
     onClose,
@@ -31,6 +55,7 @@ export function LyricsSearchModal({
     initialTitle = '',
     initialArtist = '',
     accentColor,
+    songPath,
     searchOnlineLyrics,
     onSelectLyric,
 }: LyricsSearchModalProps) {
@@ -41,6 +66,47 @@ export function LyricsSearchModal({
     const [previewItem, setPreviewItem] = useState<OnlineLyricItem | null>(null);
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
     const mouseDownOnBackdropRef = useRef<boolean>(false);
+
+    const [selectedAiLang, setSelectedAiLang] = useState<string>(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('symvonia_ai_lyrics_lang') || 'auto';
+        }
+        return 'auto';
+    });
+
+    const [selectedAiModel, setSelectedAiModel] = useState<string>(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('symvonia_ai_lyrics_model') || 'base';
+        }
+        return 'base';
+    });
+
+    const {
+        pluginStatus: aiStatus,
+        isDownloading: isAiDownloading,
+        isGenerating: isAiGenerating,
+        generateProgress: aiGenerateProgress,
+        modelDownloadProgress: aiModelProgress,
+        downloadPlugin: downloadAiPlugin,
+        generateLyrics: generateAiLyrics,
+        cancelGeneration: cancelAiGeneration,
+    } = useAiLyricsPlugin();
+
+    const handleGenerateAiLyrics = async () => {
+        if (!songPath) return;
+        try {
+            const lrcContent = await generateAiLyrics(songPath, selectedAiModel, selectedAiLang);
+            if (lrcContent) {
+                setPreviewItem({
+                    trackName: initialTitle || 'Audio Track',
+                    artistName: initialArtist || 'Local AI',
+                    syncedLyrics: lrcContent,
+                });
+            }
+        } catch (err) {
+            console.error('AI lyrics generation error:', err);
+        }
+    };
 
     useEffect(() => {
         if (!isOpen) return;
@@ -182,6 +248,116 @@ export function LyricsSearchModal({
                                     {loading ? t(lang, 'lyrics.autoFetching') : t(lang, 'lyrics.searchBtn')}
                                 </button>
                             </form>
+
+                            {/* Local AI Lyrics Generator Bar */}
+                            {songPath && (
+                                <div className="mt-3 pt-3 border-t border-zinc-800/60 space-y-2.5">
+                                    {aiStatus?.installed && !isAiGenerating && !aiModelProgress && (
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex-1 flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 focus-within:border-purple-500/40 transition-colors">
+                                                <span className="text-zinc-400 text-xs font-medium shrink-0">
+                                                    {t(lang, 'lyrics.aiPlugin.langLabel')}
+                                                </span>
+                                                <select
+                                                    value={selectedAiLang}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        setSelectedAiLang(val);
+                                                        if (typeof window !== 'undefined') {
+                                                            localStorage.setItem('symvonia_ai_lyrics_lang', val);
+                                                        }
+                                                    }}
+                                                    className="bg-transparent text-zinc-100 text-xs font-semibold focus:outline-none w-full cursor-pointer"
+                                                >
+                                                    {AI_LANGUAGES.map((l) => (
+                                                        <option key={l.code} value={l.code} className="bg-zinc-900 text-zinc-100">
+                                                            {l.label}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            <div className="flex-1 flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 focus-within:border-purple-500/40 transition-colors">
+                                                <span className="text-zinc-400 text-xs font-medium shrink-0">
+                                                    {t(lang, 'lyrics.aiPlugin.modelLabel')}
+                                                </span>
+                                                <select
+                                                    value={selectedAiModel}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        setSelectedAiModel(val);
+                                                        if (typeof window !== 'undefined') {
+                                                            localStorage.setItem('symvonia_ai_lyrics_model', val);
+                                                        }
+                                                    }}
+                                                    className="bg-transparent text-zinc-100 text-xs font-semibold focus:outline-none w-full cursor-pointer"
+                                                >
+                                                    {AI_MODELS.map((m) => (
+                                                        <option key={m.code} value={m.code} className="bg-zinc-900 text-zinc-100">
+                                                            {m.label}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {isAiGenerating ? (
+                                        <div className="flex-1 flex items-center justify-between gap-3 bg-purple-950/40 border border-purple-800/40 px-3.5 py-2 rounded-xl">
+                                            <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                                                <div className="w-3.5 h-3.5 rounded-full border-2 border-purple-400 border-t-transparent animate-spin shrink-0" />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-xs font-semibold text-purple-200 truncate">
+                                                        {aiGenerateProgress?.segmentText || t(lang, 'lyrics.aiPlugin.generating', { pct: aiGenerateProgress?.percent ?? 0 })}
+                                                    </p>
+                                                    <div className="w-full bg-purple-900/60 h-1.5 rounded-full mt-1 overflow-hidden">
+                                                        <div
+                                                            className="bg-purple-400 h-full transition-all duration-300"
+                                                            style={{ width: `${aiGenerateProgress?.percent ?? 0}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={cancelAiGeneration}
+                                                className="px-2.5 py-1 text-[11px] font-semibold text-rose-300 bg-rose-500/20 hover:bg-rose-500/30 rounded-lg transition-colors shrink-0"
+                                            >
+                                                Batal
+                                            </button>
+                                        </div>
+                                    ) : aiModelProgress ? (
+                                        <div className="flex-1 flex items-center gap-2.5 bg-purple-950/40 border border-purple-800/40 px-3.5 py-2 rounded-xl">
+                                            <div className="w-3.5 h-3.5 rounded-full border-2 border-purple-400 border-t-transparent animate-spin shrink-0" />
+                                            <span className="text-xs text-purple-200">
+                                                Mengunduh Model AI ({aiModelProgress.modelName}): {aiModelProgress.percent}%
+                                            </span>
+                                        </div>
+                                    ) : aiStatus?.installed ? (
+                                        <button
+                                            type="button"
+                                            onClick={handleGenerateAiLyrics}
+                                            className="w-full py-2.5 px-4 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-200 text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-98"
+                                        >
+                                            <span>✨</span>
+                                            <span>{t(lang, 'lyrics.aiPlugin.generateBtn')}</span>
+                                        </button>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() => downloadAiPlugin()}
+                                            disabled={isAiDownloading}
+                                            className="w-full py-2.5 px-4 rounded-xl bg-purple-950/50 hover:bg-purple-900/50 border border-purple-800/50 text-purple-300 text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                                        >
+                                            <span>✨</span>
+                                            <span>
+                                                {isAiDownloading
+                                                    ? 'Mengunduh Plugin AI...'
+                                                    : t(lang, 'lyrics.aiPlugin.installBtn')}
+                                            </span>
+                                        </button>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {/* Content Area */}

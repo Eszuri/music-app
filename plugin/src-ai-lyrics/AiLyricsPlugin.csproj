@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>symvonia-ai-lyrics</AssemblyName>
+    <RootNamespace>Symvonia.AiLyrics</RootNamespace>
+    <Version>1.0.0</Version>
+    <Description>Symvonia Local AI Lyrics Generator (Whisper.net)</Description>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishTrimmed>false</PublishTrimmed>
+    <IncludeNativeLibrariesForSelfExtract>false</IncludeNativeLibrariesForSelfExtract>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="AiLyricsPlugin.Tests\**" />
+    <EmbeddedResource Remove="AiLyricsPlugin.Tests\**" />
+    <None Remove="AiLyricsPlugin.Tests\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NAudio" Version="2.2.1" />
+    <PackageReference Include="Whisper.net" Version="1.9.1" />
+    <PackageReference Include="Whisper.net.Runtime" Version="1.9.1" GeneratePathProperty="true" />
+  </ItemGroup>
+
+  <Target Name="CopyWhisperDlls" AfterTargets="Publish">
+    <ItemGroup>
+      <WhisperNativeDlls Include="$(UserProfile)\.nuget\packages\whisper.net.runtime\1.9.1\build\win-x64\*.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(WhisperNativeDlls)" DestinationFolder="$(PublishDir)" Condition="Exists('$(UserProfile)\.nuget\packages\whisper.net.runtime\1.9.1\build\win-x64')" />
+    <Copy SourceFiles="@(WhisperNativeDlls)" DestinationFolder="$(PublishDir)\runtimes\win-x64" Condition="Exists('$(UserProfile)\.nuget\packages\whisper.net.runtime\1.9.1\build\win-x64')" />
+  </Target>
+
+</Project>

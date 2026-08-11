@@ -56,6 +56,9 @@ jobs:
       - name: Build C# Audio Engine Plugin
         run: dotnet publish plugin/src-audio-engine/AudioEngine.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o plugin/src-audio-engine/publish
 
+      - name: Build C# AI Lyrics Plugin
+        run: dotnet publish plugin/src-ai-lyrics/AiLyricsPlugin.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o plugin/src-ai-lyrics/publish
+
       - name: Build & Sign with tauri-action
         uses: tauri-apps/tauri-action@v1
         env:
@@ -89,7 +92,7 @@ jobs:
             }
           }
 
-      - name: Upload C# Plugin ke Release
+      - name: Upload C# Plugins ke Release
         if: success()
         shell: pwsh
         env:
@@ -97,3 +100,4 @@ jobs:
         run: |
           $tag = "${{ github.ref_name }}"
           gh release upload $tag "plugin/src-audio-engine/publish/symvonia-audio-engine.exe" --clobber
+          gh release upload $tag "plugin/src-ai-lyrics/publish/symvonia-ai-lyrics.exe" --clobber

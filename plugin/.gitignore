@@ -1,0 +1,19 @@
+# Build & Publish outputs
+**/bin/
+**/obj/
+**/publish/
+**/*.user
+**/*.suo
+**/*.userosv
+**/*.sln.docstates
+
+# IDE & Editor files
+.vs/
+.idea/
+.vscode/
+
+# Local model & cache files
+**/models/*.bin
+**/*.download
+**/*.tmp
+**/*.log

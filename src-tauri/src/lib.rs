@@ -9,6 +9,8 @@ use std::time::{Duration, SystemTime};
 
 mod plugin_manager;
 mod sidecar;
+mod ai_lyrics_plugin_manager;
+mod sidecar_lyrics;
 
 
 
@@ -1202,6 +1204,69 @@ async fn uninstall_bit_perfect_plugin(app: AppHandle) -> Result<(), String> {
         .map_err(|e| format!("Task error: {}", e))?
 }
 
+// ─── AI Lyrics plugin (C# Whisper.net sidecar) ──────────────────────────────
+
+#[tauri::command]
+fn get_ai_lyrics_plugin_status(app: AppHandle) -> Result<ai_lyrics_plugin_manager::PluginStatus, String> {
+    ai_lyrics_plugin_manager::get_status(&app)
+}
+
+#[tauri::command]
+async fn download_ai_lyrics_plugin(
+    app: AppHandle,
+    url: Option<String>,
+) -> Result<ai_lyrics_plugin_manager::PluginStatus, String> {
+    let app_clone = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        ai_lyrics_plugin_manager::download_and_install(&app_clone, url)
+    })
+    .await
+    .map_err(|e| format!("Task error: {}", e))?
+}
+
+#[tauri::command]
+fn cancel_ai_lyrics_plugin_download() {
+    ai_lyrics_plugin_manager::cancel_download();
+}
+
+#[tauri::command]
+async fn install_ai_lyrics_plugin_from_file(
+    app: AppHandle,
+    path: String,
+) -> Result<ai_lyrics_plugin_manager::PluginStatus, String> {
+    let app_clone = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        ai_lyrics_plugin_manager::install_from_file(&app_clone, &path)
+    })
+    .await
+    .map_err(|e| format!("Task error: {}", e))?
+}
+
+#[tauri::command]
+async fn uninstall_ai_lyrics_plugin(app: AppHandle) -> Result<(), String> {
+    sidecar_lyrics::stop_engine();
+    let app_clone = app.clone();
+    tauri::async_runtime::spawn_blocking(move || ai_lyrics_plugin_manager::uninstall(&app_clone))
+        .await
+        .map_err(|e| format!("Task error: {}", e))?
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+fn generate_ai_lyrics(
+    app: AppHandle,
+    filePath: String,
+    modelName: Option<String>,
+    language: Option<String>,
+) -> Result<(), String> {
+    sidecar_lyrics::generate_ai_lyrics(&app, filePath, modelName, language)
+}
+
+#[tauri::command]
+fn cancel_ai_lyrics(app: AppHandle) -> Result<(), String> {
+    sidecar_lyrics::cancel_ai_lyrics(&app)
+}
+
 /// Sends a raw JSON command line to the C# audio engine, starting the
 /// process if necessary. Example payload:
 /// {"command":"play","path":"D:\\music\\song.flac","exclusive":true}
@@ -1380,7 +1445,14 @@ pub fn run() {
             uninstall_bit_perfect_plugin,
             send_audio_command,
             stop_audio_engine,
-            is_audio_engine_running
+            is_audio_engine_running,
+            get_ai_lyrics_plugin_status,
+            download_ai_lyrics_plugin,
+            cancel_ai_lyrics_plugin_download,
+            install_ai_lyrics_plugin_from_file,
+            uninstall_ai_lyrics_plugin,
+            generate_ai_lyrics,
+            cancel_ai_lyrics
         ])
         .register_uri_scheme_protocol("stream", |_app, request| {
             if request.method() == tauri::http::Method::OPTIONS {

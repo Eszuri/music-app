@@ -5,6 +5,7 @@ import { SettingGroup, SettingRow } from './controls';
 import { t, type Lang } from '../../lib/translations';
 import { getAccent } from '../../lib/colors';
 import { useBitPerfectEngine } from '../../hooks/useBitPerfectEngine';
+import { useAiLyricsPlugin } from '../../hooks/useAiLyricsPlugin';
 import { getTauri, isBrowserTauri } from '../../lib/homeState';
 
 export default function PluginSection({
@@ -28,18 +29,31 @@ export default function PluginSection({
         refreshStatus,
     } = useBitPerfectEngine();
 
+    const {
+        pluginStatus: aiStatus,
+        isDownloading: aiDownloading,
+        downloadProgress: aiDownloadProgress,
+        downloadPlugin: aiDownload,
+        cancelDownloadPlugin: aiCancelDownload,
+        installFromFile: aiInstallFromFile,
+        uninstallPlugin: aiUninstall,
+        refreshStatus: aiRefreshStatus,
+    } = useAiLyricsPlugin();
+
     const [actionError, setActionError] = useState<string | null>(null);
     const [installingFromFile, setInstallingFromFile] = useState(false);
 
     const installed = status?.installed === true;
+    const aiInstalled = aiStatus?.installed === true;
 
     // Realtime check for plugin status
     useEffect(() => {
         const interval = setInterval(() => {
             refreshStatus();
+            aiRefreshStatus();
         }, 3000);
         return () => clearInterval(interval);
-    }, [refreshStatus]);
+    }, [refreshStatus, aiRefreshStatus]);
 
     const handleInstall = async () => {
         setActionError(null);
@@ -95,6 +109,10 @@ export default function PluginSection({
         ? `${(status.size_bytes / (1024 * 1024)).toFixed(1)} MB`
         : '';
 
+    const aiSizeMB = aiStatus?.size_bytes
+        ? `${(aiStatus.size_bytes / (1024 * 1024)).toFixed(1)} MB`
+        : '';
+
     const downloadedMB = downloadProgress
         ? (downloadProgress.downloaded / (1024 * 1024)).toFixed(1)
         : '0';
@@ -105,6 +123,18 @@ export default function PluginSection({
 
     const downloadPct = downloadProgress && downloadProgress.total > 0
         ? Math.min(100, Math.round((downloadProgress.downloaded / downloadProgress.total) * 100))
+        : 0;
+
+    const aiDownloadedMB = aiDownloadProgress
+        ? (aiDownloadProgress.downloaded / (1024 * 1024)).toFixed(1)
+        : '0';
+
+    const aiTotalMB = aiDownloadProgress && aiDownloadProgress.total > 0
+        ? (aiDownloadProgress.total / (aiDownloadProgress.total)).toFixed(1)
+        : '20';
+
+    const aiDownloadPct = aiDownloadProgress && aiDownloadProgress.total > 0
+        ? Math.min(100, Math.round((aiDownloadProgress.downloaded / aiDownloadProgress.total) * 100))
         : 0;
 
     return (
@@ -123,6 +153,7 @@ export default function PluginSection({
                 </div>
             </div>
 
+            {/* Plugin 1: Bit-Perfect Engine */}
             <SettingGroup title={t(lang, 'audio.bitperfect.plugin.title')}>
                 <SettingRow
                     title={
@@ -233,6 +264,85 @@ export default function PluginSection({
                             <span className="flex-1 break-all">{actionError}</span>
                         </p>
                     </div>
+                )}
+            </SettingGroup>
+
+            {/* Plugin 2: Local AI Lyrics Generator */}
+            <SettingGroup title={t(lang, 'lyrics.aiPlugin.title')}>
+                <SettingRow
+                    title={
+                        <div className="flex items-center gap-2.5">
+                            <span className="font-semibold text-zinc-100">{t(lang, 'lyrics.aiPlugin.title')}</span>
+                            {aiInstalled ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-xs">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                    {t(lang, 'audio.bitperfect.badge.installed')}
+                                </span>
+                            ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-800 text-zinc-400 border border-zinc-700/60">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
+                                    {t(lang, 'audio.bitperfect.badge.notInstalled')}
+                                </span>
+                            )}
+                        </div>
+                    }
+                    description={t(lang, 'lyrics.aiPlugin.desc')}
+                >
+                    <div className="flex flex-col gap-2.5 items-end">
+                        {!aiInstalled ? (
+                            aiDownloading ? (
+                                <div className="flex flex-col gap-2 items-end">
+                                    <div className="flex items-center gap-2">
+                                        <div className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-zinc-900 text-zinc-200 border border-zinc-700/60 flex items-center gap-2 select-none shadow-xs">
+                                            <div className="w-3.5 h-3.5 rounded-full border-2 border-purple-400 border-t-transparent animate-spin" />
+                                            <span>{t(lang, 'audio.bitperfect.plugin.installing', { pct: aiDownloadPct })}</span>
+                                        </div>
+                                        <button
+                                            onClick={() => aiCancelDownload()}
+                                            className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                                        >
+                                            <span>{t(lang, 'audio.bitperfect.plugin.cancel')}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => aiInstallFromFile()}
+                                        className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95"
+                                    >
+                                        <span>{t(lang, 'audio.bitperfect.plugin.installFromFile')}</span>
+                                    </button>
+                                    <button
+                                        onClick={() => aiDownload()}
+                                        className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl ${accent.bg500} text-white hover:opacity-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95`}
+                                    >
+                                        <span>{t(lang, 'audio.bitperfect.plugin.install')}</span>
+                                    </button>
+                                </div>
+                            )
+                        ) : (
+                            <button
+                                onClick={() => aiUninstall()}
+                                className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/25 transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95"
+                            >
+                                <span>{t(lang, 'audio.bitperfect.plugin.uninstall')}</span>
+                            </button>
+                        )}
+                    </div>
+                </SettingRow>
+
+                {aiInstalled && aiStatus?.path && (
+                    <SettingRow
+                        title={t(lang, 'audio.bitperfect.plugin.fileInfo')}
+                        description={aiStatus.path}
+                    >
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-purple-300 font-mono bg-purple-950/40 border border-purple-800/40 px-2.5 py-1 rounded-xl shadow-xs">
+                                🧠 AI Engine • {aiSizeMB}
+                            </span>
+                        </div>
+                    </SettingRow>
                 )}
             </SettingGroup>
         </div>

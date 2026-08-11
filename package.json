@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "build:plugin-audio": "build-plugin.bat",
+    "build:plugin-lyrics": "build-plugin-lyrics.bat",
+    "build:plugins": "npm run build:plugin-audio && npm run build:plugin-lyrics"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.0",

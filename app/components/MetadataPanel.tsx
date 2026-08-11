@@ -390,6 +390,7 @@ function LyricsSection({
                 initialTitle={songTitle}
                 initialArtist={artistName}
                 accentColor={accent.hex || '#22c55e'}
+                songPath={songPath}
                 searchOnlineLyrics={searchOnlineLyrics}
                 onSelectLyric={(content) => applyLyrics(content, 'lrclib')}
             />
