@@ -7,6 +7,7 @@ export function useModalRouter() {
     const [equalizerOpen, setEqualizerOpen] = useState(false);
     const [metadataEditOpen, setMetadataEditOpen] = useState(false);
     const [lyricsSearchOpen, setLyricsSearchOpen] = useState(false);
+    const [aiLyricsModalOpen, setAiLyricsModalOpen] = useState(false);
     const [editingTargetFile, setEditingTargetFile] = useState<FileEntry | null>(null);
 
     const openEqualizer = useCallback(() => {
@@ -81,6 +82,20 @@ export function useModalRouter() {
         }
     }, []);
 
+    const openAiLyricsModal = useCallback(() => {
+        setAiLyricsModalOpen(true);
+        if (typeof window !== 'undefined' && window.location.pathname !== '/ai-lyrics') {
+            window.history.pushState({modal: 'ai-lyrics'}, '', '/ai-lyrics');
+        }
+    }, []);
+
+    const closeAiLyricsModal = useCallback(() => {
+        setAiLyricsModalOpen(false);
+        if (typeof window !== 'undefined' && window.location.pathname.includes('/ai-lyrics')) {
+            window.history.pushState(null, '', '/');
+        }
+    }, []);
+
     useEffect(() => {
         const syncModalFromUrl = () => {
             const path = window.location.pathname.toLowerCase();
@@ -90,36 +105,49 @@ export function useModalRouter() {
                 setStreamingOpen(false);
                 setMetadataEditOpen(false);
                 setLyricsSearchOpen(false);
+                setAiLyricsModalOpen(false);
             } else if (path.includes('/setting')) {
                 setSettingsOpen(true);
                 setEqualizerOpen(false);
                 setStreamingOpen(false);
                 setMetadataEditOpen(false);
                 setLyricsSearchOpen(false);
+                setAiLyricsModalOpen(false);
             } else if (path.includes('/streaming')) {
                 setStreamingOpen(true);
                 setEqualizerOpen(false);
                 setSettingsOpen(false);
                 setMetadataEditOpen(false);
                 setLyricsSearchOpen(false);
+                setAiLyricsModalOpen(false);
             } else if (path.includes('/metadata')) {
                 setMetadataEditOpen(true);
                 setEqualizerOpen(false);
                 setSettingsOpen(false);
                 setStreamingOpen(false);
                 setLyricsSearchOpen(false);
+                setAiLyricsModalOpen(false);
             } else if (path.includes('/lyrics-search')) {
                 setLyricsSearchOpen(true);
                 setEqualizerOpen(false);
                 setSettingsOpen(false);
                 setStreamingOpen(false);
                 setMetadataEditOpen(false);
+                setAiLyricsModalOpen(false);
+            } else if (path.includes('/ai-lyrics')) {
+                setAiLyricsModalOpen(true);
+                setEqualizerOpen(false);
+                setSettingsOpen(false);
+                setStreamingOpen(false);
+                setMetadataEditOpen(false);
+                setLyricsSearchOpen(false);
             } else if (path === '/' || path === '') {
                 setEqualizerOpen(false);
                 setSettingsOpen(false);
                 setStreamingOpen(false);
                 setMetadataEditOpen(false);
                 setLyricsSearchOpen(false);
+                setAiLyricsModalOpen(false);
             }
         };
 
@@ -140,6 +168,8 @@ export function useModalRouter() {
         setMetadataEditOpen,
         lyricsSearchOpen,
         setLyricsSearchOpen,
+        aiLyricsModalOpen,
+        setAiLyricsModalOpen,
         editingTargetFile,
         setEditingTargetFile,
         openEqualizer,
@@ -152,5 +182,8 @@ export function useModalRouter() {
         closeMetadataEdit,
         openLyricsSearch,
         closeLyricsSearch,
+        openAiLyricsModal,
+        closeAiLyricsModal,
     };
 }
+

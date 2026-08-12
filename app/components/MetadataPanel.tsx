@@ -14,6 +14,7 @@ import { MetadataPanelSkeleton } from './Skeleton';
 import { InfoIcon, CopyIcon, MusicNoteIcon, EditIcon, LyricsIcon, DetailsIcon } from './icons';
 import { useLyrics } from '../hooks/useLyrics';
 import { LyricsSearchModal } from './LyricsSearchModal';
+import { AiLyricsModal } from './AiLyricsModal';
 
 interface MetadataPanelProps {
     lang: Lang;
@@ -29,7 +30,11 @@ interface MetadataPanelProps {
     lyricsSearchOpen?: boolean;
     onOpenLyricsSearch?: () => void;
     onCloseLyricsSearch?: () => void;
+    aiLyricsModalOpen?: boolean;
+    onOpenAiLyricsModal?: () => void;
+    onCloseAiLyricsModal?: () => void;
 }
+
 
 const MIN_WIDTH = 360;
 const MAX_WIDTH = 640;
@@ -138,6 +143,9 @@ function LyricsSection({
     lyricsSearchOpen,
     onOpenLyricsSearch,
     onCloseLyricsSearch,
+    aiLyricsModalOpen,
+    onOpenAiLyricsModal,
+    onCloseAiLyricsModal,
 }: {
     lang: Lang;
     selectedSong: FileEntry | null;
@@ -148,7 +156,11 @@ function LyricsSection({
     lyricsSearchOpen?: boolean;
     onOpenLyricsSearch?: () => void;
     onCloseLyricsSearch?: () => void;
+    aiLyricsModalOpen?: boolean;
+    onOpenAiLyricsModal?: () => void;
+    onCloseAiLyricsModal?: () => void;
 }) {
+
     const songPath = selectedSong?.path ?? null;
     const songTitle = metadata?.title || selectedSong?.name.replace(/\.[^/.]+$/, '') || undefined;
     const artistName = metadata?.artist || undefined;
@@ -320,7 +332,16 @@ function LyricsSection({
                                 {t(lang, 'lyrics.notFoundDesc')}
                             </p>
                         </div>
-                        <div className="flex flex-col space-y-2 pt-1 w-full max-w-[180px]">
+                        <div className="flex flex-col space-y-2 pt-1 w-full max-w-[210px]">
+                            {/* Button 1: ✨ Local AI Lyrics Generator */}
+                            <button
+                                onClick={() => onOpenAiLyricsModal?.()}
+                                className="px-4 py-2 rounded-xl text-xs font-bold text-white transition-all shadow-md cursor-pointer flex items-center justify-center space-x-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 border border-purple-400/30"
+                            >
+                                <span>{t(lang, 'lyrics.aiPlugin.generateBtn')}</span>
+                            </button>
+
+                            {/* Button 2: 🔍 Online LRCLIB Search */}
                             <button
                                 onClick={handleManualSearchClick}
                                 disabled={isFetchingOnline}
@@ -331,6 +352,8 @@ function LyricsSection({
                                 <LyricsIcon size={14} />
                                 <span>{t(lang, 'lyrics.searchBtn')}</span>
                             </button>
+
+                            {/* Button 3: 📁 Import File */}
                             <button
                                 onClick={() => fileInputRef.current?.click()}
                                 {...hImportFile}
@@ -356,7 +379,16 @@ function LyricsSection({
                                 {isSynced ? t(lang, 'lyrics.typeSynced') : t(lang, 'lyrics.typePlain')}
                             </span>
                         </div>
-                        <div className="flex items-center space-x-2 shrink-0">
+                        <div className="flex items-center space-x-1.5 shrink-0">
+                            {/* ✨ AI Generator Modal Trigger */}
+                            <button
+                                onClick={() => onOpenAiLyricsModal?.()}
+                                className="px-2 py-1 rounded-lg bg-purple-900/40 hover:bg-purple-800/60 text-purple-200 border border-purple-700/40 transition-colors cursor-pointer text-xs font-semibold flex items-center gap-1 shadow-xs"
+                                title={t(lang, 'lyrics.aiPlugin.title')}
+                            >
+                            </button>
+
+                            {/* 💾 Save LRC File Trigger */}
                             {(source === 'lrclib' || source === 'custom') && (
                                 <button
                                     onClick={handleSaveLrc}
@@ -369,6 +401,8 @@ function LyricsSection({
                                     <span>{isSaving ? t(lang, 'lyrics.saving') : t(lang, 'lyrics.saveLrcBtn')}</span>
                                 </button>
                             )}
+
+                            {/* 🔍 Search Online Trigger */}
                             <button
                                 onClick={() => onOpenLyricsSearch?.()}
                                 {...hSearchOnline}
@@ -382,7 +416,7 @@ function LyricsSection({
                 </div>
             )}
 
-            {/* Search Modal */}
+            {/* 1. LRCLIB Online Search Modal */}
             <LyricsSearchModal
                 isOpen={!!lyricsSearchOpen}
                 onClose={() => onCloseLyricsSearch?.()}
@@ -394,8 +428,21 @@ function LyricsSection({
                 searchOnlineLyrics={searchOnlineLyrics}
                 onSelectLyric={(content) => applyLyrics(content, 'lrclib')}
             />
+
+            {/* 2. Dedicated Local AI Lyrics Generator Modal */}
+            <AiLyricsModal
+                isOpen={!!aiLyricsModalOpen}
+                onClose={() => onCloseAiLyricsModal?.()}
+                lang={lang}
+                initialTitle={songTitle}
+                initialArtist={artistName}
+                accentColor={accent.hex || '#22c55e'}
+                songPath={songPath ?? undefined}
+                onSelectLyric={(content) => applyLyrics(content, 'lrclib')}
+            />
         </div>
     );
+
 }
 
 function MetadataPanel({
@@ -412,7 +459,11 @@ function MetadataPanel({
     lyricsSearchOpen,
     onOpenLyricsSearch,
     onCloseLyricsSearch,
+    aiLyricsModalOpen,
+    onOpenAiLyricsModal,
+    onCloseAiLyricsModal,
 }: MetadataPanelProps) {
+
     const accent = getAccent(accentColor);
     const songTitle = selectedSong
         ? (metadata?.title || selectedSong.name.replace(/\.[^/.]+$/, ''))
@@ -757,7 +808,7 @@ function MetadataPanel({
             )}
 
             {/* Tab 2: Lyrics View */}
-            {(activeTab === 'lyrics' || lyricsSearchOpen) && (
+            {(activeTab === 'lyrics' || lyricsSearchOpen || aiLyricsModalOpen) && (
                 <LyricsSection
                     lang={lang}
                     selectedSong={selectedSong}
@@ -768,8 +819,12 @@ function MetadataPanel({
                     lyricsSearchOpen={lyricsSearchOpen}
                     onOpenLyricsSearch={onOpenLyricsSearch}
                     onCloseLyricsSearch={onCloseLyricsSearch}
+                    aiLyricsModalOpen={aiLyricsModalOpen}
+                    onOpenAiLyricsModal={onOpenAiLyricsModal}
+                    onCloseAiLyricsModal={onCloseAiLyricsModal}
                 />
             )}
+
 
             {contextMenu && (
                 <ContextMenu

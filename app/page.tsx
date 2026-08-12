@@ -127,6 +127,8 @@ function HomeContent() {
         setMetadataEditOpen,
         lyricsSearchOpen,
         setLyricsSearchOpen,
+        aiLyricsModalOpen,
+        setAiLyricsModalOpen,
         editingTargetFile,
         setEditingTargetFile,
         openEqualizer,
@@ -139,7 +141,10 @@ function HomeContent() {
         closeMetadataEdit,
         openLyricsSearch,
         closeLyricsSearch,
+        openAiLyricsModal,
+        closeAiLyricsModal,
     } = useModalRouter();
+
 
     const settingsOpenRef = useRef(false);
     const streamingOpenRef = useRef(false);
@@ -479,7 +484,11 @@ function HomeContent() {
                 lyricsSearchOpen={lyricsSearchOpen}
                 onOpenLyricsSearch={openLyricsSearch}
                 onCloseLyricsSearch={closeLyricsSearch}
+                aiLyricsModalOpen={aiLyricsModalOpen}
+                onOpenAiLyricsModal={openAiLyricsModal}
+                onCloseAiLyricsModal={closeAiLyricsModal}
             />
+
 
             <HomeModals
                 lang={lang}

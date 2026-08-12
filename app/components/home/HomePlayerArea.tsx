@@ -80,7 +80,11 @@ interface HomePlayerAreaProps {
     lyricsSearchOpen?: boolean;
     onOpenLyricsSearch?: () => void;
     onCloseLyricsSearch?: () => void;
+    aiLyricsModalOpen?: boolean;
+    onOpenAiLyricsModal?: () => void;
+    onCloseAiLyricsModal?: () => void;
 }
+
 
 async function openDevTools() {
     try {
@@ -172,6 +176,9 @@ function HomePlayerArea({
     lyricsSearchOpen,
     onOpenLyricsSearch,
     onCloseLyricsSearch,
+    aiLyricsModalOpen,
+    onOpenAiLyricsModal,
+    onCloseAiLyricsModal,
     layoutMode = 'default',
 }: HomePlayerAreaProps) {
     if (layoutMode === 'spotify') {
@@ -682,7 +689,11 @@ function HomePlayerArea({
                                         lyricsSearchOpen={lyricsSearchOpen}
                                         onOpenLyricsSearch={onOpenLyricsSearch}
                                         onCloseLyricsSearch={onCloseLyricsSearch}
+                                        aiLyricsModalOpen={aiLyricsModalOpen}
+                                        onOpenAiLyricsModal={onOpenAiLyricsModal}
+                                        onCloseAiLyricsModal={onCloseAiLyricsModal}
                                     />
+
                                 </motion.aside>
                             )}
                         </AnimatePresence>
