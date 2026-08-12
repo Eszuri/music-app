@@ -299,24 +299,32 @@ export function LyricsSearchModal({
 
 
                                     {aiStatus?.installed && !isAiGenerating && !aiModelProgress && (
-                                        <label className="flex items-center gap-2 text-xs cursor-pointer select-none bg-zinc-900/80 border border-zinc-800/80 hover:border-purple-500/40 rounded-xl px-3 py-2 transition-all">
-                                            <input
-                                                type="checkbox"
-                                                checked={isolateVocals}
-                                                onChange={(e) => {
-                                                    const val = e.target.checked;
-                                                    setIsolateVocals(val);
-                                                    if (typeof window !== 'undefined') {
-                                                        localStorage.setItem('symvonia_ai_isolate_vocals', String(val));
-                                                    }
-                                                }}
-                                                className="w-3.5 h-3.5 rounded bg-zinc-950 border-zinc-700 text-purple-600 focus:ring-purple-500 cursor-pointer accent-purple-500"
-                                            />
-                                            <span className="font-medium text-purple-200/90 text-[11px]">
-                                                {t(lang, 'lyrics.aiPlugin.isolateVocals')}
-                                            </span>
-                                        </label>
+                                        <div className="bg-zinc-900/80 border border-zinc-800/80 hover:border-purple-500/40 rounded-xl p-3 transition-all space-y-1.5">
+                                            <label className="flex items-center gap-2.5 text-xs cursor-pointer select-none">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isolateVocals}
+                                                    onChange={(e) => {
+                                                        const val = e.target.checked;
+                                                        setIsolateVocals(val);
+                                                        if (typeof window !== 'undefined') {
+                                                            localStorage.setItem('symvonia_ai_isolate_vocals', String(val));
+                                                        }
+                                                    }}
+                                                    className="w-4 h-4 rounded bg-zinc-950 border-zinc-700 text-purple-600 focus:ring-purple-500 cursor-pointer accent-purple-500 shrink-0"
+                                                />
+                                                <span className="font-semibold text-purple-200 text-xs">
+                                                    {t(lang, 'lyrics.aiPlugin.isolateVocals')}
+                                                </span>
+                                            </label>
+                                            <p className="text-[11px] text-zinc-400 pl-6.5 leading-relaxed">
+                                                {isolateVocals
+                                                    ? t(lang, 'lyrics.aiPlugin.isolateVocalsTrueHint')
+                                                    : t(lang, 'lyrics.aiPlugin.isolateVocalsFalseHint')}
+                                            </p>
+                                        </div>
                                     )}
+
 
                                     {isAiGenerating ? (
                                         <div className="flex-1 flex items-center justify-between gap-3 bg-purple-950/40 border border-purple-800/40 px-3.5 py-2 rounded-xl">
