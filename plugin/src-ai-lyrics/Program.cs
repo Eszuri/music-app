@@ -72,12 +72,14 @@ if (args.Length >= 1 && args[0] == "--test-native")
     }
     return;
 }
-
 if (args.Length >= 2 && args[0] == "--extract-vocal")
 {
     string inputAudio = Path.GetFullPath(args[1]);
-    string outputWav = args.Length >= 3 ? Path.GetFullPath(args[2]) : Path.ChangeExtension(inputAudio, ".vocal.wav");
     string modelsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "models");
+    string outputWav = args.Length >= 3 ? Path.GetFullPath(args[2]) : GetExtractedVocalPath(inputAudio, modelsDir);
+
+
+
 
     try
     {
@@ -184,13 +186,13 @@ while ((line = Console.In.ReadLine()) != null)
 
                 activeTask = Task.Run(async () =>
                 {
+                    string actualAudioPath = audioPath;
                     try
                     {
-                        string actualAudioPath = audioPath;
                         if (isolateVocals)
                         {
                             string vocalModelPath = await VocalExtractor.EnsureModelDownloadedAsync(modelsDir, token);
-                            string vocalOutputPath = Path.ChangeExtension(audioPath, ".vocal.wav");
+                            string vocalOutputPath = GetExtractedVocalPath(audioPath, modelsDir);
                             actualAudioPath = await VocalExtractor.ExtractVocalAsync(audioPath, vocalOutputPath, vocalModelPath, token);
                         }
 
@@ -209,6 +211,25 @@ while ((line = Console.In.ReadLine()) != null)
                     {
                         Protocol.EmitError(ex.Message, "transcribe");
                     }
+                    finally
+                    {
+                        // Immediately delete temporary extracted vocal file after generating lyrics
+                        if (isolateVocals && !string.Equals(actualAudioPath, audioPath, StringComparison.OrdinalIgnoreCase))
+                        {
+                            try
+                            {
+                                if (File.Exists(actualAudioPath))
+                                {
+                                    File.Delete(actualAudioPath);
+                                }
+                            }
+                            catch
+                            {
+                                // Ignore cleanup error if file handles are releasing
+                            }
+                        }
+                    }
+
                 }, token);
                 break;
             }
@@ -255,7 +276,8 @@ while ((line = Console.In.ReadLine()) != null)
 
                 string audioPath = cmd.Path;
                 string modelsDir = cmd.ModelsDir ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "models");
-                string outputPath = !string.IsNullOrEmpty(cmd.ModelPath) ? cmd.ModelPath : Path.ChangeExtension(audioPath, ".vocal.wav");
+                string outputPath = !string.IsNullOrEmpty(cmd.ModelPath) ? cmd.ModelPath : GetExtractedVocalPath(audioPath, modelsDir);
+
 
                 activeTask = Task.Run(async () =>
                 {
@@ -308,4 +330,23 @@ if (activeTask != null)
         // Suppress background exception on exit
     }
 }
+
+static string GetExtractedVocalPath(string audioPath, string modelsDir)
+{
+    string parentDir = Path.GetDirectoryName(modelsDir) ?? AppDomain.CurrentDomain.BaseDirectory;
+    string vocalOutputDir = Path.Combine(parentDir, "extracted-vocals");
+    Directory.CreateDirectory(vocalOutputDir);
+
+    string safeName = Path.GetFileNameWithoutExtension(audioPath);
+    foreach (char c in Path.GetInvalidFileNameChars())
+    {
+        safeName = safeName.Replace(c, '_');
+    }
+
+    byte[] hashBytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(audioPath));
+    string hashStr = Convert.ToHexString(hashBytes)[..12];
+
+    return Path.Combine(vocalOutputDir, $"{safeName}_{hashStr}.vocal.wav");
+}
+
 

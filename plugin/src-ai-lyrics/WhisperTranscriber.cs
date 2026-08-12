@@ -93,20 +93,41 @@ public class WhisperTranscriber
 
     /// <summary>
     /// Reads any audio file using NAudio, converts to 16kHz 16-bit mono WAV stream in memory.
+    /// Uses FileShare.ReadWrite and BelowNormal thread priority for zero playback stutter when music is playing.
     /// </summary>
     private static MemoryStream ConvertAudioTo16kHzWavStream(string audioPath, out TimeSpan duration)
     {
-        using var reader = new AudioFileReader(audioPath);
-        duration = reader.TotalTime;
+        try
+        {
+            Thread.CurrentThread.Priority = ThreadPriority.BelowNormal;
+        }
+        catch { }
 
-        var outFormat = new WaveFormat(16000, 16, 1);
-        using var resampler = new MediaFoundationResampler(reader, outFormat);
+        WaveStream reader;
+        try
+        {
+            var stream = new FileStream(audioPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            reader = new StreamMediaFoundationReader(stream);
+        }
+        catch
+        {
+            reader = new AudioFileReader(audioPath);
+        }
 
-        var wavMemoryStream = new MemoryStream();
-        WaveFileWriter.WriteWavFileToStream(wavMemoryStream, resampler);
-        wavMemoryStream.Position = 0;
-        return wavMemoryStream;
+        using (reader)
+        {
+            duration = reader.TotalTime;
+
+            var outFormat = new WaveFormat(16000, 16, 1);
+            using var resampler = new MediaFoundationResampler(reader, outFormat);
+
+            var wavMemoryStream = new MemoryStream();
+            WaveFileWriter.WriteWavFileToStream(wavMemoryStream, resampler);
+            wavMemoryStream.Position = 0;
+            return wavMemoryStream;
+        }
     }
+
 
     private static readonly HashSet<string> HallucinationBlacklist = new(StringComparer.OrdinalIgnoreCase)
     {

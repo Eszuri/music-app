@@ -7,6 +7,8 @@ import { OnlineLyricItem } from '../hooks/useLyrics';
 import { LyricsIcon } from './icons';
 
 import { useAiLyricsPlugin } from '../hooks/useAiLyricsPlugin';
+import { getTauri, isBrowserTauri } from '../lib/homeState';
+
 
 interface LyricsSearchModalProps {
     isOpen: boolean;
@@ -82,22 +84,47 @@ export function LyricsSearchModal({
     } = useAiLyricsPlugin();
 
 
+    const activeSongPathRef = useRef<string | null>(songPath ?? null);
+
+    // Keep active song path updated without cancelling background AI lyrics generation
+    useEffect(() => {
+        activeSongPathRef.current = songPath ?? null;
+    }, [songPath]);
+
     const handleGenerateAiLyrics = async () => {
         if (!songPath) return;
+        const targetPath = songPath;
         try {
             const lrcContent = await generateAiLyrics(songPath, selectedAiModel, 'auto', isolateVocals);
 
             if (lrcContent) {
-                setPreviewItem({
-                    trackName: initialTitle || 'Audio Track',
-                    artistName: initialArtist || 'Local AI',
-                    syncedLyrics: lrcContent,
-                });
+                // 1. Auto-save generated LRC file to disk for the target song
+                if (isBrowserTauri) {
+                    try {
+                        const mod = await getTauri();
+                        await mod.invoke('save_lrc_file', { filePath: targetPath, lrcContent });
+                    } catch (saveErr) {
+                        console.error('Failed to auto-save LRC file:', saveErr);
+                    }
+                }
+
+                // 2. If user is currently playing/viewing the target song, apply immediately to player
+                if (activeSongPathRef.current === targetPath) {
+                    setPreviewItem({
+                        trackName: initialTitle || 'Audio Track',
+                        artistName: initialArtist || 'Local AI',
+                        syncedLyrics: lrcContent,
+                    });
+                    onSelectLyric(lrcContent);
+                }
             }
         } catch (err) {
             console.error('AI lyrics generation error:', err);
         }
     };
+
+
+
 
     useEffect(() => {
         if (!isOpen) return;

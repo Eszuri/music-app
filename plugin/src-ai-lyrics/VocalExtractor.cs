@@ -85,33 +85,53 @@ public class VocalExtractor
 
     /// <summary>
     /// Reads audio file, resamples to 44.1kHz Stereo 32-bit Float PCM samples.
-    /// Returns interleaved stereo float array [left_0, right_0, left_1, right_1, ...].
+    /// Uses FileShare.ReadWrite and BelowNormal thread priority for smooth playback when music is playing.
     /// </summary>
     public static float[] ReadAudioTo441kHzStereo(string audioPath, out int sampleRate, out int channels, out TimeSpan duration)
     {
-        using var reader = new AudioFileReader(audioPath);
-        duration = reader.TotalTime;
-
-        var outFormat = WaveFormat.CreateIeeeFloatWaveFormat(44100, 2);
-        using var resampler = new MediaFoundationResampler(reader, outFormat);
-
-        sampleRate = 44100;
-        channels = 2;
-
-        var sampleList = new List<float>();
-        byte[] buffer = new byte[65536];
-        int bytesRead;
-
-        while ((bytesRead = resampler.Read(buffer, 0, buffer.Length)) > 0)
+        try
         {
-            int floatCount = bytesRead / 4;
-            float[] floatBuffer = new float[floatCount];
-            Buffer.BlockCopy(buffer, 0, floatBuffer, 0, bytesRead);
-            sampleList.AddRange(floatBuffer);
+            Thread.CurrentThread.Priority = ThreadPriority.BelowNormal;
+        }
+        catch { }
+
+        WaveStream reader;
+        try
+        {
+            var stream = new FileStream(audioPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            reader = new StreamMediaFoundationReader(stream);
+        }
+        catch
+        {
+            reader = new AudioFileReader(audioPath);
         }
 
-        return sampleList.ToArray();
+        using (reader)
+        {
+            duration = reader.TotalTime;
+
+            var outFormat = WaveFormat.CreateIeeeFloatWaveFormat(44100, 2);
+            using var resampler = new MediaFoundationResampler(reader, outFormat);
+
+            sampleRate = 44100;
+            channels = 2;
+
+            var sampleList = new List<float>();
+            byte[] buffer = new byte[65536];
+            int bytesRead;
+
+            while ((bytesRead = resampler.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                int floatCount = bytesRead / 4;
+                float[] floatBuffer = new float[floatCount];
+                Buffer.BlockCopy(buffer, 0, floatBuffer, 0, bytesRead);
+                sampleList.AddRange(floatBuffer);
+            }
+
+            return sampleList.ToArray();
+        }
     }
+
 
     /// <summary>
     /// Extracts vocal stem from input audio using HT-Demucs ONNX model and saves output to WAV file.

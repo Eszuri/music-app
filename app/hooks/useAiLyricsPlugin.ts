@@ -256,10 +256,15 @@ export function useAiLyricsPlugin() {
             await mod.invoke('cancel_ai_lyrics');
             setIsGenerating(false);
             setGenerateProgress(null);
+            if (generateResolverRef.current) {
+                generateResolverRef.current.resolve('');
+                generateResolverRef.current = null;
+            }
         } catch (err) {
             console.error('Failed to cancel AI lyrics generation:', err);
         }
     }, []);
+
 
     return {
         pluginStatus,
