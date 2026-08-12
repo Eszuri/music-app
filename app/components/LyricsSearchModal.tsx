@@ -27,22 +27,8 @@ function formatDuration(seconds?: number): string {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 }
 
-const AI_LANGUAGES = [
-    { code: 'auto', label: '🌐 Otomatis / Auto Detect' },
-    { code: 'id', label: '🇮🇩 Bahasa Indonesia' },
-    { code: 'en', label: '🇺🇸 English' },
-    { code: 'ja', label: '🇯🇵 日本語 (Japanese)' },
-    { code: 'ko', label: '🇰🇷 한국어 (Korean)' },
-    { code: 'zh', label: '🇨🇳 中文 (Chinese)' },
-    { code: 'es', label: '🇪🇸 Español' },
-    { code: 'fr', label: '🇫🇷 Français' },
-    { code: 'de', label: '🇩🇪 Deutsch' },
-    { code: 'ru', label: '🇷🇺 Русский' },
-    { code: 'pt', label: '🇵🇹 Português' },
-    { code: 'it', label: '🇮🇹 Italiano' },
-];
-
 const AI_MODELS = [
+
     { code: 'base', label: 'Base (Standard - 141MB)' },
     { code: 'tiny', label: 'Tiny (Ringan - 74MB)' },
     { code: 'small', label: 'Small (Tinggi - 465MB)' },
@@ -70,13 +56,6 @@ export function LyricsSearchModal({
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
     const mouseDownOnBackdropRef = useRef<boolean>(false);
 
-    const [selectedAiLang, setSelectedAiLang] = useState<string>(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('symvonia_ai_lyrics_lang') || 'auto';
-        }
-        return 'auto';
-    });
-
     const [selectedAiModel, setSelectedAiModel] = useState<string>(() => {
         if (typeof window !== 'undefined') {
             return localStorage.getItem('symvonia_ai_lyrics_model') || 'base';
@@ -95,17 +74,19 @@ export function LyricsSearchModal({
         pluginStatus: aiStatus,
         isDownloading: isAiDownloading,
         isGenerating: isAiGenerating,
-        generateProgress: aiGenerateProgress,
         modelDownloadProgress: aiModelProgress,
+        generateProgress: aiGenerateProgress,
         downloadPlugin: downloadAiPlugin,
         generateLyrics: generateAiLyrics,
         cancelGeneration: cancelAiGeneration,
     } = useAiLyricsPlugin();
 
+
     const handleGenerateAiLyrics = async () => {
         if (!songPath) return;
         try {
-            const lrcContent = await generateAiLyrics(songPath, selectedAiModel, selectedAiLang, isolateVocals);
+            const lrcContent = await generateAiLyrics(songPath, selectedAiModel, 'auto', isolateVocals);
+
             if (lrcContent) {
                 setPreviewItem({
                     trackName: initialTitle || 'Audio Track',
@@ -266,29 +247,6 @@ export function LyricsSearchModal({
                                         <div className="flex items-center gap-2">
                                             <div className="flex-1 flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 focus-within:border-purple-500/40 transition-colors">
                                                 <span className="text-zinc-400 text-xs font-medium shrink-0">
-                                                    {t(lang, 'lyrics.aiPlugin.langLabel')}
-                                                </span>
-                                                <select
-                                                    value={selectedAiLang}
-                                                    onChange={(e) => {
-                                                        const val = e.target.value;
-                                                        setSelectedAiLang(val);
-                                                        if (typeof window !== 'undefined') {
-                                                            localStorage.setItem('symvonia_ai_lyrics_lang', val);
-                                                        }
-                                                    }}
-                                                    className="bg-transparent text-zinc-100 text-xs font-semibold focus:outline-none w-full cursor-pointer"
-                                                >
-                                                    {AI_LANGUAGES.map((l) => (
-                                                        <option key={l.code} value={l.code} className="bg-zinc-900 text-zinc-100">
-                                                            {l.label}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-
-                                            <div className="flex-1 flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 focus-within:border-purple-500/40 transition-colors">
-                                                <span className="text-zinc-400 text-xs font-medium shrink-0">
                                                     {t(lang, 'lyrics.aiPlugin.modelLabel')}
                                                 </span>
                                                 <select
@@ -311,6 +269,7 @@ export function LyricsSearchModal({
                                             </div>
                                         </div>
                                     )}
+
 
                                     {aiStatus?.installed && !isAiGenerating && !aiModelProgress && (
                                         <label className="flex items-center gap-2 text-xs cursor-pointer select-none bg-zinc-900/80 border border-zinc-800/80 hover:border-purple-500/40 rounded-xl px-3 py-2 transition-all">

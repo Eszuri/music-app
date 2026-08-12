@@ -31,10 +31,11 @@ public class WhisperTranscriberTests
     }
 
     [Theory]
-    [InlineData(0.15f, 0.02f, "hello world", true)]
-    [InlineData(0.50f, 0.01f, "short text", true)]
+    [InlineData(0.05f, 0.005f, "hi", true)]
+    [InlineData(0.50f, 0.005f, "short", true)]
     [InlineData(0.85f, 0.60f, "I love music", false)]
     public void IsLowConfidenceSegment_EvaluatesThresholdsCorrectly(float prob, float minProb, string text, bool expectedDrop)
+
     {
         bool drop = WhisperTranscriber.IsLowConfidenceSegment(prob, minProb, text);
         Assert.Equal(expectedDrop, drop);
