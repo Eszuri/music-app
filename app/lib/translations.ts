@@ -94,11 +94,24 @@ const en: Record<string, string> = {
     'lyrics.aiPlugin.needsPlugin': 'Local AI Lyrics Plugin is required to auto-generate lyrics offline.',
     'lyrics.aiPlugin.installBtn': 'Download & Install AI Plugin',
     'lyrics.aiPlugin.langLabel': 'Language:',
+    'lyrics.aiPlugin.modelLabel': 'Model:',
     'lyrics.aiPlugin.isolateVocals': '🎤 Isolate Vocals First (ONNX HT-Demucs)',
     'lyrics.aiPlugin.isolateVocalsTrueHint': '✨ AI will extract vocals first and generate lyrics from the vocal-only track.',
     'lyrics.aiPlugin.isolateVocalsFalseHint': '⚡ AI will generate lyrics directly from the original audio file without vocal extraction.',
+    'lyrics.aiPlugin.cancelBtn': 'Cancel',
+
+    'lyrics.aiPlugin.downloadingModel': 'Downloading AI Model ({model}): {pct}%',
+    'lyrics.aiPlugin.downloadingPlugin': 'Downloading AI Plugin...',
+    'lyrics.aiPlugin.lowSpecsTitle': 'Low System Specifications Warning',
+    'lyrics.aiPlugin.lowSpecsDesc': 'Model {model} recommends at least {minRam} GB RAM and {minCpu} Core CPU. Your current system specs ({ram}GB RAM, {cpu} Core CPU) may cause the process to run slowly or increase memory/CPU usage.',
+
+
+    'audio.bitperfect.confirmTitle': 'Enable Bit-Perfect Mode?',
+    'audio.bitperfect.confirmMessage': 'Enabling this mode will stop current music playback and take exclusive control of your soundcard. Features like Equalizer and Windows volume control will be bypassed.',
+    'audio.bitperfect.confirmBtn': 'Enable',
 
     'audio.bitperfect.device.title': 'Exclusive Output Device',
+
     'audio.bitperfect.device.desc': 'Soundcard/DAC used by the bit-perfect engine',
     'audio.bitperfect.device.default': 'Default System Device',
     'audio.bitperfect.device.refresh': 'Refresh',
@@ -225,6 +238,8 @@ const en: Record<string, string> = {
 
     'about.title': 'Symvonia',
     'about.version': 'Version 1.0.2',
+
+
     'about.by': 'by',
     'about.author': 'Eszuri',
     'about.separator': '|',
@@ -643,11 +658,26 @@ const id: Record<string, string> = {
     'lyrics.aiPlugin.generating': 'Memproses Lirik dengan AI... {pct}%',
     'lyrics.aiPlugin.needsPlugin': 'Plugin Local AI Lyrics diperlukan untuk menghasilkan lirik secara offline.',
     'lyrics.aiPlugin.installBtn': 'Unduh & Pasang Plugin AI',
+    'lyrics.aiPlugin.langLabel': 'Bahasa:',
+    'lyrics.aiPlugin.modelLabel': 'Model:',
     'lyrics.aiPlugin.isolateVocals': '🎤 Ekstrak Vokal Terlebih Dahulu (ONNX HT-Demucs)',
     'lyrics.aiPlugin.isolateVocalsTrueHint': '✨ AI akan mengekstrak vokal terlebih dahulu lalu mendapatkan lirik khusus dari file vokal saja.',
     'lyrics.aiPlugin.isolateVocalsFalseHint': '⚡ AI akan mendapatkan lirik secara langsung dari file audio asli tanpa pemisahan vokal.',
+    'lyrics.aiPlugin.cancelBtn': 'Batal',
+
+
+    'lyrics.aiPlugin.downloadingModel': 'Mengunduh Model AI ({model}): {pct}%',
+    'lyrics.aiPlugin.downloadingPlugin': 'Mengunduh Plugin AI...',
+    'lyrics.aiPlugin.lowSpecsTitle': 'Peringatan Spesifikasi Sistem Rendah',
+    'lyrics.aiPlugin.lowSpecsDesc': 'Model {model} membutuhkan minimal {minRam} GB RAM dan {minCpu} Core CPU. Spesifikasi sistem Anda saat ini ({ram}GB RAM, {cpu} Core CPU) berpotensi menyebabkan proses berjalan lambat atau penggunaan memori tinggi.',
+
+
+    'audio.bitperfect.confirmTitle': 'Aktifkan Bit-Perfect Mode?',
+    'audio.bitperfect.confirmMessage': 'Mengaktifkan mode ini akan menghentikan pemutaran lagu saat ini dan mengambil alih penuh kartu suara Anda secara eksklusif. Fitur seperti Equalizer dan pengaturan volume Windows tidak akan berpengaruh.',
+    'audio.bitperfect.confirmBtn': 'Aktifkan',
 
     'audio.bitperfect.device.title': 'Perangkat Output Eksklusif',
+
     'audio.bitperfect.device.desc': 'Soundcard/DAC yang dipakai engine bit-perfect',
     'audio.bitperfect.device.default': 'Perangkat Default Sistem',
     'audio.bitperfect.device.refresh': 'Muat Ulang',
@@ -774,6 +804,8 @@ const id: Record<string, string> = {
 
     'about.title': 'Symvonia',
     'about.version': 'Versi 1.0.2',
+
+
     'about.by': 'oleh',
     'about.author': 'Eszuri',
     'about.separator': '|',

@@ -74,6 +74,27 @@ export function useAppLogging() {
         };
     }, [addLog]);
 
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        let unlisten: (() => void) | null = null;
+        import('../lib/homeState').then(({ isBrowserTauri }) => {
+            if (!isBrowserTauri) return;
+            import('@tauri-apps/api/event').then(({ listen }) => {
+                listen<string>('ai-lyrics-event', (event) => {
+                    if (event.payload) {
+                        addLog('info', event.payload);
+                    }
+                }).then((fn) => {
+                    unlisten = fn;
+                });
+            });
+        });
+        return () => {
+            if (unlisten) unlisten();
+        };
+    }, [addLog]);
+
+
     return {
         debugError,
         setDebugError,

@@ -29,14 +29,21 @@ function formatDuration(seconds?: number): string {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 }
 
-const AI_MODELS = [
+export interface AiModelSpec {
+    code: string;
+    label: string;
+    minRamGb: number;
+    minCpuCores: number;
+    sizeText: string;
+}
 
-    { code: 'base', label: 'Base (Standard - 141MB)' },
-    { code: 'tiny', label: 'Tiny (Ringan - 74MB)' },
-    { code: 'small', label: 'Small (Tinggi - 465MB)' },
-    { code: 'medium', label: 'Medium (Sangat Presisi - 1.46GB)' },
-    { code: 'large-v3-turbo', label: 'Large v3 Turbo (Presisi & Cepat - 1.54GB)' },
-    { code: 'large-v3', label: 'Large v3 (Presisi Maksimal - 2.95GB)' },
+const AI_MODELS: AiModelSpec[] = [
+    { code: 'tiny', label: 'Tiny (Ringan - 74MB)', minRamGb: 2, minCpuCores: 2, sizeText: '74MB' },
+    { code: 'base', label: 'Base (Standard - 141MB)', minRamGb: 4, minCpuCores: 2, sizeText: '141MB' },
+    { code: 'small', label: 'Small (Presisi Tinggi - 465MB)', minRamGb: 6, minCpuCores: 4, sizeText: '465MB' },
+    { code: 'medium', label: 'Medium (Sangat Presisi - 1.46GB)', minRamGb: 8, minCpuCores: 4, sizeText: '1.46GB' },
+    { code: 'large-v3-turbo', label: 'Large v3 Turbo (Ultra Presisi - 1.54GB)', minRamGb: 12, minCpuCores: 6, sizeText: '1.54GB' },
+    { code: 'large-v3', label: 'Large v3 (Presisi Maksimal - 2.95GB)', minRamGb: 16, minCpuCores: 8, sizeText: '2.95GB' },
 ];
 
 export function LyricsSearchModal({
@@ -67,10 +74,42 @@ export function LyricsSearchModal({
 
     const [isolateVocals, setIsolateVocals] = useState<boolean>(() => {
         if (typeof window !== 'undefined') {
-            return localStorage.getItem('symvonia_ai_isolate_vocals') === 'true';
+            const saved = localStorage.getItem('symvonia_ai_isolate_vocals');
+            if (saved !== null) return saved === 'true';
         }
         return false;
     });
+
+    const [systemSpecs, setSystemSpecs] = useState<{ ramGb: number; cpuCores: number }>({
+        ramGb: 8,
+        cpuCores: 4,
+    });
+
+    useEffect(() => {
+        if (!isOpen) return;
+        let isMounted = true;
+        if (isBrowserTauri) {
+            getTauri()
+                .then((mod) => mod.invoke<{ ramGb: number; cpuCores: number }>('get_system_specs'))
+                .then((specs) => {
+                    if (isMounted && specs) setSystemSpecs(specs);
+                })
+                .catch(() => {});
+        } else if (typeof navigator !== 'undefined') {
+            const cpuCores = navigator.hardwareConcurrency || 4;
+            const ramGb = (navigator as any).deviceMemory || 8;
+            setSystemSpecs({ ramGb, cpuCores });
+        }
+        return () => {
+            isMounted = false;
+        };
+    }, [isOpen]);
+
+    const selectedModelInfo = AI_MODELS.find((m) => m.code === selectedAiModel) || AI_MODELS[1];
+    const isRamLow = systemSpecs.ramGb < selectedModelInfo.minRamGb;
+    const isCpuLow = systemSpecs.cpuCores < selectedModelInfo.minCpuCores;
+    const isLowSpecsWarning = isRamLow || isCpuLow;
+
 
     const {
         pluginStatus: aiStatus,
@@ -271,11 +310,16 @@ export function LyricsSearchModal({
                             {songPath && (
                                 <div className="mt-3 pt-3 border-t border-zinc-800/60 space-y-2.5">
                                     {aiStatus?.installed && !isAiGenerating && !aiModelProgress && (
-                                        <div className="flex items-center gap-2">
-                                            <div className="flex-1 flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 focus-within:border-purple-500/40 transition-colors">
-                                                <span className="text-zinc-400 text-xs font-medium shrink-0">
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between text-xs px-1">
+                                                <span className="text-zinc-400 text-xs font-medium">
                                                     {t(lang, 'lyrics.aiPlugin.modelLabel')}
                                                 </span>
+                                                <span className="text-[10px] font-mono font-medium text-purple-300 bg-purple-950/60 border border-purple-800/40 rounded-md px-2 py-0.5 shadow-sm">
+                                                    💻 System Specs: {systemSpecs.ramGb}GB RAM • {systemSpecs.cpuCores} Core CPU
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 focus-within:border-purple-500/40 transition-colors">
                                                 <select
                                                     value={selectedAiModel}
                                                     onChange={(e) => {
@@ -287,15 +331,46 @@ export function LyricsSearchModal({
                                                     }}
                                                     className="bg-transparent text-zinc-100 text-xs font-semibold focus:outline-none w-full cursor-pointer"
                                                 >
-                                                    {AI_MODELS.map((m) => (
-                                                        <option key={m.code} value={m.code} className="bg-zinc-900 text-zinc-100">
-                                                            {m.label}
-                                                        </option>
-                                                    ))}
+                                                    {AI_MODELS.map((m) => {
+                                                        const fits = systemSpecs.ramGb >= m.minRamGb && systemSpecs.cpuCores >= m.minCpuCores;
+                                                        const tag = fits ? '✅ OK' : `⚠️ Heavy (Min ${m.minRamGb}GB RAM)`;
+                                                        return (
+                                                            <option key={m.code} value={m.code} className="bg-zinc-900 text-zinc-100 py-1">
+                                                                {m.label} — [{tag}]
+                                                            </option>
+                                                        );
+                                                    })}
                                                 </select>
                                             </div>
+
+                                            {/* Real-time System Specs Warning Banner */}
+                                            {isLowSpecsWarning && (
+                                                <div className="bg-amber-950/50 border border-amber-500/40 rounded-xl p-3 text-xs text-amber-200 flex items-start gap-2.5 shadow-md">
+                                                    <span className="text-base shrink-0 select-none">⚠️</span>
+                                                    <div className="space-y-1 min-w-0 flex-1">
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <span className="font-semibold text-amber-300 text-xs">
+                                                                {t(lang, 'lyrics.aiPlugin.lowSpecsTitle')}
+                                                            </span>
+                                                            <span className="text-[10px] font-mono bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/30 shrink-0">
+                                                                RAM {systemSpecs.ramGb}GB / Min {selectedModelInfo.minRamGb}GB
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-[11px] text-amber-200/90 leading-relaxed">
+                                                            {t(lang, 'lyrics.aiPlugin.lowSpecsDesc', {
+                                                                model: selectedModelInfo.label,
+                                                                minRam: selectedModelInfo.minRamGb,
+                                                                minCpu: selectedModelInfo.minCpuCores,
+                                                                ram: systemSpecs.ramGb,
+                                                                cpu: systemSpecs.cpuCores,
+                                                            })}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
+
 
 
                                     {aiStatus?.installed && !isAiGenerating && !aiModelProgress && (
@@ -346,14 +421,14 @@ export function LyricsSearchModal({
                                                 onClick={cancelAiGeneration}
                                                 className="px-2.5 py-1 text-[11px] font-semibold text-rose-300 bg-rose-500/20 hover:bg-rose-500/30 rounded-lg transition-colors shrink-0"
                                             >
-                                                Batal
+                                                {t(lang, 'lyrics.aiPlugin.cancelBtn')}
                                             </button>
                                         </div>
                                     ) : aiModelProgress ? (
                                         <div className="flex-1 flex items-center gap-2.5 bg-purple-950/40 border border-purple-800/40 px-3.5 py-2 rounded-xl">
                                             <div className="w-3.5 h-3.5 rounded-full border-2 border-purple-400 border-t-transparent animate-spin shrink-0" />
                                             <span className="text-xs text-purple-200">
-                                                Mengunduh Model AI ({aiModelProgress.modelName}): {aiModelProgress.percent}%
+                                                {t(lang, 'lyrics.aiPlugin.downloadingModel', { model: aiModelProgress.modelName, pct: aiModelProgress.percent })}
                                             </span>
                                         </div>
                                     ) : aiStatus?.installed ? (
@@ -375,12 +450,13 @@ export function LyricsSearchModal({
                                             <span>✨</span>
                                             <span>
                                                 {isAiDownloading
-                                                    ? 'Mengunduh Plugin AI...'
+                                                    ? t(lang, 'lyrics.aiPlugin.downloadingPlugin')
                                                     : t(lang, 'lyrics.aiPlugin.installBtn')}
                                             </span>
                                         </button>
                                     )}
                                 </div>
+
                             )}
                         </div>
 

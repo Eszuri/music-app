@@ -36,6 +36,9 @@ public static class Protocol
         }
     }
 
+    private static readonly object LogLock = new();
+    private static string? _logFilePath;
+
     public static void Emit(object payload)
     {
         string line = JsonSerializer.Serialize(payload, JsonOptions);
@@ -44,7 +47,35 @@ public static class Protocol
             Console.Out.WriteLine(line);
             Console.Out.Flush();
         }
+        WriteToAppDataLog(line);
     }
+
+    private static void WriteToAppDataLog(string rawJson)
+    {
+        try
+        {
+            string? logPath = _logFilePath;
+
+            if (string.IsNullOrEmpty(logPath))
+            {
+                string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                string logDir = Path.Combine(appData, "com.symvonia.player", "plugins", "ai-lyrics", "logs");
+                Directory.CreateDirectory(logDir);
+                logPath = Path.Combine(logDir, "ai-lyrics-generator.log");
+                _logFilePath = logPath;
+            }
+
+            lock (LogLock)
+            {
+                File.AppendAllText(logPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {rawJson}{Environment.NewLine}");
+            }
+        }
+        catch
+        {
+            // Ignore logging errors if file is temporarily busy
+        }
+    }
+
 
     public static void EmitProgress(int percent, string segmentText, string timestamp)
     {

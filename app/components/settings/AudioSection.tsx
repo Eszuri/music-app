@@ -52,10 +52,10 @@ export default function AudioSection({
             <ConfirmDialog
                 lang={lang}
                 open={confirmBpOpen}
-                title="Aktifkan Bit-Perfect Mode?"
-                message="Mengaktifkan mode ini akan menghentikan pemutaran lagu saat ini dan mengambil alih penuh kartu suara Anda secara eksklusif. Fitur seperti Equalizer dan pengaturan volume Windows tidak akan berpengaruh."
-                confirmLabel="Aktifkan"
-                cancelLabel="Batal"
+                title={t(lang, 'audio.bitperfect.confirmTitle')}
+                message={t(lang, 'audio.bitperfect.confirmMessage')}
+                confirmLabel={t(lang, 'audio.bitperfect.confirmBtn')}
+                cancelLabel={t(lang, 'confirm.defaultCancel')}
                 accentColor={accentColor}
                 onConfirm={() => {
                     setOutputMode('bitperfect');
@@ -63,6 +63,7 @@ export default function AudioSection({
                 }}
                 onCancel={() => setConfirmBpOpen(false)}
             />
+
 
             <SettingGroup title={t(lang, 'audio.group.mode')}>
                 <SettingRow

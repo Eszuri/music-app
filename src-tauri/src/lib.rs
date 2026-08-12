@@ -1278,6 +1278,47 @@ fn cancel_ai_lyrics(app: AppHandle) -> Result<(), String> {
     sidecar_lyrics::cancel_ai_lyrics(&app)
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+#[allow(non_snake_case)]
+struct SystemSpecsInfo {
+    cpuCores: usize,
+    ramGb: usize,
+}
+
+
+#[tauri::command]
+fn get_system_specs() -> SystemSpecsInfo {
+    let cpu_cores = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
+    let mut ram_gb = 8;
+
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(output) = std::process::Command::new("wmic")
+            .args(["OS", "get", "TotalVisibleMemorySize", "/Value"])
+            .output()
+        {
+            let text = String::from_utf8_lossy(&output.stdout);
+            for line in text.lines() {
+                if let Some(val) = line.strip_prefix("TotalVisibleMemorySize=") {
+                    if let Ok(kb) = val.trim().parse::<u64>() {
+                        let gb = (kb / (1024 * 1024)) as usize;
+                        if gb > 0 {
+                            ram_gb = gb;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    SystemSpecsInfo {
+        cpuCores: cpu_cores,
+        ramGb: ram_gb,
+    }
+}
+
+
 /// Sends a raw JSON command line to the C# audio engine, starting the
 /// process if necessary. Example payload:
 /// {"command":"play","path":"D:\\music\\song.flac","exclusive":true}
@@ -1464,8 +1505,10 @@ pub fn run() {
             uninstall_ai_lyrics_plugin,
             generate_ai_lyrics,
             extract_vocal_ai,
-            cancel_ai_lyrics
+            cancel_ai_lyrics,
+            get_system_specs
         ])
+
         .register_uri_scheme_protocol("stream", |_app, request| {
             if request.method() == tauri::http::Method::OPTIONS {
                 return tauri::http::Response::builder()

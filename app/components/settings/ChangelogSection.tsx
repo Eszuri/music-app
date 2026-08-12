@@ -7,6 +7,8 @@ const changelogEn = [
     {
         version: '1.0.2',
         items: [
+
+
             'Bit-Perfect Engine Enhancements: Fixed WASAPI Exclusive pause/resume audio distortion, realtime seekbar tracking, and playlist/state sync across page reloads.',
             'Multi-Layer Local Plugin Security: Added a 5-layer verification pipeline (PE Header, CUI Subsystem, & Dynamic Challenge-Response Token) for local .exe plugin imports.',
             'Plugin Download Controls: Added a dedicated "Cancel Download" button and automatic background stream termination on app close.',
@@ -163,6 +165,8 @@ const changelogId = [
     {
         version: '1.0.2',
         items: [
+
+
             'Peningkatan Pemutaran Bit-Perfect: Perbaikan komprehensif WASAPI Exclusive mode (jeda/resume tanpa distorsi, sinkronisasi seekbar realtime, serta pemulihan playlist & tombol play/pause saat reload).',
             'Verifikasi Keamanan Plugin Lokal: Fitur verifikasi otomatis 5 lapis (Header PE, Subsystem CUI, & Dynamic Challenge-Response Token) saat impor berkas plugin .exe lokal.',
             'Kontrol Pengunduhan Plugin: Penambahan tombol "Batal Unduh" beserta penghentian otomatis unduhan latar belakang saat aplikasi ditutup.',
