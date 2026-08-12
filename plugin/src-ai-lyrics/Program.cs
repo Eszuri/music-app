@@ -73,6 +73,35 @@ if (args.Length >= 1 && args[0] == "--test-native")
     return;
 }
 
+if (args.Length >= 2 && args[0] == "--extract-vocal")
+{
+    string inputAudio = Path.GetFullPath(args[1]);
+    string outputWav = args.Length >= 3 ? Path.GetFullPath(args[2]) : Path.ChangeExtension(inputAudio, ".vocal.wav");
+    string modelsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "models");
+
+    try
+    {
+        Console.WriteLine($"[Vocal Extractor CLI] Input Audio: {inputAudio}");
+        Console.WriteLine($"[Vocal Extractor CLI] Output Path:  {outputWav}");
+
+        string modelPath = await VocalExtractor.EnsureModelDownloadedAsync(modelsDir);
+        Console.WriteLine($"[Vocal Extractor CLI] ONNX Model:  {modelPath}");
+
+        Console.WriteLine("[Vocal Extractor CLI] Extracting vocal track...");
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        await VocalExtractor.ExtractVocalAsync(inputAudio, outputWav, modelPath);
+        sw.Stop();
+
+        Console.WriteLine($"[Vocal Extractor CLI] SUCCESS! Extracted vocal saved to: {outputWav}");
+        Console.WriteLine($"[Vocal Extractor CLI] Time Elapsed: {sw.Elapsed.TotalSeconds:F2} seconds");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Vocal Extractor CLI] ERROR: {ex}");
+    }
+    return;
+}
+
 if (args.Length >= 2 && args[0] == "--verify")
 {
     var token = args[1];
@@ -170,6 +199,41 @@ while ((line = Console.In.ReadLine()) != null)
                     catch (Exception ex)
                     {
                         Protocol.EmitError(ex.Message, "download_model");
+                    }
+                }, token);
+                break;
+            }
+
+            case "extract_vocal":
+            {
+                if (string.IsNullOrEmpty(cmd.Path))
+                {
+                    Protocol.EmitError("Missing 'path' for extract_vocal command", "extract_vocal");
+                    break;
+                }
+
+                activeCts?.Cancel();
+                activeCts = new CancellationTokenSource();
+                var token = activeCts.Token;
+
+                string audioPath = cmd.Path;
+                string modelsDir = cmd.ModelsDir ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "models");
+                string outputPath = !string.IsNullOrEmpty(cmd.ModelPath) ? cmd.ModelPath : Path.ChangeExtension(audioPath, ".vocal.wav");
+
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        string modelPath = await VocalExtractor.EnsureModelDownloadedAsync(modelsDir, token);
+                        await VocalExtractor.ExtractVocalAsync(audioPath, outputPath, modelPath, token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        Protocol.Emit(new { @event = "vocal_extraction_cancelled" });
+                    }
+                    catch (Exception ex)
+                    {
+                        Protocol.EmitError(ex.Message, "extract_vocal");
                     }
                 }, token);
                 break;
