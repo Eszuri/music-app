@@ -13,7 +13,10 @@ public class WhisperTranscriber
     {
         { "tiny", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin" },
         { "base", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin" },
-        { "small", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin" }
+        { "small", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin" },
+        { "medium", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin" },
+        { "large-v3-turbo", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin" },
+        { "large-v3", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin" }
     };
 
     public static async Task<string> EnsureModelDownloadedAsync(string modelName, string targetDir, CancellationToken cancellationToken = default)
@@ -29,7 +32,7 @@ public class WhisperTranscriber
 
         if (!ModelUrls.TryGetValue(modelName, out var url))
         {
-            throw new ArgumentException($"Unknown model name: {modelName}. Supported: tiny, base, small");
+            throw new ArgumentException($"Unknown model name: {modelName}. Supported: tiny, base, small, medium, large-v3-turbo, large-v3");
         }
 
         Protocol.Emit(new

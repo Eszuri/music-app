@@ -85,3 +85,55 @@ Setiap plugin berjalan sebagai *standalone headless console application* yang me
 Saat diunduh atau diimpor oleh Symvonia Player, plugin dipasang pada direktori `AppData` pengguna:
 - **Audio Engine**: `%APPDATA%\com.symvonia.player\plugins\audio-engine\`
 - **AI Lyrics Plugin**: `%APPDATA%\com.symvonia.player\plugins\ai-lyrics\`
+
+---
+
+## ⚡ Perintah Terminal Unduh Manual (PowerShell)
+
+Jika Anda ingin mengunduh model AI Whisper atau berkas plugin secara manual menggunakan Terminal (PowerShell / Command Prompt), gunakan perintah berikut:
+
+### 1. Membuat Folder Target Model AI:
+```powershell
+$modelsDir = "$env:APPDATA\com.symvonia.player\plugins\ai-lyrics\models"
+New-Item -ItemType Directory -Path $modelsDir -Force | Out-Null
+```
+
+### 2. Mengunduh Model Whisper AI:
+
+- **Model Base (141 MB - Standard / Recommended)**:
+```powershell
+Invoke-WebRequest -Uri "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin" -OutFile "$env:APPDATA\com.symvonia.player\plugins\ai-lyrics\models\ggml-base.bin"
+```
+
+- **Model Tiny (74 MB - Ringan & Cepat)**:
+```powershell
+Invoke-WebRequest -Uri "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin" -OutFile "$env:APPDATA\com.symvonia.player\plugins\ai-lyrics\models\ggml-tiny.bin"
+```
+
+- **Model Small (465 MB - Akurasi Tinggi)**:
+```powershell
+Invoke-WebRequest -Uri "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin" -OutFile "$env:APPDATA\com.symvonia.player\plugins\ai-lyrics\models\ggml-small.bin"
+```
+
+- **Model Medium (1.46 GB - Presisi Sangat Tinggi)**:
+```powershell
+Invoke-WebRequest -Uri "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin" -OutFile "$env:APPDATA\com.symvonia.player\plugins\ai-lyrics\models\ggml-medium.bin"
+```
+
+- **Model Large v3 Turbo (1.54 GB - Generasi Terbaru Cepat & Presisi)**:
+```powershell
+Invoke-WebRequest -Uri "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin" -OutFile "$env:APPDATA\com.symvonia.player\plugins\ai-lyrics\models\ggml-large-v3-turbo.bin"
+```
+
+- **Model Large v3 (2.95 GB - Presisi & Akurasi Maksimal)**:
+```powershell
+Invoke-WebRequest -Uri "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin" -OutFile "$env:APPDATA\com.symvonia.player\plugins\ai-lyrics\models\ggml-large-v3.bin"
+```
+
+---
+
+### 3. Mengunduh Seluruh Model Sekaligus (PowerShell One-Liner):
+```powershell
+$m = "$env:APPDATA\com.symvonia.player\plugins\ai-lyrics\models"; New-Item -ItemType Directory -Path $m -Force; @("tiny","base","small","medium","large-v3-turbo","large-v3") | ForEach-Object { Write-Host "Downloading ggml-$_.bin..."; Invoke-WebRequest -Uri "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-$_.bin" -OutFile "$m\ggml-$_.bin" }
+```
+

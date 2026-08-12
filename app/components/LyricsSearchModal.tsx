@@ -43,9 +43,12 @@ const AI_LANGUAGES = [
 ];
 
 const AI_MODELS = [
-    { code: 'base', label: 'Base (Standard - 147MB)' },
-    { code: 'tiny', label: 'Tiny (Ringan - 77MB)' },
-    { code: 'small', label: 'Small (Presisi - 466MB)' },
+    { code: 'base', label: 'Base (Standard - 141MB)' },
+    { code: 'tiny', label: 'Tiny (Ringan - 74MB)' },
+    { code: 'small', label: 'Small (Tinggi - 465MB)' },
+    { code: 'medium', label: 'Medium (Sangat Presisi - 1.46GB)' },
+    { code: 'large-v3-turbo', label: 'Large v3 Turbo (Presisi & Cepat - 1.54GB)' },
+    { code: 'large-v3', label: 'Large v3 (Presisi Maksimal - 2.95GB)' },
 ];
 
 export function LyricsSearchModal({
