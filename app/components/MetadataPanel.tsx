@@ -386,6 +386,7 @@ function LyricsSection({
                                 className="px-2 py-1 rounded-lg bg-purple-900/40 hover:bg-purple-800/60 text-purple-200 border border-purple-700/40 transition-colors cursor-pointer text-xs font-semibold flex items-center gap-1 shadow-xs"
                                 title={t(lang, 'lyrics.aiPlugin.title')}
                             >
+                                <span className="text-[10px] font-bold">AI</span>
                             </button>
 
                             {/* 💾 Save LRC File Trigger */}
