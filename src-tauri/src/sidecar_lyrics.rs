@@ -2,10 +2,33 @@ use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::Mutex;
 
+use serde::Serialize;
 use serde_json::json;
 use tauri::{AppHandle, Emitter};
 
 use crate::ai_lyrics_plugin_manager;
+
+#[derive(Serialize, Clone, Default)]
+pub struct AiLyricsState {
+    pub is_generating: bool,
+    pub file_path: Option<String>,
+    pub model_name: Option<String>,
+    pub last_event: Option<String>,
+}
+
+static AI_LYRICS_STATE: Mutex<AiLyricsState> = Mutex::new(AiLyricsState {
+    is_generating: false,
+    file_path: None,
+    model_name: None,
+    last_event: None,
+});
+
+pub fn get_current_state() -> AiLyricsState {
+    AI_LYRICS_STATE
+        .lock()
+        .map(|s| s.clone())
+        .unwrap_or_default()
+}
 
 pub struct AiLyricsProcess {
     child: Child,
@@ -66,6 +89,28 @@ fn spawn_engine(app: &AppHandle) -> Result<(), String> {
         for line in reader.lines() {
             match line {
                 Ok(l) if !l.trim().is_empty() => {
+                    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&l) {
+                        if let Some(evt) = parsed.get("event").and_then(|v| v.as_str()) {
+                            if let Ok(mut state) = AI_LYRICS_STATE.lock() {
+                                match evt {
+                                    "progress" | "vocal_extraction_progress" | "vocal_model_download_progress" | "model_download_progress" => {
+                                        state.is_generating = true;
+                                        state.last_event = Some(l.clone());
+                                    }
+                                    "transcription_result" => {
+                                        state.is_generating = false;
+                                        state.last_event = Some(l.clone());
+                                    }
+                                    "transcribe_cancelled" | "error" => {
+                                        state.is_generating = false;
+                                        state.last_event = Some(l.clone());
+                                    }
+                                    _ => {}
+                                }
+                            }
+                        }
+                    }
+
                     if let Err(e) = app_handle.emit("ai-lyrics-event", l) {
                         eprintln!("Failed to emit ai-lyrics-event: {}", e);
                         break;
@@ -74,6 +119,9 @@ fn spawn_engine(app: &AppHandle) -> Result<(), String> {
                 Ok(_) => {}
                 Err(_) => break,
             }
+        }
+        if let Ok(mut state) = AI_LYRICS_STATE.lock() {
+            state.is_generating = false;
         }
         let _ = app_handle.emit("ai-lyrics-engine-exit", ());
     });
@@ -111,6 +159,20 @@ pub fn generate_ai_lyrics(
         .join("models")
         .to_string_lossy()
         .to_string();
+
+    {
+        if let Ok(mut state) = AI_LYRICS_STATE.lock() {
+            state.is_generating = true;
+            state.file_path = Some(file_path.clone());
+            state.model_name = model_name.clone();
+            state.last_event = Some(json!({
+                "event": "progress",
+                "percent": 0,
+                "segmentText": "Inisialisasi AI...",
+                "timestamp": ""
+            }).to_string());
+        }
+    }
 
     let cmd = json!({
         "command": "transcribe",
@@ -159,6 +221,10 @@ pub fn extract_vocal_ai(
 }
 
 pub fn cancel_ai_lyrics(_app: &AppHandle) -> Result<(), String> {
+    if let Ok(mut state) = AI_LYRICS_STATE.lock() {
+        state.is_generating = false;
+        state.last_event = None;
+    }
     let mut guard = AI_LYRICS_ENGINE.lock().map_err(|e| e.to_string())?;
     if let Some(proc) = guard.as_mut() {
         let cmd = json!({ "command": "cancel" });
@@ -170,6 +236,10 @@ pub fn cancel_ai_lyrics(_app: &AppHandle) -> Result<(), String> {
 }
 
 pub fn stop_engine() {
+    if let Ok(mut state) = AI_LYRICS_STATE.lock() {
+        state.is_generating = false;
+        state.last_event = None;
+    }
     if let Ok(mut guard) = AI_LYRICS_ENGINE.lock() {
         if let Some(mut proc) = guard.take() {
             let cmd = json!({ "command": "shutdown" });
@@ -180,3 +250,4 @@ pub fn stop_engine() {
         }
     }
 }
+

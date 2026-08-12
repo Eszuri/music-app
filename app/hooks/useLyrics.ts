@@ -178,6 +178,23 @@ export function useLyrics(
         };
     }, [songPath]);
 
+    // Listen for AI lyrics completion event to auto-apply lyrics
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const handleAiLyricsCompleted = (e: Event) => {
+            const customEvt = e as CustomEvent<{ filePath: string; lrcContent: string }>;
+            if (customEvt.detail && songPath && customEvt.detail.filePath === songPath) {
+                setRawText(customEvt.detail.lrcContent);
+                setSource('lrc_file');
+            }
+        };
+
+        window.addEventListener('ai-lyrics-completed', handleAiLyricsCompleted);
+        return () => window.removeEventListener('ai-lyrics-completed', handleAiLyricsCompleted);
+    }, [songPath]);
+
+
     const searchOnlineLyrics = useCallback(async (query: string): Promise<OnlineLyricItem[]> => {
         if (!query.trim() || !isBrowserTauri) return [];
         try {

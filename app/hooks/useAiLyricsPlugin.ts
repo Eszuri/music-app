@@ -21,6 +21,13 @@ export interface AiGenerateProgress {
     timestamp: string;
 }
 
+export interface AiLyricsCurrentState {
+    is_generating: boolean;
+    file_path?: string;
+    model_name?: string;
+    last_event?: string;
+}
+
 export function useAiLyricsPlugin() {
     const [pluginStatus, setPluginStatus] = useState<AiPluginStatus>({ installed: false });
     const [isDownloading, setIsDownloading] = useState(false);
@@ -47,9 +54,49 @@ export function useAiLyricsPlugin() {
         }
     }, []);
 
+    // Sync active AI generation state across page reloads
+    const syncCurrentState = useCallback(async () => {
+        if (!isBrowserTauri) return;
+        try {
+            const mod = await getTauri();
+            const state = await mod.invoke<AiLyricsCurrentState>('get_ai_lyrics_current_state');
+            if (state?.is_generating) {
+                setIsGenerating(true);
+                if (state.last_event) {
+                    try {
+                        const parsed = JSON.parse(state.last_event);
+                        if (parsed.event === 'progress') {
+                            setGenerateProgress({
+                                percent: parsed.percent ?? 0,
+                                segmentText: parsed.segmentText ?? '',
+                                timestamp: parsed.timestamp ?? '',
+                            });
+                        } else if (parsed.event === 'vocal_extraction_progress') {
+                            setGenerateProgress({
+                                percent: parsed.percent ?? 0,
+                                segmentText: `Memisahkan Vokal AI (${parsed.percent}%)...`,
+                                timestamp: '',
+                            });
+                        } else if (parsed.event === 'model_download_progress') {
+                            setModelDownloadProgress({
+                                modelName: parsed.modelName ?? '',
+                                percent: parsed.percent ?? 0,
+                            });
+                        }
+                    } catch {
+                        // ignore JSON parse
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Failed to sync AI lyrics state:', err);
+        }
+    }, []);
+
     useEffect(() => {
         refreshStatus();
-    }, [refreshStatus]);
+        syncCurrentState();
+    }, [refreshStatus, syncCurrentState]);
 
     // Listen to backend events (ai-lyrics-event, ai-lyrics-download-progress)
     useEffect(() => {
@@ -67,6 +114,7 @@ export function useAiLyricsPlugin() {
                     const parsed = JSON.parse(event.payload);
                     switch (parsed.event) {
                         case 'progress':
+                            setIsGenerating(true);
                             setGenerateProgress({
                                 percent: parsed.percent ?? 0,
                                 segmentText: parsed.segmentText ?? '',
@@ -74,6 +122,7 @@ export function useAiLyricsPlugin() {
                             });
                             break;
                         case 'vocal_extraction_progress':
+                            setIsGenerating(true);
                             setGenerateProgress({
                                 percent: parsed.percent ?? 0,
                                 segmentText: `Memisahkan Vokal AI (${parsed.percent}%)...`,
@@ -104,6 +153,24 @@ export function useAiLyricsPlugin() {
                             if (generateResolverRef.current) {
                                 generateResolverRef.current.resolve(parsed.lrcContent ?? '');
                                 generateResolverRef.current = null;
+                            }
+                            if (parsed.lrcContent && isBrowserTauri) {
+                                getTauri().then(async (mod) => {
+                                    try {
+                                        const state = await mod.invoke<AiLyricsCurrentState>('get_ai_lyrics_current_state');
+                                        const targetPath = state?.file_path;
+                                        if (targetPath) {
+                                            await mod.invoke('save_lrc_file', { filePath: targetPath, lrcContent: parsed.lrcContent });
+                                            if (typeof window !== 'undefined') {
+                                                window.dispatchEvent(new CustomEvent('ai-lyrics-completed', {
+                                                    detail: { filePath: targetPath, lrcContent: parsed.lrcContent }
+                                                }));
+                                            }
+                                        }
+                                    } catch (saveErr) {
+                                        console.error('Auto save LRC on completion error:', saveErr);
+                                    }
+                                });
                             }
                             break;
                         case 'error':
@@ -139,6 +206,7 @@ export function useAiLyricsPlugin() {
             unlistens.forEach((fn) => fn());
         };
     }, []);
+
 
     const downloadPlugin = useCallback(async (url?: string) => {
         if (!isBrowserTauri) return;

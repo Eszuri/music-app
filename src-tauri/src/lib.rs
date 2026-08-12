@@ -1278,6 +1278,12 @@ fn cancel_ai_lyrics(app: AppHandle) -> Result<(), String> {
     sidecar_lyrics::cancel_ai_lyrics(&app)
 }
 
+#[tauri::command]
+fn get_ai_lyrics_current_state() -> sidecar_lyrics::AiLyricsState {
+    sidecar_lyrics::get_current_state()
+}
+
+
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 #[allow(non_snake_case)]
@@ -1506,8 +1512,10 @@ pub fn run() {
             generate_ai_lyrics,
             extract_vocal_ai,
             cancel_ai_lyrics,
+            get_ai_lyrics_current_state,
             get_system_specs
         ])
+
 
         .register_uri_scheme_protocol("stream", |_app, request| {
             if request.method() == tauri::http::Method::OPTIONS {
