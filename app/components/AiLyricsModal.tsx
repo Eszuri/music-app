@@ -109,6 +109,7 @@ export function AiLyricsModal({
         isGenerating: isAiGenerating,
         modelDownloadProgress: aiModelProgress,
         generateProgress: aiGenerateProgress,
+        downloadedModels,
         downloadPlugin: downloadAiPlugin,
         generateLyrics: generateAiLyrics,
         cancelGeneration: cancelAiGeneration,
@@ -126,6 +127,8 @@ export function AiLyricsModal({
             // Errors handled in hook
         }
     };
+
+    const isCurrentModelDownloaded = downloadedModels.includes(selectedAiModel);
 
     return (
         <AnimatePresence>
@@ -190,29 +193,40 @@ export function AiLyricsModal({
                     </div>
 
                     {/* Model Dropdown */}
-                    <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 focus-within:border-purple-500/40 transition-colors">
-                        <select
-                            value={selectedAiModel}
-                            onChange={(e) => {
-                                const val = e.target.value;
-                                setSelectedAiModel(val);
-                                if (typeof window !== 'undefined') {
-                                    localStorage.setItem('symvonia_ai_lyrics_model', val);
-                                }
-                            }}
-                            className="bg-transparent text-zinc-100 text-xs font-semibold focus:outline-none w-full cursor-pointer"
-                        >
-                            {AI_MODELS.map((m) => {
-                                const fits = systemSpecs.ramGb >= m.minRamGb && systemSpecs.cpuCores >= m.minCpuCores;
-                                const tag = fits ? '✅ OK' : `⚠️ Heavy (Min ${m.minRamGb}GB RAM)`;
-                                return (
-                                    <option key={m.code} value={m.code} className="bg-zinc-900 text-zinc-100 py-1">
-                                        {m.label} — [{tag}]
-                                    </option>
-                                );
-                            })}
-                        </select>
+                    <div className="space-y-1.5">
+                        <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 focus-within:border-purple-500/40 transition-colors">
+                            <select
+                                value={selectedAiModel}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setSelectedAiModel(val);
+                                    if (typeof window !== 'undefined') {
+                                        localStorage.setItem('symvonia_ai_lyrics_model', val);
+                                    }
+                                }}
+                                className="bg-transparent text-zinc-100 text-xs font-semibold focus:outline-none w-full cursor-pointer"
+                            >
+                                {AI_MODELS.map((m) => {
+                                    const isDownloaded = downloadedModels.includes(m.code);
+                                    const dlTag = isDownloaded
+                                        ? t(lang, 'lyrics.aiPlugin.tagDownloaded')
+                                        : t(lang, 'lyrics.aiPlugin.tagNotDownloaded');
+                                    const fits = systemSpecs.ramGb >= m.minRamGb && systemSpecs.cpuCores >= m.minCpuCores;
+                                    const specTag = fits
+                                        ? t(lang, 'lyrics.aiPlugin.tagOk')
+                                        : t(lang, 'lyrics.aiPlugin.tagHeavy', { ram: m.minRamGb });
+                                    return (
+                                        <option key={m.code} value={m.code} className="bg-zinc-900 text-zinc-100 py-1">
+                                            {m.label} — [{dlTag} • {specTag}]
+                                        </option>
+                                    );
+                                })}
+                            </select>
+                        </div>
                     </div>
+
+
+
 
                     {/* Real-time System Specs Warning Banner */}
                     {isLowSpecsWarning && (

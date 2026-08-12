@@ -93,10 +93,24 @@ export function useAiLyricsPlugin() {
         }
     }, []);
 
+    const [downloadedModels, setDownloadedModels] = useState<string[]>([]);
+
+    const refreshDownloadedModels = useCallback(async () => {
+        if (!isBrowserTauri) return;
+        try {
+            const mod = await getTauri();
+            const models = await mod.invoke<string[]>('get_downloaded_ai_models');
+            if (models) setDownloadedModels(models);
+        } catch (err) {
+            console.error('Failed to get downloaded AI models:', err);
+        }
+    }, []);
+
     useEffect(() => {
         refreshStatus();
         syncCurrentState();
-    }, [refreshStatus, syncCurrentState]);
+        refreshDownloadedModels();
+    }, [refreshStatus, syncCurrentState, refreshDownloadedModels]);
 
     // Listen to backend events (ai-lyrics-event, ai-lyrics-download-progress)
     useEffect(() => {
@@ -137,6 +151,7 @@ export function useAiLyricsPlugin() {
                             break;
                         case 'vocal_model_download_complete':
                             setModelDownloadProgress(null);
+                            refreshDownloadedModels();
                             break;
                         case 'model_download_progress':
                             setModelDownloadProgress({
@@ -146,14 +161,17 @@ export function useAiLyricsPlugin() {
                             break;
                         case 'model_download_complete':
                             setModelDownloadProgress(null);
+                            refreshDownloadedModels();
                             break;
                         case 'transcription_result':
                             setIsGenerating(false);
                             setGenerateProgress(null);
+                            refreshDownloadedModels();
                             if (generateResolverRef.current) {
                                 generateResolverRef.current.resolve(parsed.lrcContent ?? '');
                                 generateResolverRef.current = null;
                             }
+
                             if (parsed.lrcContent && isBrowserTauri) {
                                 getTauri().then(async (mod) => {
                                     try {
@@ -341,6 +359,8 @@ export function useAiLyricsPlugin() {
         isGenerating,
         generateProgress,
         modelDownloadProgress,
+        downloadedModels,
+        refreshDownloadedModels,
         errorMsg,
         refreshStatus,
         downloadPlugin,
@@ -352,3 +372,4 @@ export function useAiLyricsPlugin() {
         cancelGeneration,
     };
 }
+

@@ -104,6 +104,11 @@ const en: Record<string, string> = {
     'lyrics.aiPlugin.downloadingPlugin': 'Downloading AI Plugin...',
     'lyrics.aiPlugin.lowSpecsTitle': 'Low System Specifications Warning',
     'lyrics.aiPlugin.lowSpecsDesc': 'Model {model} recommends at least {minRam} GB RAM and {minCpu} Core CPU. Your current system specs ({ram}GB RAM, {cpu} Core CPU) may cause the process to run slowly or increase memory/CPU usage.',
+    'lyrics.aiPlugin.tagDownloaded': '💾 Downloaded',
+    'lyrics.aiPlugin.tagNotDownloaded': '📥 Not Downloaded',
+    'lyrics.aiPlugin.tagOk': '✅ OK',
+    'lyrics.aiPlugin.tagHeavy': '⚠️ Heavy (Min {ram}GB RAM)',
+    'lyrics.aiPlugin.vocalIsolatingProgress': 'Isolating Vocals AI ({pct}%)...',
 
 
     'audio.bitperfect.confirmTitle': 'Enable Bit-Perfect Mode?',
@@ -331,6 +336,7 @@ const en: Record<string, string> = {
     'lyrics.typePlain': '📄 Plain Text Lyrics',
     'lyrics.saveSuccess': 'Successfully saved .lrc file next to audio track!',
     'lyrics.saveError': 'Failed to save .lrc file.',
+
     'metadata.hiRes': 'Hi-Res Audio',
 
     'contextMenu.reloadPage': 'Reload Page',
@@ -670,6 +676,12 @@ const id: Record<string, string> = {
     'lyrics.aiPlugin.downloadingPlugin': 'Mengunduh Plugin AI...',
     'lyrics.aiPlugin.lowSpecsTitle': 'Peringatan Spesifikasi Sistem Rendah',
     'lyrics.aiPlugin.lowSpecsDesc': 'Model {model} membutuhkan minimal {minRam} GB RAM dan {minCpu} Core CPU. Spesifikasi sistem Anda saat ini ({ram}GB RAM, {cpu} Core CPU) berpotensi menyebabkan proses berjalan lambat atau penggunaan memori tinggi.',
+    'lyrics.aiPlugin.tagDownloaded': '💾 Terunduh',
+    'lyrics.aiPlugin.tagNotDownloaded': '📥 Belum Terunduh',
+    'lyrics.aiPlugin.tagOk': '✅ OK',
+    'lyrics.aiPlugin.tagHeavy': '⚠️ Heavy (Min {ram}GB RAM)',
+    'lyrics.aiPlugin.vocalIsolatingProgress': 'Memisahkan Vokal AI ({pct}%)...',
+
 
 
     'audio.bitperfect.confirmTitle': 'Aktifkan Bit-Perfect Mode?',
@@ -897,6 +909,7 @@ const id: Record<string, string> = {
     'lyrics.typePlain': '📄 Lirik Teks Biasa',
     'lyrics.saveSuccess': 'File .lrc berhasil disimpan di samping lagu!',
     'lyrics.saveError': 'Gagal menyimpan file .lrc.',
+
     'metadata.hiRes': 'Hi-Res Audio',
 
     'contextMenu.reloadPage': 'Reload Halaman',

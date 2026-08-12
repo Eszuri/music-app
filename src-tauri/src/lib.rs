@@ -1283,6 +1283,28 @@ fn get_ai_lyrics_current_state() -> sidecar_lyrics::AiLyricsState {
     sidecar_lyrics::get_current_state()
 }
 
+#[tauri::command]
+fn get_downloaded_ai_models(app: AppHandle) -> Vec<String> {
+    let mut downloaded = Vec::new();
+    if let Ok(dir) = ai_lyrics_plugin_manager::plugin_dir(&app) {
+        let models_dir = dir.join("models");
+        let model_codes = ["tiny", "base", "small", "medium", "large-v3-turbo", "large-v3"];
+        for code in &model_codes {
+            let file_name = format!("ggml-{}.bin", code);
+            let path = models_dir.join(&file_name);
+            if path.exists() {
+                if let Ok(meta) = std::fs::metadata(&path) {
+                    if meta.len() > 1024 * 1024 {
+                        downloaded.push(code.to_string());
+                    }
+                }
+            }
+        }
+    }
+    downloaded
+}
+
+
 
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -1513,8 +1535,10 @@ pub fn run() {
             extract_vocal_ai,
             cancel_ai_lyrics,
             get_ai_lyrics_current_state,
+            get_downloaded_ai_models,
             get_system_specs
         ])
+
 
 
         .register_uri_scheme_protocol("stream", |_app, request| {
