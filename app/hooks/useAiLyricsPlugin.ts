@@ -73,6 +73,22 @@ export function useAiLyricsPlugin() {
                                 timestamp: parsed.timestamp ?? '',
                             });
                             break;
+                        case 'vocal_extraction_progress':
+                            setGenerateProgress({
+                                percent: parsed.percent ?? 0,
+                                segmentText: `Memisahkan Vokal AI (${parsed.percent}%)...`,
+                                timestamp: '',
+                            });
+                            break;
+                        case 'vocal_model_download_progress':
+                            setModelDownloadProgress({
+                                modelName: 'Model Vokal ONNX',
+                                percent: parsed.percent ?? 0,
+                            });
+                            break;
+                        case 'vocal_model_download_complete':
+                            setModelDownloadProgress(null);
+                            break;
                         case 'model_download_progress':
                             setModelDownloadProgress({
                                 modelName: parsed.modelName ?? '',
@@ -187,7 +203,7 @@ export function useAiLyricsPlugin() {
     }, [refreshStatus]);
 
     const generateLyrics = useCallback(
-        (filePath: string, modelName = 'base', language = 'auto'): Promise<string> => {
+        (filePath: string, modelName = 'base', language = 'auto', isolateVocals = false): Promise<string> => {
             return new Promise<string>(async (resolve, reject) => {
                 if (!isBrowserTauri) {
                     reject(new Error('Only supported in Desktop app'));
@@ -201,13 +217,32 @@ export function useAiLyricsPlugin() {
 
                 try {
                     const mod = await getTauri();
-                    await mod.invoke('generate_ai_lyrics', { filePath, modelName, language });
+                    await mod.invoke('generate_ai_lyrics', { filePath, modelName, language, isolateVocals });
                 } catch (err: unknown) {
                     setIsGenerating(false);
                     const msg = err instanceof Error ? err.message : String(err);
                     setErrorMsg(msg);
                     reject(err);
                     generateResolverRef.current = null;
+                }
+            });
+        },
+        []
+    );
+
+    const extractVocal = useCallback(
+        (filePath: string, outputPath?: string): Promise<void> => {
+            return new Promise<void>(async (resolve, reject) => {
+                if (!isBrowserTauri) {
+                    reject(new Error('Only supported in Desktop app'));
+                    return;
+                }
+                try {
+                    const mod = await getTauri();
+                    await mod.invoke('extract_vocal_ai', { filePath, outputPath });
+                    resolve();
+                } catch (err) {
+                    reject(err);
                 }
             });
         },
@@ -240,6 +275,7 @@ export function useAiLyricsPlugin() {
         installFromFile,
         uninstallPlugin,
         generateLyrics,
+        extractVocal,
         cancelGeneration,
     };
 }

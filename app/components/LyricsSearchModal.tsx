@@ -84,6 +84,13 @@ export function LyricsSearchModal({
         return 'base';
     });
 
+    const [isolateVocals, setIsolateVocals] = useState<boolean>(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('symvonia_ai_isolate_vocals') === 'true';
+        }
+        return false;
+    });
+
     const {
         pluginStatus: aiStatus,
         isDownloading: isAiDownloading,
@@ -98,7 +105,7 @@ export function LyricsSearchModal({
     const handleGenerateAiLyrics = async () => {
         if (!songPath) return;
         try {
-            const lrcContent = await generateAiLyrics(songPath, selectedAiModel, selectedAiLang);
+            const lrcContent = await generateAiLyrics(songPath, selectedAiModel, selectedAiLang, isolateVocals);
             if (lrcContent) {
                 setPreviewItem({
                     trackName: initialTitle || 'Audio Track',
@@ -303,6 +310,26 @@ export function LyricsSearchModal({
                                                 </select>
                                             </div>
                                         </div>
+                                    )}
+
+                                    {aiStatus?.installed && !isAiGenerating && !aiModelProgress && (
+                                        <label className="flex items-center gap-2 text-xs cursor-pointer select-none bg-zinc-900/80 border border-zinc-800/80 hover:border-purple-500/40 rounded-xl px-3 py-2 transition-all">
+                                            <input
+                                                type="checkbox"
+                                                checked={isolateVocals}
+                                                onChange={(e) => {
+                                                    const val = e.target.checked;
+                                                    setIsolateVocals(val);
+                                                    if (typeof window !== 'undefined') {
+                                                        localStorage.setItem('symvonia_ai_isolate_vocals', String(val));
+                                                    }
+                                                }}
+                                                className="w-3.5 h-3.5 rounded bg-zinc-950 border-zinc-700 text-purple-600 focus:ring-purple-500 cursor-pointer accent-purple-500"
+                                            />
+                                            <span className="font-medium text-purple-200/90 text-[11px]">
+                                                {t(lang, 'lyrics.aiPlugin.isolateVocals')}
+                                            </span>
+                                        </label>
                                     )}
 
                                     {isAiGenerating ? (

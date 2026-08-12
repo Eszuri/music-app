@@ -21,6 +21,7 @@ public static class Protocol
         [JsonPropertyName("modelName")] public string? ModelName { get; set; }
         [JsonPropertyName("language")] public string? Language { get; set; }
         [JsonPropertyName("modelsDir")] public string? ModelsDir { get; set; }
+        [JsonPropertyName("isolateVocals")] public bool? IsolateVocals { get; set; }
     }
 
     public static Command? ParseCommand(string line)

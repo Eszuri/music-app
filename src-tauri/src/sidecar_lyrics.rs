@@ -103,6 +103,7 @@ pub fn generate_ai_lyrics(
     file_path: String,
     model_name: Option<String>,
     language: Option<String>,
+    isolate_vocals: Option<bool>,
 ) -> Result<(), String> {
     ensure_running(app)?;
 
@@ -116,6 +117,35 @@ pub fn generate_ai_lyrics(
         "path": file_path,
         "modelName": model_name.unwrap_or_else(|| "base".to_string()),
         "language": language.unwrap_or_else(|| "auto".to_string()),
+        "isolateVocals": isolate_vocals.unwrap_or(false),
+        "modelsDir": models_dir
+    });
+
+    let line = serde_json::to_string(&cmd).map_err(|e| e.to_string())?;
+
+    let mut guard = AI_LYRICS_ENGINE.lock().map_err(|e| e.to_string())?;
+    let proc = guard
+        .as_mut()
+        .ok_or_else(|| "AI Lyrics engine is not running".to_string())?;
+    proc.send(&line)
+}
+
+pub fn extract_vocal_ai(
+    app: &AppHandle,
+    file_path: String,
+    output_path: Option<String>,
+) -> Result<(), String> {
+    ensure_running(app)?;
+
+    let models_dir = ai_lyrics_plugin_manager::plugin_dir(app)?
+        .join("models")
+        .to_string_lossy()
+        .to_string();
+
+    let cmd = json!({
+        "command": "extract_vocal",
+        "path": file_path,
+        "modelPath": output_path,
         "modelsDir": models_dir
     });
 

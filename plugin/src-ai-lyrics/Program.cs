@@ -115,12 +115,40 @@ if (args.Length >= 2 && args[0] == "--verify")
     return;
 }
 
+if (args.Length >= 2 && args[0] == "--transcribe")
+{
+    string audioPath = Path.GetFullPath(args[1]);
+    string modelName = args.Length >= 3 ? args[2] : "large-v3";
+    string modelsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "models");
+    if (!Directory.Exists(modelsDir))
+    {
+        string appDataModels = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "com.symvonia.player", "plugins", "ai-lyrics", "models");
+        if (Directory.Exists(appDataModels))
+            modelsDir = appDataModels;
+    }
+
+    try
+    {
+        Console.WriteLine($"[Transcriber CLI] Audio: {audioPath}");
+        Console.WriteLine($"[Transcriber CLI] Model: {modelName}");
+        string modelPath = await WhisperTranscriber.EnsureModelDownloadedAsync(modelName, modelsDir);
+        await WhisperTranscriber.TranscribeAsync(audioPath, modelPath);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Transcriber CLI] ERROR: {ex}");
+    }
+    return;
+}
+
 Protocol.Emit(new { @event = "ready", version = "1.0.0" });
 
 CancellationTokenSource? activeCts = null;
+Task? activeTask = null;
 
 string? line;
 while ((line = Console.In.ReadLine()) != null)
+
 {
     if (string.IsNullOrWhiteSpace(line))
         continue;
@@ -152,17 +180,26 @@ while ((line = Console.In.ReadLine()) != null)
                 string? modelPath = cmd.ModelPath;
                 string modelName = cmd.ModelName ?? "base";
                 string modelsDir = cmd.ModelsDir ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "models");
+                bool isolateVocals = cmd.IsolateVocals ?? false;
 
-                _ = Task.Run(async () =>
+                activeTask = Task.Run(async () =>
                 {
                     try
                     {
+                        string actualAudioPath = audioPath;
+                        if (isolateVocals)
+                        {
+                            string vocalModelPath = await VocalExtractor.EnsureModelDownloadedAsync(modelsDir, token);
+                            string vocalOutputPath = Path.ChangeExtension(audioPath, ".vocal.wav");
+                            actualAudioPath = await VocalExtractor.ExtractVocalAsync(audioPath, vocalOutputPath, vocalModelPath, token);
+                        }
+
                         if (string.IsNullOrEmpty(modelPath) || !File.Exists(modelPath))
                         {
                             modelPath = await WhisperTranscriber.EnsureModelDownloadedAsync(modelName, modelsDir, token);
                         }
 
-                        await WhisperTranscriber.TranscribeAsync(audioPath, modelPath, cmd.Language, token);
+                        await WhisperTranscriber.TranscribeAsync(actualAudioPath, modelPath, cmd.Language, token);
                     }
                     catch (OperationCanceledException)
                     {
@@ -185,7 +222,7 @@ while ((line = Console.In.ReadLine()) != null)
                 activeCts = new CancellationTokenSource();
                 var token = activeCts.Token;
 
-                _ = Task.Run(async () =>
+                activeTask = Task.Run(async () =>
                 {
                     try
                     {
@@ -220,7 +257,7 @@ while ((line = Console.In.ReadLine()) != null)
                 string modelsDir = cmd.ModelsDir ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "models");
                 string outputPath = !string.IsNullOrEmpty(cmd.ModelPath) ? cmd.ModelPath : Path.ChangeExtension(audioPath, ".vocal.wav");
 
-                _ = Task.Run(async () =>
+                activeTask = Task.Run(async () =>
                 {
                     try
                     {
@@ -260,4 +297,15 @@ while ((line = Console.In.ReadLine()) != null)
     }
 }
 
-activeCts?.Cancel();
+if (activeTask != null)
+{
+    try
+    {
+        await activeTask;
+    }
+    catch
+    {
+        // Suppress background exception on exit
+    }
+}
+

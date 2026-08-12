@@ -1258,8 +1258,19 @@ fn generate_ai_lyrics(
     filePath: String,
     modelName: Option<String>,
     language: Option<String>,
+    isolateVocals: Option<bool>,
 ) -> Result<(), String> {
-    sidecar_lyrics::generate_ai_lyrics(&app, filePath, modelName, language)
+    sidecar_lyrics::generate_ai_lyrics(&app, filePath, modelName, language, isolateVocals)
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+fn extract_vocal_ai(
+    app: AppHandle,
+    filePath: String,
+    outputPath: Option<String>,
+) -> Result<(), String> {
+    sidecar_lyrics::extract_vocal_ai(&app, filePath, outputPath)
 }
 
 #[tauri::command]
@@ -1452,6 +1463,7 @@ pub fn run() {
             install_ai_lyrics_plugin_from_file,
             uninstall_ai_lyrics_plugin,
             generate_ai_lyrics,
+            extract_vocal_ai,
             cancel_ai_lyrics
         ])
         .register_uri_scheme_protocol("stream", |_app, request| {

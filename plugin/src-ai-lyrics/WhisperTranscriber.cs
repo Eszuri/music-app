@@ -108,6 +108,268 @@ public class WhisperTranscriber
         return wavMemoryStream;
     }
 
+    private static readonly HashSet<string> HallucinationBlacklist = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "thank you",
+        "thank you.",
+        "thank you!",
+        "thank you very much",
+        "thank you very much.",
+        "thank you for watching",
+        "thank you for watching.",
+        "thank you for watching!",
+        "thank you for listening",
+        "thank you for listening.",
+        "thank you for listening!",
+        "thanks for watching",
+        "thanks for watching.",
+        "thanks for watching!",
+        "thanks for listening",
+        "thanks for listening.",
+        "thanks for listening!",
+        "thanks",
+        "thanks.",
+        "thanks!",
+        "subtitles by amara.org",
+        "subtitles by the amara.org community",
+        "subtitles by",
+        "subtitles by amara.org visual",
+        "subscribe",
+        "subscribe to my channel",
+        "like and subscribe",
+        "please subscribe",
+        "don't forget to subscribe",
+        "click the bell icon",
+        "see you next time",
+        "see you next time.",
+        "see you in the next video",
+        "see you next week",
+        "bye",
+        "bye.",
+        "bye!",
+        "bye bye",
+        "bye-bye",
+        "pbc",
+        "you",
+        "the end",
+        "the end.",
+        "[music]",
+        "(music)",
+        "music",
+        "[music playing]",
+        "(music playing)",
+        "music playing",
+        "[applause]",
+        "(applause)",
+        "applause",
+        "[silence]",
+        "(silence)",
+        "silence",
+        "[cheering]",
+        "(cheering)",
+        "cheering",
+        "[screaming]",
+        "(screaming)",
+        "screaming",
+        "[laughter]",
+        "(laughter)",
+        "laughter",
+        "[gasp]",
+        "(gasp)",
+        "gasp",
+        "[sigh]",
+        "(sigh)",
+        "sigh",
+        "[singing]",
+        "(singing)",
+        "singing"
+    };
+
+    public static string? CleanSegmentText(string rawText)
+    {
+        if (string.IsNullOrWhiteSpace(rawText))
+            return null;
+
+        // Strip multi-byte emoji notes
+        string text = rawText.Replace("🎵", "").Replace("🎶", "");
+
+        // Trim leading/trailing whitespace, music notes, quotes, and bracket noise
+        text = text.Trim(' ', '\t', '\r', '\n', '♪', '"', '\'', '`', '—', '-', '[', ']', '(', ')');
+        if (string.IsNullOrWhiteSpace(text))
+            return null;
+
+        // Check against exact hallucination blacklist
+        if (HallucinationBlacklist.Contains(text))
+            return null;
+
+        // Check if starts with common subtitle artifact prefixes
+        string lower = text.ToLowerInvariant();
+        if (lower.StartsWith("subtitles by") ||
+            lower.StartsWith("thank you for") ||
+            lower.StartsWith("thanks for") ||
+            lower.StartsWith("copyright") ||
+            lower.StartsWith("translated by") ||
+            lower.StartsWith("captioned by"))
+        {
+            return null;
+        }
+
+        // Deduplicate excessive single word repetitions (e.g. "yeah yeah yeah yeah yeah yeah")
+        var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (words.Length >= 4)
+        {
+            bool allSameWord = true;
+            for (int i = 1; i < words.Length; i++)
+            {
+                if (!string.Equals(words[i], words[0], StringComparison.OrdinalIgnoreCase))
+                {
+                    allSameWord = false;
+                    break;
+                }
+            }
+            if (allSameWord)
+            {
+                text = $"{words[0]} {words[0]}";
+            }
+        }
+
+        return text;
+    }
+
+
+
+    /// <summary>
+    /// Extracts 16kHz float PCM samples from WAV memory stream byte array using NAudio WaveFileReader.
+    /// </summary>
+    public static float[] ExtractPcmSamples(byte[] wavBytes)
+    {
+        try
+        {
+            using var ms = new MemoryStream(wavBytes);
+            using var reader = new WaveFileReader(ms);
+            var sampleProvider = reader.ToSampleProvider();
+            var floatSamples = new List<float>();
+            float[] buffer = new float[4096];
+            int read;
+            while ((read = sampleProvider.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                for (int i = 0; i < read; i++)
+                {
+                    floatSamples.Add(buffer[i]);
+                }
+            }
+            return floatSamples.ToArray();
+        }
+        catch
+        {
+            return Array.Empty<float>();
+        }
+    }
+
+    /// <summary>
+    /// Metode C: Calculates RMS (Root Mean Square) energy of the audio segment.
+    /// Returns 0.0 for dead silence.
+    /// </summary>
+    public static float CalculateRmsEnergy(float[] samples, int sampleRate, double startSec, double endSec)
+    {
+        if (samples.Length == 0 || endSec <= startSec) return 1.0f; // Default keep if samples unreadable
+
+        int startSample = Math.Max(0, (int)(startSec * sampleRate));
+        int endSample = Math.Min(samples.Length, (int)(endSec * sampleRate));
+        int count = endSample - startSample;
+        if (count <= 0) return 1.0f;
+
+        double sumSquares = 0;
+        for (int i = startSample; i < endSample; i++)
+        {
+            float s = samples[i];
+            sumSquares += s * s;
+        }
+        return (float)Math.Sqrt(sumSquares / count);
+    }
+
+    /// <summary>
+    /// Metode A: Evaluates segment confidence log-probability / probability scores.
+    /// Drops segments with low confidence or min-probability anomalies.
+    /// </summary>
+    public static bool IsLowConfidenceSegment(float probability, float minProbability, string rawText)
+    {
+        // Only drop segments with extremely low confidence (< 10%)
+        if (probability > 0f && probability < 0.10f)
+            return true;
+
+        if (minProbability > 0f && minProbability < 0.01f && rawText.Trim().Length < 6)
+            return true;
+
+        return false;
+    }
+
+    private static string? GetStringProperty(object obj, string name)
+    {
+        var prop = obj.GetType().GetProperty(name);
+        return prop?.GetValue(obj)?.ToString();
+    }
+
+    private static TimeSpan GetTimeSpanProperty(object obj, string name)
+    {
+        var prop = obj.GetType().GetProperty(name);
+        var val = prop?.GetValue(obj);
+        return val is TimeSpan ts ? ts : TimeSpan.Zero;
+    }
+
+    private static float GetFloatProperty(object obj, string name)
+    {
+        var prop = obj.GetType().GetProperty(name);
+        var val = prop?.GetValue(obj);
+        return val is float f ? f : (val is double d ? (float)d : 1.0f);
+    }
+
+    /// <summary>
+    /// Metode B: Evaluates token-level timestamp anomalies and token probability clusters.
+    /// </summary>
+    public static bool HasTokenTimestampAnomalies(System.Collections.IEnumerable? tokens, double segmentDuration)
+    {
+        if (tokens == null)
+            return false;
+
+        int lowProbTokenCount = 0;
+        int validTokenCount = 0;
+
+        foreach (var t in tokens)
+        {
+            if (t == null) continue;
+
+            string text = GetStringProperty(t, "Text") ?? "";
+            if (string.IsNullOrWhiteSpace(text))
+                continue;
+
+            validTokenCount++;
+
+            TimeSpan start = GetTimeSpanProperty(t, "Start");
+            TimeSpan end = GetTimeSpanProperty(t, "End");
+            float probability = GetFloatProperty(t, "Probability");
+
+            double tokenDuration = (end - start).TotalSeconds;
+            if (tokenDuration > 4.0 && segmentDuration > 4.0)
+            {
+                return true; // Single token hallucination loop
+            }
+
+            if (probability > 0f && probability < 0.05f)
+            {
+                lowProbTokenCount++;
+            }
+        }
+
+        if (validTokenCount > 0 && ((float)lowProbTokenCount / validTokenCount) > 0.80f)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+
     public static async Task TranscribeAsync(
         string audioPath,
         string modelPath,
@@ -132,6 +394,10 @@ public class WhisperTranscriber
         }
 
         using var wavStream = ConvertAudioTo16kHzWavStream(audioPath, out var totalDuration);
+        byte[] wavBytes = wavStream.ToArray();
+        float[] pcmSamples = ExtractPcmSamples(wavBytes);
+        wavStream.Position = 0;
+
         double totalSeconds = totalDuration.TotalSeconds > 0 ? totalDuration.TotalSeconds : 1.0;
 
         using var factory = WhisperFactory.FromPath(modelPath);
@@ -146,19 +412,82 @@ public class WhisperTranscriber
             builder.WithLanguage("auto");
         }
 
+        builder.WithTokenTimestamps();
         using var processor = builder.Build();
 
         var lrcBuilder = new StringBuilder();
         var plainBuilder = new StringBuilder();
         int segmentCount = 0;
 
+        string? lastText = null;
+        int consecutiveDupCount = 0;
+        var recentTexts = new Queue<string>();
+
         await foreach (var segment in processor.ProcessAsync(wavStream, cancellationToken))
         {
-            segmentCount++;
-            string text = segment.Text.Trim();
+            // Metode C: Audio Energy / Silence RMS Gate
+            float rms = CalculateRmsEnergy(pcmSamples, 16000, segment.Start.TotalSeconds, segment.End.TotalSeconds);
+            if (rms < 0.005f)
+            {
+                continue;
+            }
+
+            // Metode A: Log-Prob Confidence Filter
+            if (IsLowConfidenceSegment(segment.Probability, segment.MinProbability, segment.Text))
+            {
+                continue;
+            }
+
+            // Metode B: Token-Level Timestamp & Anomaly Filter
+            if (HasTokenTimestampAnomalies(segment.Tokens, (segment.End - segment.Start).TotalSeconds))
+            {
+                continue;
+            }
+
+            string? text = CleanSegmentText(segment.Text);
             if (string.IsNullOrEmpty(text))
                 continue;
 
+            string lower = text.ToLowerInvariant();
+
+            // Additional Tail-End Artifact Removal (last 15% of track duration)
+            bool isTailEnd = segment.Start.TotalSeconds > (totalSeconds * 0.85);
+            if (isTailEnd)
+            {
+                if (lower.Contains("thank you") || lower.Contains("thanks") || lower.Contains("watching") || lower.Contains("subscribe") || lower.Contains("amara.org"))
+                {
+                    continue;
+                }
+            }
+
+            // Anti-Repetition Loop Filter: Allow normal song chorus repeats (up to 2 times), but block infinite hallucination loops
+            if (string.Equals(text, lastText, StringComparison.OrdinalIgnoreCase))
+            {
+                consecutiveDupCount++;
+                if (consecutiveDupCount > 2)
+                {
+                    continue;
+                }
+            }
+            else if (recentTexts.Contains(text, StringComparer.OrdinalIgnoreCase))
+            {
+                consecutiveDupCount++;
+                if (consecutiveDupCount > 3)
+                {
+                    continue;
+                }
+            }
+            else
+            {
+                lastText = text;
+                consecutiveDupCount = 1;
+            }
+
+            recentTexts.Enqueue(text);
+            if (recentTexts.Count > 8)
+                recentTexts.Dequeue();
+
+            segmentCount++;
             TimeSpan start = segment.Start;
             string lrcTimestamp = $"[{(int)start.TotalMinutes:D2}:{start.Seconds:D2}.{start.Milliseconds / 10:D2}]";
 
@@ -174,3 +503,4 @@ public class WhisperTranscriber
         Protocol.EmitResult(lrcBuilder.ToString().TrimEnd(), plainBuilder.ToString().TrimEnd(), segmentCount);
     }
 }
+
