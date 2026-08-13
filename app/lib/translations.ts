@@ -54,7 +54,6 @@ const en: Record<string, string> = {
     'lyrics.manual.openBrowser': 'Download in Browser',
     'lyrics.manual.targetFileName': 'Target File Name',
     'lyrics.manual.modelSpecificGuide': 'Manual Guide for {model}',
-    'lyrics.manual.backToManager': '← Back to Models List',
     'lyrics.manager.manualModelBtn': 'Manual Info',
     'lyrics.manager.showListBtn': 'Models List',
 
@@ -680,7 +679,6 @@ const id: Record<string, string> = {
     'lyrics.manual.openBrowser': 'Unduh di Browser',
     'lyrics.manual.targetFileName': 'Nama Berkas Target',
     'lyrics.manual.modelSpecificGuide': 'Petunjuk Manual {model}',
-    'lyrics.manual.backToManager': '← Kembali ke Daftar Model',
     'lyrics.manager.manualModelBtn': 'Info Manual',
     'lyrics.manager.showListBtn': 'Lihat Daftar Model',
 

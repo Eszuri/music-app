@@ -503,19 +503,11 @@ export default function LyricsSection({
             {/* TAB VIEW 2: PANDUAN INSTALASI MANUAL & TERMINAL */}
             {viewTab === 'manual' && (
                 <div className={`p-6 rounded-3xl bg-zinc-900/90 border ${accent.border500_30} space-y-5 animate-in fade-in duration-200 shadow-lg`}>
-                    <div className="flex items-center justify-between border-b border-zinc-800 pb-3.5">
-                        <div className="flex items-center gap-2.5">
-                            <span className={`${accent.text400} text-lg`}>📘</span>
-                            <h3 className="text-base font-bold text-zinc-100 tracking-tight">
-                                {t(lang, 'lyrics.manual.perModelTitle')}
-                            </h3>
-                        </div>
-                        <button
-                            onClick={() => setViewTab('manager')}
-                            className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-zinc-800/90 hover:bg-zinc-700/80 text-zinc-200 border border-zinc-700/60 transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95"
-                        >
-                            <span>{t(lang, 'lyrics.manual.backToManager')}</span>
-                        </button>
+                    <div className="flex items-center gap-2.5 border-b border-zinc-800 pb-3.5">
+                        <span className={`${accent.text400} text-lg`}>📘</span>
+                        <h3 className="text-base font-bold text-zinc-100 tracking-tight">
+                            {t(lang, 'lyrics.manual.perModelTitle')}
+                        </h3>
                     </div>
 
                     {/* Step Instructions */}
