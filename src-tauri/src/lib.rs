@@ -1352,6 +1352,7 @@ fn open_external_url(url: String) -> Result<(), String> {
 #[allow(non_snake_case)]
 struct SystemSpecsInfo {
     cpuCores: usize,
+    cpuThreads: usize,
     ramGb: usize,
     cpuName: String,
     gpuName: String,
@@ -1360,7 +1361,9 @@ struct SystemSpecsInfo {
 
 #[tauri::command]
 fn get_system_specs() -> SystemSpecsInfo {
-    let cpu_cores = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
+    let mut cpu_threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
+    let mut cpu_cores = cpu_threads / 2;
+    if cpu_cores == 0 { cpu_cores = 1; }
     let mut ram_gb = 8;
     let mut cpu_name = String::from("Processor CPU");
     let mut gpu_name = String::from("Graphics GPU");
@@ -1385,16 +1388,23 @@ fn get_system_specs() -> SystemSpecsInfo {
         }
 
         if let Ok(output) = std::process::Command::new("wmic")
-            .args(["cpu", "get", "Name", "/Value"])
+            .args(["cpu", "get", "Name,NumberOfCores,NumberOfLogicalProcessors", "/Value"])
             .output()
         {
             let text = String::from_utf8_lossy(&output.stdout);
             for line in text.lines() {
-                if let Some(val) = line.strip_prefix("Name=") {
-                    let trimmed = val.trim();
-                    if !trimmed.is_empty() {
-                        cpu_name = trimmed.to_string();
-                        break;
+                let trimmed = line.trim();
+                if let Some(val) = trimmed.strip_prefix("Name=") {
+                    if !val.is_empty() {
+                        cpu_name = val.to_string();
+                    }
+                } else if let Some(val) = trimmed.strip_prefix("NumberOfCores=") {
+                    if let Ok(c) = val.parse::<usize>() {
+                        if c > 0 { cpu_cores = c; }
+                    }
+                } else if let Some(val) = trimmed.strip_prefix("NumberOfLogicalProcessors=") {
+                    if let Ok(t) = val.parse::<usize>() {
+                        if t > 0 { cpu_threads = t; }
                     }
                 }
             }
@@ -1419,6 +1429,7 @@ fn get_system_specs() -> SystemSpecsInfo {
 
     SystemSpecsInfo {
         cpuCores: cpu_cores,
+        cpuThreads: cpu_threads,
         ramGb: ram_gb,
         cpuName: cpu_name,
         gpuName: gpu_name,

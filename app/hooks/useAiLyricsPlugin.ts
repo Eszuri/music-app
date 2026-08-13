@@ -30,6 +30,7 @@ export interface AiLyricsCurrentState {
 
 export interface SystemSpecsInfo {
     cpuCores: number;
+    cpuThreads?: number;
     ramGb: number;
     cpuName?: string;
     gpuName?: string;

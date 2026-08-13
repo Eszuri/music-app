@@ -11,7 +11,13 @@ export interface AiModelSpec {
     label: string;
     descriptionKey: string;
     minRamGb: number;
+    recRamGb: number;
     minCpuCores: number;
+    minCpuThreads: number;
+    recCpuCores: number;
+    recCpuThreads: number;
+    gpuRequirementKey: string;
+    speedRatingKey: string;
     sizeText: string;
     sizeBytes: number;
     downloadUrl: string;
@@ -23,9 +29,15 @@ export const AI_MODELS_LIST: AiModelSpec[] = [
         label: 'Tiny',
         descriptionKey: 'lyrics.model.tiny.desc',
         minRamGb: 2,
+        recRamGb: 4,
         minCpuCores: 2,
-        sizeText: '74 MB',
-        sizeBytes: 74 * 1024 * 1024,
+        minCpuThreads: 2,
+        recCpuCores: 4,
+        recCpuThreads: 4,
+        gpuRequirementKey: 'lyrics.model.tiny.gpu',
+        speedRatingKey: 'lyrics.model.tiny.speed',
+        sizeText: '75 MB',
+        sizeBytes: 78695640,
         downloadUrl: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin',
     },
     {
@@ -33,9 +45,15 @@ export const AI_MODELS_LIST: AiModelSpec[] = [
         label: 'Base',
         descriptionKey: 'lyrics.model.base.desc',
         minRamGb: 4,
+        recRamGb: 8,
         minCpuCores: 2,
-        sizeText: '141 MB',
-        sizeBytes: 141 * 1024 * 1024,
+        minCpuThreads: 4,
+        recCpuCores: 4,
+        recCpuThreads: 8,
+        gpuRequirementKey: 'lyrics.model.base.gpu',
+        speedRatingKey: 'lyrics.model.base.speed',
+        sizeText: '142 MB',
+        sizeBytes: 147964211,
         downloadUrl: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin',
     },
     {
@@ -43,9 +61,15 @@ export const AI_MODELS_LIST: AiModelSpec[] = [
         label: 'Small',
         descriptionKey: 'lyrics.model.small.desc',
         minRamGb: 6,
+        recRamGb: 8,
         minCpuCores: 4,
-        sizeText: '465 MB',
-        sizeBytes: 465 * 1024 * 1024,
+        minCpuThreads: 4,
+        recCpuCores: 6,
+        recCpuThreads: 12,
+        gpuRequirementKey: 'lyrics.model.small.gpu',
+        speedRatingKey: 'lyrics.model.small.speed',
+        sizeText: '466 MB',
+        sizeBytes: 488440790,
         downloadUrl: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin',
     },
     {
@@ -53,9 +77,15 @@ export const AI_MODELS_LIST: AiModelSpec[] = [
         label: 'Medium',
         descriptionKey: 'lyrics.model.medium.desc',
         minRamGb: 8,
+        recRamGb: 16,
         minCpuCores: 4,
-        sizeText: '1.46 GB',
-        sizeBytes: 1460 * 1024 * 1024,
+        minCpuThreads: 8,
+        recCpuCores: 8,
+        recCpuThreads: 16,
+        gpuRequirementKey: 'lyrics.model.medium.gpu',
+        speedRatingKey: 'lyrics.model.medium.speed',
+        sizeText: '1.53 GB',
+        sizeBytes: 1533780267,
         downloadUrl: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin',
     },
     {
@@ -63,9 +93,15 @@ export const AI_MODELS_LIST: AiModelSpec[] = [
         label: 'Large v3 Turbo',
         descriptionKey: 'lyrics.model.turbo.desc',
         minRamGb: 12,
+        recRamGb: 16,
         minCpuCores: 6,
-        sizeText: '1.54 GB',
-        sizeBytes: 1540 * 1024 * 1024,
+        minCpuThreads: 12,
+        recCpuCores: 8,
+        recCpuThreads: 16,
+        gpuRequirementKey: 'lyrics.model.turbo.gpu',
+        speedRatingKey: 'lyrics.model.turbo.speed',
+        sizeText: '1.62 GB',
+        sizeBytes: 1623322467,
         downloadUrl: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin',
     },
     {
@@ -73,9 +109,15 @@ export const AI_MODELS_LIST: AiModelSpec[] = [
         label: 'Large v3',
         descriptionKey: 'lyrics.model.large.desc',
         minRamGb: 16,
+        recRamGb: 32,
         minCpuCores: 8,
-        sizeText: '2.95 GB',
-        sizeBytes: 2950 * 1024 * 1024,
+        minCpuThreads: 16,
+        recCpuCores: 12,
+        recCpuThreads: 24,
+        gpuRequirementKey: 'lyrics.model.large.gpu',
+        speedRatingKey: 'lyrics.model.large.speed',
+        sizeText: '3.09 GB',
+        sizeBytes: 3095033267,
         downloadUrl: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin',
     },
 ];
@@ -336,8 +378,8 @@ export default function LyricsSection({
                                     <span className="text-[11px] font-medium text-zinc-400 shrink-0">
                                         {t(lang, 'lyrics.specs.cpu')}
                                     </span>
-                                    <span className="text-xs font-bold text-zinc-100 truncate" title={systemSpecs ? `${systemSpecs.cpuName || 'CPU'} (${systemSpecs.cpuCores} Core)` : 'CPU'}>
-                                        {systemSpecs ? (systemSpecs.cpuName ? `${systemSpecs.cpuName} (${systemSpecs.cpuCores} Core)` : `${systemSpecs.cpuCores} Core`) : t(lang, 'lyrics.specs.detecting')}
+                                    <span className="text-xs font-bold text-zinc-100 truncate" title={systemSpecs?.cpuName || 'Processor CPU'}>
+                                        {systemSpecs?.cpuName || t(lang, 'lyrics.specs.detecting')}
                                     </span>
                                 </div>
                             </div>
@@ -351,6 +393,21 @@ export default function LyricsSection({
                                     </span>
                                     <span className="text-xs font-bold text-zinc-100 truncate">
                                         {systemSpecs ? `${systemSpecs.ramGb} GB RAM Total` : t(lang, 'lyrics.specs.detecting')}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* CPU Cores & Threads Item (Baris di bawah Memory RAM) */}
+                            <div className="p-2.5 rounded-xl bg-zinc-950/80 border border-zinc-800/70 flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                    <span className="text-xs shrink-0">🔲</span>
+                                    <span className="text-[11px] font-medium text-zinc-400 shrink-0">
+                                        CPU Cores:
+                                    </span>
+                                    <span className="text-xs font-bold text-zinc-100 truncate">
+                                        {systemSpecs
+                                            ? `${systemSpecs.cpuCores} Core / ${systemSpecs.cpuThreads || (systemSpecs.cpuCores * 2)} Thread`
+                                            : t(lang, 'lyrics.specs.detecting')}
                                     </span>
                                 </div>
                             </div>
@@ -445,8 +502,8 @@ export default function LyricsSection({
                                                         {model.label}
                                                     </span>
 
-                                                    <span className="text-xs text-zinc-500 font-mono">
-                                                        ({model.sizeText})
+                                                    <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold font-mono bg-zinc-800/70 text-zinc-300 border border-zinc-700/50">
+                                                        {model.sizeText}
                                                     </span>
 
                                                     {isDownloaded ? (
@@ -464,10 +521,32 @@ export default function LyricsSection({
                                                     {t(lang, model.descriptionKey)}
                                                 </p>
 
-                                                <div className="text-[11px] text-zinc-500 flex items-center gap-3 pt-0.5 font-mono">
-                                                    <span>Min RAM: {model.minRamGb} GB</span>
-                                                    <span>•</span>
-                                                    <span>Min CPU: {model.minCpuCores} Core</span>
+                                                <div className="pt-1.5 space-y-1 text-[11px] font-mono">
+                                                    {/* Memory RAM */}
+                                                    <div className="flex items-center gap-2 text-zinc-400 flex-wrap">
+                                                        <span className="text-zinc-500 font-semibold">Memory RAM:</span>
+                                                        <span>Min {model.minRamGb} GB</span>
+                                                        <span className="text-zinc-600">•</span>
+                                                        <span className="text-zinc-400">Rekomendasi {model.recRamGb} GB</span>
+                                                    </div>
+
+                                                    {/* CPU Cores & Threads */}
+                                                    <div className="flex items-center gap-2 text-zinc-400 flex-wrap">
+                                                        <span className="text-zinc-500 font-semibold">CPU Cores:</span>
+                                                        <span>Min {model.minCpuCores} Core / {model.minCpuThreads} Thread</span>
+                                                        <span className="text-zinc-600">•</span>
+                                                        <span className="text-zinc-400">Rekomendasi {model.recCpuCores} Core / {model.recCpuThreads} Thread</span>
+                                                    </div>
+
+                                                    {/* Hardware Details & Speed */}
+                                                    <div className="flex items-center gap-2 pt-0.5 text-[10px] flex-wrap">
+                                                        <span className="px-2 py-0.5 rounded bg-zinc-900/90 border border-zinc-800 text-zinc-300 font-sans">
+                                                            ⚡ {t(lang, model.speedRatingKey)}
+                                                        </span>
+                                                        <span className="px-2 py-0.5 rounded bg-zinc-900/90 border border-zinc-800 text-zinc-300 font-sans">
+                                                            💻 {t(lang, model.gpuRequirementKey)}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
 
