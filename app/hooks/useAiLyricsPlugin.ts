@@ -28,6 +28,13 @@ export interface AiLyricsCurrentState {
     last_event?: string;
 }
 
+export interface SystemSpecsInfo {
+    cpuCores: number;
+    ramGb: number;
+    cpuName?: string;
+    gpuName?: string;
+}
+
 export function useAiLyricsPlugin() {
     const [pluginStatus, setPluginStatus] = useState<AiPluginStatus>({ installed: false });
     const [isDownloading, setIsDownloading] = useState(false);
@@ -369,13 +376,13 @@ export function useAiLyricsPlugin() {
         }
     }, []);
 
-    const [systemSpecs, setSystemSpecs] = useState<{ cpuCores: number; ramGb: number } | null>(null);
+    const [systemSpecs, setSystemSpecs] = useState<SystemSpecsInfo | null>(null);
 
     const refreshSystemSpecs = useCallback(async () => {
         if (!isBrowserTauri) return;
         try {
             const mod = await getTauri();
-            const specs = await mod.invoke<{ cpuCores: number; ramGb: number }>('get_system_specs');
+            const specs = await mod.invoke<SystemSpecsInfo>('get_system_specs');
             if (specs) setSystemSpecs(specs);
         } catch (err) {
             console.error('Failed to get system specs:', err);

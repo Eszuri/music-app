@@ -1305,11 +1305,13 @@ fn get_downloaded_ai_models(app: AppHandle) -> Vec<String> {
 }
 
 #[tauri::command]
+#[allow(non_snake_case)]
 fn download_ai_model(app: AppHandle, modelName: String) -> Result<(), String> {
     sidecar_lyrics::download_ai_model(&app, modelName)
 }
 
 #[tauri::command]
+#[allow(non_snake_case)]
 fn delete_ai_model(app: AppHandle, modelName: String) -> Result<(), String> {
     sidecar_lyrics::delete_ai_model(&app, modelName)
 }
@@ -1320,6 +1322,7 @@ fn open_ai_models_folder(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
+#[allow(non_snake_case)]
 fn import_ai_model_file(app: AppHandle, srcPath: String, modelCode: String) -> Result<(), String> {
     sidecar_lyrics::import_ai_model_file(&app, srcPath, modelCode)
 }
@@ -1350,6 +1353,8 @@ fn open_external_url(url: String) -> Result<(), String> {
 struct SystemSpecsInfo {
     cpuCores: usize,
     ramGb: usize,
+    cpuName: String,
+    gpuName: String,
 }
 
 
@@ -1357,6 +1362,8 @@ struct SystemSpecsInfo {
 fn get_system_specs() -> SystemSpecsInfo {
     let cpu_cores = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
     let mut ram_gb = 8;
+    let mut cpu_name = String::from("Processor CPU");
+    let mut gpu_name = String::from("Graphics GPU");
 
     #[cfg(target_os = "windows")]
     {
@@ -1368,10 +1375,42 @@ fn get_system_specs() -> SystemSpecsInfo {
             for line in text.lines() {
                 if let Some(val) = line.strip_prefix("TotalVisibleMemorySize=") {
                     if let Ok(kb) = val.trim().parse::<u64>() {
-                        let gb = (kb / (1024 * 1024)) as usize;
+                        let gb = ((kb + 524_288) / (1024 * 1024)) as usize;
                         if gb > 0 {
                             ram_gb = gb;
                         }
+                    }
+                }
+            }
+        }
+
+        if let Ok(output) = std::process::Command::new("wmic")
+            .args(["cpu", "get", "Name", "/Value"])
+            .output()
+        {
+            let text = String::from_utf8_lossy(&output.stdout);
+            for line in text.lines() {
+                if let Some(val) = line.strip_prefix("Name=") {
+                    let trimmed = val.trim();
+                    if !trimmed.is_empty() {
+                        cpu_name = trimmed.to_string();
+                        break;
+                    }
+                }
+            }
+        }
+
+        if let Ok(output) = std::process::Command::new("wmic")
+            .args(["path", "Win32_VideoController", "get", "Name", "/Value"])
+            .output()
+        {
+            let text = String::from_utf8_lossy(&output.stdout);
+            for line in text.lines() {
+                if let Some(val) = line.strip_prefix("Name=") {
+                    let trimmed = val.trim();
+                    if !trimmed.is_empty() {
+                        gpu_name = trimmed.to_string();
+                        break;
                     }
                 }
             }
@@ -1381,6 +1420,8 @@ fn get_system_specs() -> SystemSpecsInfo {
     SystemSpecsInfo {
         cpuCores: cpu_cores,
         ramGb: ram_gb,
+        cpuName: cpu_name,
+        gpuName: gpu_name,
     }
 }
 
