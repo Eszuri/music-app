@@ -437,6 +437,21 @@ export function useAiLyricsPlugin() {
         }
     }, [refreshDownloadedModels]);
 
+    const openExternalUrl = useCallback(async (url: string) => {
+        if (isBrowserTauri) {
+            try {
+                const mod = await getTauri();
+                await mod.invoke('open_external_url', { url });
+                return;
+            } catch (err) {
+                console.error('Failed to open external url in Tauri:', err);
+            }
+        }
+        if (typeof window !== 'undefined') {
+            window.open(url, '_blank', 'noopener,noreferrer');
+        }
+    }, []);
+
     return {
         pluginStatus,
         isDownloading,
@@ -451,6 +466,7 @@ export function useAiLyricsPlugin() {
         deleteModel,
         openModelsFolder,
         importModelFromFile,
+        openExternalUrl,
         errorMsg,
         refreshStatus,
         downloadPlugin,

@@ -1324,6 +1324,23 @@ fn import_ai_model_file(app: AppHandle, srcPath: String, modelCode: String) -> R
     sidecar_lyrics::import_ai_model_file(&app, srcPath, modelCode)
 }
 
+#[tauri::command]
+fn open_external_url(url: String) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        let _ = std::process::Command::new("cmd").args(["/C", "start", "", &url]).spawn();
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let _ = std::process::Command::new("open").arg(&url).spawn();
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let _ = std::process::Command::new("xdg-open").arg(&url).spawn();
+    }
+    Ok(())
+}
+
 
 
 
@@ -1561,6 +1578,7 @@ pub fn run() {
             delete_ai_model,
             open_ai_models_folder,
             import_ai_model_file,
+            open_external_url,
             get_system_specs
         ])
 

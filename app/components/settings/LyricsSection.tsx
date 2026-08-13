@@ -99,6 +99,7 @@ export default function LyricsSection({
         deleteModel,
         openModelsFolder,
         importModelFromFile,
+        openExternalUrl,
         cancelGeneration,
         downloadPlugin,
     } = useAiLyricsPlugin();
@@ -387,7 +388,7 @@ export default function LyricsSection({
                                 </div>
 
                                 <button
-                                    onClick={() => window.open(selectedManualModel.downloadUrl, '_blank')}
+                                    onClick={() => openExternalUrl(selectedManualModel.downloadUrl)}
                                     className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-purple-600 hover:bg-purple-500 text-white transition-all flex items-center gap-1.5 shrink-0 self-start sm:self-center cursor-pointer shadow-xs active:scale-95"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
