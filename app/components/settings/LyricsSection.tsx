@@ -103,6 +103,8 @@ export default function LyricsSection({
         downloadedModels,
         refreshDownloadedModels,
         modelDownloadProgress,
+        isGenerating,
+        generateProgress,
         systemSpecs,
         downloadModel,
         deleteModel,
@@ -117,6 +119,7 @@ export default function LyricsSection({
     const [isCancellingDownload, setIsCancellingDownload] = useState<boolean>(false);
 
     const isAnyDownloadActive = Boolean(modelDownloadProgress) || Boolean(downloadingModelCode);
+    const isBusy = isGenerating || Boolean(generateProgress) || isAnyDownloadActive || Boolean(modelDownloadProgress);
 
     const handleStartDownload = async (modelCode: string) => {
         if (isAnyDownloadActive) return;
@@ -509,7 +512,8 @@ export default function LyricsSection({
                                                 ) : (
                                                     <button
                                                         onClick={() => deleteModel(model.code)}
-                                                        className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/25 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-xs"
+                                                        disabled={isBusy}
+                                                        className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/25 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-xs disabled:opacity-40 disabled:pointer-events-none disabled:cursor-not-allowed"
                                                     >
                                                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                                             <polyline points="3 6 5 6 21 6"/>

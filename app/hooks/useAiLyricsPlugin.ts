@@ -176,26 +176,37 @@ export function useAiLyricsPlugin() {
                             });
                             break;
                         case 'vocal_model_download_progress':
-                            setModelDownloadProgress({
-                                modelName: 'Model Vokal ONNX',
-                                percent: parsed.percent ?? 0,
-                                downloadedBytes: parsed.downloadedBytes ?? parsed.downloaded,
-                                totalBytes: parsed.totalBytes ?? parsed.total,
-                            });
+                            if ((parsed.percent ?? 0) >= 100) {
+                                setModelDownloadProgress(null);
+                                refreshDownloadedModels();
+                            } else {
+                                setModelDownloadProgress({
+                                    modelName: 'Model Vokal ONNX',
+                                    percent: parsed.percent ?? 0,
+                                    downloadedBytes: parsed.downloadedBytes ?? parsed.downloaded,
+                                    totalBytes: parsed.totalBytes ?? parsed.total,
+                                });
+                            }
                             break;
                         case 'vocal_model_download_complete':
                             setModelDownloadProgress(null);
                             refreshDownloadedModels();
                             break;
                         case 'model_download_progress':
-                            setModelDownloadProgress({
-                                modelName: parsed.modelName ?? '',
-                                percent: parsed.percent ?? 0,
-                                downloadedBytes: parsed.downloadedBytes ?? parsed.downloaded,
-                                totalBytes: parsed.totalBytes ?? parsed.total,
-                            });
+                            if ((parsed.percent ?? 0) >= 100) {
+                                setModelDownloadProgress(null);
+                                refreshDownloadedModels();
+                            } else {
+                                setModelDownloadProgress({
+                                    modelName: parsed.modelName ?? '',
+                                    percent: parsed.percent ?? 0,
+                                    downloadedBytes: parsed.downloadedBytes ?? parsed.downloaded,
+                                    totalBytes: parsed.totalBytes ?? parsed.total,
+                                });
+                            }
                             break;
                         case 'model_download_complete':
+                        case 'model_ready':
                             setModelDownloadProgress(null);
                             refreshDownloadedModels();
                             break;
