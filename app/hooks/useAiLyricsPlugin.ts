@@ -35,13 +35,20 @@ export interface SystemSpecsInfo {
     gpuName?: string;
 }
 
+export interface ModelDownloadProgress {
+    modelName: string;
+    percent: number;
+    downloadedBytes?: number;
+    totalBytes?: number;
+}
+
 export function useAiLyricsPlugin() {
     const [pluginStatus, setPluginStatus] = useState<AiPluginStatus>({ installed: false });
     const [isDownloading, setIsDownloading] = useState(false);
     const [downloadProgress, setDownloadProgress] = useState<AiDownloadProgress | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [generateProgress, setGenerateProgress] = useState<AiGenerateProgress | null>(null);
-    const [modelDownloadProgress, setModelDownloadProgress] = useState<{ modelName: string; percent: number } | null>(null);
+    const [modelDownloadProgress, setModelDownloadProgress] = useState<ModelDownloadProgress | null>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     const generateResolverRef = useRef<{
@@ -172,6 +179,8 @@ export function useAiLyricsPlugin() {
                             setModelDownloadProgress({
                                 modelName: 'Model Vokal ONNX',
                                 percent: parsed.percent ?? 0,
+                                downloadedBytes: parsed.downloadedBytes ?? parsed.downloaded,
+                                totalBytes: parsed.totalBytes ?? parsed.total,
                             });
                             break;
                         case 'vocal_model_download_complete':
@@ -182,6 +191,8 @@ export function useAiLyricsPlugin() {
                             setModelDownloadProgress({
                                 modelName: parsed.modelName ?? '',
                                 percent: parsed.percent ?? 0,
+                                downloadedBytes: parsed.downloadedBytes ?? parsed.downloaded,
+                                totalBytes: parsed.totalBytes ?? parsed.total,
                             });
                             break;
                         case 'model_download_complete':
@@ -218,6 +229,7 @@ export function useAiLyricsPlugin() {
                             break;
                         case 'error':
                             setIsGenerating(false);
+                            setModelDownloadProgress(null);
                             setErrorMsg(parsed.message ?? 'Unknown AI Lyrics Error');
                             if (generateResolverRef.current) {
                                 generateResolverRef.current.reject(new Error(parsed.message ?? 'Transcription failed'));
@@ -227,6 +239,7 @@ export function useAiLyricsPlugin() {
                         case 'transcribe_cancelled':
                             setIsGenerating(false);
                             setGenerateProgress(null);
+                            setModelDownloadProgress(null);
                             if (generateResolverRef.current) {
                                 generateResolverRef.current.reject(new Error('Transcription cancelled'));
                                 generateResolverRef.current = null;
@@ -367,6 +380,7 @@ export function useAiLyricsPlugin() {
             await mod.invoke('cancel_ai_lyrics');
             setIsGenerating(false);
             setGenerateProgress(null);
+            setModelDownloadProgress(null);
             if (generateResolverRef.current) {
                 generateResolverRef.current.resolve('');
                 generateResolverRef.current = null;
@@ -395,10 +409,13 @@ export function useAiLyricsPlugin() {
 
     const downloadModel = useCallback(async (modelName: string) => {
         if (!isBrowserTauri) return;
+        // Synchronously mark download progress as initialized to lock UI instantly
+        setModelDownloadProgress({ modelName, percent: 0 });
         try {
             const mod = await getTauri();
             await mod.invoke('download_ai_model', { modelName });
         } catch (err: unknown) {
+            setModelDownloadProgress(null);
             const msg = err instanceof Error ? err.message : String(err);
             setErrorMsg(msg);
         }

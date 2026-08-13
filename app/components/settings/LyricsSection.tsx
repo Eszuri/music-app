@@ -80,6 +80,15 @@ export const AI_MODELS_LIST: AiModelSpec[] = [
     },
 ];
 
+function formatBytes(bytes: number): string {
+    if (!bytes || bytes <= 0) return '0 MB';
+    const mb = bytes / (1024 * 1024);
+    if (mb >= 1000) {
+        return `${(mb / 1024).toFixed(2)} GB`;
+    }
+    return `${mb.toFixed(1)} MB`;
+}
+
 export default function LyricsSection({
     lang,
     accentColor,
@@ -104,6 +113,40 @@ export default function LyricsSection({
         downloadPlugin,
     } = useAiLyricsPlugin();
 
+    const [downloadingModelCode, setDownloadingModelCode] = useState<string | null>(null);
+    const [isCancellingDownload, setIsCancellingDownload] = useState<boolean>(false);
+
+    const isAnyDownloadActive = Boolean(modelDownloadProgress) || Boolean(downloadingModelCode);
+
+    const handleStartDownload = async (modelCode: string) => {
+        if (isAnyDownloadActive) return;
+        setDownloadingModelCode(modelCode);
+        try {
+            await downloadModel(modelCode);
+        } catch (err) {
+            console.error('Failed to start model download:', err);
+            setDownloadingModelCode(null);
+        }
+    };
+
+    useEffect(() => {
+        if (!modelDownloadProgress) {
+            setDownloadingModelCode(null);
+        }
+    }, [modelDownloadProgress]);
+
+    const handleCancelDownload = async () => {
+        if (isCancellingDownload) return;
+        setIsCancellingDownload(true);
+        try {
+            await cancelGeneration();
+        } catch (err) {
+            console.error('Failed to cancel model download:', err);
+        } finally {
+            setIsCancellingDownload(false);
+            setDownloadingModelCode(null);
+        }
+    };
     const [viewTab, setViewTab] = useState<'manager' | 'manual'>('manager');
     const [filterStatus, setFilterStatus] = useState<'all' | 'installed' | 'not_installed'>('all');
     const [selectedManualModelCode, setSelectedManualModelCode] = useState<string>('base');
@@ -442,16 +485,25 @@ export default function LyricsSection({
                                                         </button>
 
                                                         <button
-                                                            onClick={() => downloadModel(model.code)}
-                                                            disabled={isDownloadingThisModel}
-                                                            className={`px-4 py-1.5 text-xs font-bold rounded-xl ${accent.bg500} text-white hover:opacity-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 disabled:opacity-50`}
+                                                            onClick={() => handleStartDownload(model.code)}
+                                                            disabled={isAnyDownloadActive}
+                                                            className={`px-4 py-1.5 text-xs font-bold rounded-xl ${accent.bg500} text-white hover:opacity-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none`}
                                                         >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                                                <polyline points="7 10 12 15 17 10"/>
-                                                                <line x1="12" y1="15" x2="12" y2="3"/>
-                                                            </svg>
-                                                            <span>{t(lang, 'lyrics.manager.downloadBtn')}</span>
+                                                            {downloadingModelCode === model.code || isDownloadingThisModel ? (
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                                                                    <span>Memproses...</span>
+                                                                </div>
+                                                            ) : (
+                                                                <>
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                                                        <polyline points="7 10 12 15 17 10"/>
+                                                                        <line x1="12" y1="15" x2="12" y2="3"/>
+                                                                    </svg>
+                                                                    <span>{t(lang, 'lyrics.manager.downloadBtn')}</span>
+                                                                </>
+                                                            )}
                                                         </button>
                                                     </div>
                                                 ) : (
@@ -470,28 +522,41 @@ export default function LyricsSection({
                                         </div>
 
                                         {/* Real-time Download Progress Bar */}
-                                        {isDownloadingThisModel && modelDownloadProgress && (
-                                            <div className={`p-3.5 rounded-xl bg-zinc-950/90 border ${accent.border500_30} space-y-2 animate-in fade-in duration-200`}>
-                                                <div className="flex items-center justify-between text-xs">
-                                                    <div className={`flex items-center gap-2 ${accent.text400} font-medium`}>
-                                                        <div className={`w-3.5 h-3.5 rounded-full border-2 ${accent.border500} border-t-transparent animate-spin`} />
-                                                        <span>{t(lang, 'lyrics.manager.downloadingProgress', { model: model.label, pct: modelDownloadProgress.percent })}</span>
+                                        {isDownloadingThisModel && modelDownloadProgress && (() => {
+                                            const totalSize = modelDownloadProgress.totalBytes || model.sizeBytes;
+                                            const downloadedSize = modelDownloadProgress.downloadedBytes ?? Math.round((modelDownloadProgress.percent / 100) * totalSize);
+                                            const formattedDownloaded = formatBytes(downloadedSize);
+                                            const formattedTotal = formatBytes(totalSize);
+
+                                            return (
+                                                <div className={`p-3.5 rounded-xl bg-zinc-950/90 border ${accent.border500_30} space-y-2 animate-in fade-in duration-200`}>
+                                                    <div className="flex items-center justify-between text-xs gap-2">
+                                                        <div className={`flex items-center gap-2 ${accent.text400} font-semibold min-w-0`}>
+                                                            <div className={`w-3.5 h-3.5 rounded-full border-2 ${accent.border500} border-t-transparent animate-spin shrink-0`} />
+                                                            <span className="flex items-center gap-1.5 flex-wrap">
+                                                                <span>{t(lang, 'lyrics.manager.downloadingModelProgress')}</span>
+                                                                <span className="text-zinc-400 font-mono text-[11px] font-normal">
+                                                                    ({formattedDownloaded} / {formattedTotal} • {modelDownloadProgress.percent}%)
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                        <button
+                                                            onClick={handleCancelDownload}
+                                                            disabled={isCancellingDownload}
+                                                            className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 border border-rose-500/35 transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none shrink-0 active:scale-95 shadow-xs"
+                                                        >
+                                                            {isCancellingDownload ? 'Membatalkan...' : t(lang, 'audio.bitperfect.plugin.cancel')}
+                                                        </button>
                                                     </div>
-                                                    <button
-                                                        onClick={() => cancelGeneration()}
-                                                        className="text-[11px] font-semibold text-rose-400 hover:text-rose-300 cursor-pointer"
-                                                    >
-                                                        {t(lang, 'audio.bitperfect.plugin.cancel')}
-                                                    </button>
+                                                    <div className="w-full bg-zinc-800 rounded-full h-2 overflow-hidden">
+                                                        <div
+                                                            className={`h-full ${accent.bg500} transition-all duration-300 rounded-full`}
+                                                            style={{ width: `${modelDownloadProgress.percent}%` }}
+                                                        />
+                                                    </div>
                                                 </div>
-                                                <div className="w-full bg-zinc-800 rounded-full h-2 overflow-hidden">
-                                                    <div
-                                                        className={`h-full ${accent.bg500} transition-all duration-300 rounded-full`}
-                                                        style={{ width: `${modelDownloadProgress.percent}%` }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        )}
+                                            );
+                                        })()}
                                     </div>
                                 );
                             })

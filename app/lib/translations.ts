@@ -390,6 +390,7 @@ const en: Record<string, string> = {
     'lyrics.tab.manual': 'Manual Guide & Terminal',
     'lyrics.manual.copyPathBtn': 'Copy Folder Path',
     'lyrics.manual.copiedPath': 'Path Copied!',
+    'lyrics.manager.downloadingModelProgress': 'Downloading Model',
 
     'metadata.hiRes': 'Hi-Res Audio',
 
@@ -1242,6 +1243,7 @@ const id: Record<string, string> = {
     'lyrics.tab.manual': 'Panduan Manual & Terminal',
     'lyrics.manual.copyPathBtn': 'Salin Path Folder',
     'lyrics.manual.copiedPath': 'Path Tersalin!',
+    'lyrics.manager.downloadingModelProgress': 'Mengunduh Model',
 
     'notification.coverSaved': 'Cover art berhasil disimpan',
     'notification.metadataSaved': 'Metadata berhasil disimpan',
