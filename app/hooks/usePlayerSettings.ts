@@ -60,8 +60,8 @@ export function usePlayerSettings() {
     const [formats, setFormatsState] = useState<string[]>(DEFAULT_FORMATS);
     const [shuffle, setShuffleState] = useState(false);
     const [repeat, setRepeatState] = useState<'off' | 'all' | 'one'>('off');
-    const [accentColor, setAccentColorState] = useState('green');
-    const [customAccentHex, setCustomAccentHexState] = useState('#22c55e');
+    const [accentColor, setAccentColorState] = useState('sky');
+    const [customAccentHex, setCustomAccentHexState] = useState('#0284c7');
     const [defaultWallpaper, setDefaultWallpaperState] = useState<string | null>(null);
     const [outputDevice, setOutputDeviceStateInternal] = useState<string | null>(null);
     const [outputMode, setOutputModeStateInternal] = useState<'default' | 'bitperfect'>('default');

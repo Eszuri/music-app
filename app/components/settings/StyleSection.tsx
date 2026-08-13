@@ -23,6 +23,8 @@ export default function StyleSection({
     onResetSidebarWidth: () => void;
 }) {
     const swatches: {id: string; bg: string}[] = [
+        {id: 'sky', bg: 'bg-sky-600'},
+        {id: 'zinc', bg: 'bg-zinc-400'},
         {id: 'green', bg: 'bg-green-500'},
         {id: 'emerald', bg: 'bg-emerald-500'},
         {id: 'teal', bg: 'bg-teal-500'},

@@ -1,4 +1,4 @@
-type AccentColor = 'green' | 'blue' | 'purple' | 'pink' | 'red' | 'orange' | 'yellow' | 'teal' | 'cyan' | 'indigo' | 'rose' | 'lime' | 'amber' | 'emerald' | 'custom';
+type AccentColor = 'sky' | 'zinc' | 'green' | 'blue' | 'purple' | 'pink' | 'red' | 'orange' | 'yellow' | 'teal' | 'cyan' | 'indigo' | 'rose' | 'lime' | 'amber' | 'emerald' | 'custom';
 
 function hexToRgb(hex: string) {
   const clean = hex.replace('#', '');
@@ -40,6 +40,48 @@ export function removeCustomAccentVars() {
 }
 
 const ACCENT_MAP: Record<string, Record<string, string>> = {
+  sky: {
+    bg500: 'bg-sky-600',
+    bg400: 'bg-sky-400',
+    hoverBg400: 'hover:bg-sky-500',
+    bg600: 'bg-sky-700',
+    text400: 'text-sky-400',
+    text500: 'text-sky-500',
+    border500: 'border-sky-500',
+    border500_20: 'border-sky-500/20',
+    border500_30: 'border-sky-500/30',
+    bg10: 'bg-sky-500/10',
+    bg15: 'bg-sky-500/15',
+    bg30: 'bg-sky-500/30',
+    bg50: 'bg-sky-500/50',
+    shadow20: 'shadow-sky-500/20',
+    shadow25: 'shadow-sky-500/25',
+    shadow30: 'shadow-sky-500/30',
+    hex500: '#0284c7',
+    hex400: '#38bdf8',
+    hex600: '#0369a1',
+  },
+  zinc: {
+    bg500: 'bg-zinc-400',
+    bg400: 'bg-zinc-300',
+    hoverBg400: 'hover:bg-zinc-300',
+    bg600: 'bg-zinc-500',
+    text400: 'text-zinc-300',
+    text500: 'text-zinc-400',
+    border500: 'border-zinc-400',
+    border500_20: 'border-zinc-400/20',
+    border500_30: 'border-zinc-400/30',
+    bg10: 'bg-zinc-400/10',
+    bg15: 'bg-zinc-400/15',
+    bg30: 'bg-zinc-400/30',
+    bg50: 'bg-zinc-400/50',
+    shadow20: 'shadow-zinc-400/20',
+    shadow25: 'shadow-zinc-400/25',
+    shadow30: 'shadow-zinc-400/30',
+    hex500: '#a1a1aa',
+    hex400: '#d4d4d8',
+    hex600: '#71717a',
+  },
   green: {
     bg500: 'bg-green-500',
     bg400: 'bg-green-400',
@@ -358,5 +400,5 @@ const ACCENT_MAP: Record<string, Record<string, string>> = {
 };
 
 export function getAccent(accent: string) {
-  return ACCENT_MAP[accent] || ACCENT_MAP.green;
+  return ACCENT_MAP[accent] || ACCENT_MAP.sky;
 }
