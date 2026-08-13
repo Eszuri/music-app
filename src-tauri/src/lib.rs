@@ -1304,6 +1304,27 @@ fn get_downloaded_ai_models(app: AppHandle) -> Vec<String> {
     downloaded
 }
 
+#[tauri::command]
+fn download_ai_model(app: AppHandle, modelName: String) -> Result<(), String> {
+    sidecar_lyrics::download_ai_model(&app, modelName)
+}
+
+#[tauri::command]
+fn delete_ai_model(app: AppHandle, modelName: String) -> Result<(), String> {
+    sidecar_lyrics::delete_ai_model(&app, modelName)
+}
+
+#[tauri::command]
+fn open_ai_models_folder(app: AppHandle) -> Result<(), String> {
+    sidecar_lyrics::open_ai_models_folder(&app)
+}
+
+#[tauri::command]
+fn import_ai_model_file(app: AppHandle, srcPath: String, modelCode: String) -> Result<(), String> {
+    sidecar_lyrics::import_ai_model_file(&app, srcPath, modelCode)
+}
+
+
 
 
 #[derive(serde::Serialize)]
@@ -1536,6 +1557,10 @@ pub fn run() {
             cancel_ai_lyrics,
             get_ai_lyrics_current_state,
             get_downloaded_ai_models,
+            download_ai_model,
+            delete_ai_model,
+            open_ai_models_folder,
+            import_ai_model_file,
             get_system_specs
         ])
 

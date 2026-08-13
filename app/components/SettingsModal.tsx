@@ -8,6 +8,7 @@ import {modalContentMotion, backdropMotion} from '../lib/animations';
 import {useHoverDescription} from '../hooks/useHoverDescription';
 import AboutSection from './settings/AboutSection';
 import AudioSection from './settings/AudioSection';
+import LyricsSection from './settings/LyricsSection';
 import PluginSection from './settings/PluginSection';
 import ChangelogSection from './settings/ChangelogSection';
 import DebugSection from './settings/DebugSection';
@@ -17,6 +18,7 @@ import SortSection from './settings/SortSection';
 import StyleSection from './settings/StyleSection';
 import {getSections} from './settings/sectionsConfig';
 import {useBitPerfectEngine} from '../hooks/useBitPerfectEngine';
+import {useAiLyricsPlugin} from '../hooks/useAiLyricsPlugin';
 import type {SectionId, SettingsModalProps} from './settings/types';
 
 
@@ -98,14 +100,23 @@ export default function SettingsModal({
     const { status } = useBitPerfectEngine();
     const isPluginInstalled = status?.installed === true;
 
-    // Fallback if active section is 'audio' but plugin is not installed
+    const { pluginStatus: aiPluginStatus } = useAiLyricsPlugin();
+    const isAiPluginInstalled = aiPluginStatus?.installed === true;
+
+    // Fallback if active section requires a plugin that is not installed
     useEffect(() => {
         if (activeSection === 'audio' && !isPluginInstalled) {
             setActiveSection('plugin');
         }
-    }, [activeSection, isPluginInstalled]);
+        if (activeSection === 'lyrics' && !isAiPluginInstalled) {
+            setActiveSection('plugin');
+        }
+    }, [activeSection, isPluginInstalled, isAiPluginInstalled]);
 
-    const sections = getSections(lang).filter(s => s.id !== 'audio' || isPluginInstalled);
+    const sections = getSections(lang).filter(s =>
+        (s.id !== 'audio' || isPluginInstalled) &&
+        (s.id !== 'lyrics' || isAiPluginInstalled)
+    );
 
     return (
         <AnimatePresence>
@@ -251,6 +262,12 @@ export default function SettingsModal({
                                         setOutputDevice={setOutputDevice}
                                         outputMode={outputMode}
                                         setOutputMode={setOutputMode}
+                                        accentColor={accentColor}
+                                    />
+                                )}
+                                {activeSection === 'lyrics' && isAiPluginInstalled && (
+                                    <LyricsSection
+                                        lang={lang}
                                         accentColor={accentColor}
                                     />
                                 )}

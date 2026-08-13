@@ -42,16 +42,34 @@ export function useAiLyricsPlugin() {
         reject: (reason: Error) => void;
     } | null>(null);
 
+    const setPluginStatusGlobal = useCallback((newStatus: AiPluginStatus) => {
+        setPluginStatus(newStatus);
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('ai-lyrics-status-changed', { detail: newStatus }));
+        }
+    }, []);
+
     // Refresh plugin status
     const refreshStatus = useCallback(async () => {
         if (!isBrowserTauri) return;
         try {
             const mod = await getTauri();
             const status = await mod.invoke<AiPluginStatus>('get_ai_lyrics_plugin_status');
-            setPluginStatus(status);
+            setPluginStatusGlobal(status);
         } catch (err) {
             console.error('Failed to get AI lyrics plugin status:', err);
         }
+    }, [setPluginStatusGlobal]);
+
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const customEvent = e as CustomEvent<AiPluginStatus>;
+            if (customEvent.detail) {
+                setPluginStatus(customEvent.detail);
+            }
+        };
+        window.addEventListener('ai-lyrics-status-changed', handler);
+        return () => window.removeEventListener('ai-lyrics-status-changed', handler);
     }, []);
 
     // Sync active AI generation state across page reloads
@@ -233,7 +251,7 @@ export function useAiLyricsPlugin() {
         try {
             const mod = await getTauri();
             const status = await mod.invoke<AiPluginStatus>('download_ai_lyrics_plugin', { url });
-            setPluginStatus(status);
+            setPluginStatusGlobal(status);
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : String(err);
             setErrorMsg(msg);
@@ -242,7 +260,7 @@ export function useAiLyricsPlugin() {
             setDownloadProgress(null);
             await refreshStatus();
         }
-    }, []);
+    }, [refreshStatus, setPluginStatusGlobal]);
 
     const cancelDownloadPlugin = useCallback(async () => {
         if (!isBrowserTauri) return;
@@ -267,7 +285,7 @@ export function useAiLyricsPlugin() {
                 setIsDownloading(true);
                 setErrorMsg(null);
                 const status = await mod.invoke<AiPluginStatus>('install_ai_lyrics_plugin_from_file', { path });
-                setPluginStatus(status);
+                setPluginStatusGlobal(status);
             }
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : String(err);
@@ -275,7 +293,7 @@ export function useAiLyricsPlugin() {
         } finally {
             setIsDownloading(false);
         }
-    }, []);
+    }, [setPluginStatusGlobal]);
 
     const uninstallPlugin = useCallback(async () => {
         if (!isBrowserTauri) return;
@@ -351,6 +369,73 @@ export function useAiLyricsPlugin() {
         }
     }, []);
 
+    const [systemSpecs, setSystemSpecs] = useState<{ cpuCores: number; ramGb: number } | null>(null);
+
+    const refreshSystemSpecs = useCallback(async () => {
+        if (!isBrowserTauri) return;
+        try {
+            const mod = await getTauri();
+            const specs = await mod.invoke<{ cpuCores: number; ramGb: number }>('get_system_specs');
+            if (specs) setSystemSpecs(specs);
+        } catch (err) {
+            console.error('Failed to get system specs:', err);
+        }
+    }, []);
+
+    useEffect(() => {
+        refreshSystemSpecs();
+    }, [refreshSystemSpecs]);
+
+    const downloadModel = useCallback(async (modelName: string) => {
+        if (!isBrowserTauri) return;
+        try {
+            const mod = await getTauri();
+            await mod.invoke('download_ai_model', { modelName });
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
+            setErrorMsg(msg);
+        }
+    }, []);
+
+    const deleteModel = useCallback(async (modelName: string) => {
+        if (!isBrowserTauri) return;
+        try {
+            const mod = await getTauri();
+            await mod.invoke('delete_ai_model', { modelName });
+            await refreshDownloadedModels();
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
+            setErrorMsg(msg);
+        }
+    }, [refreshDownloadedModels]);
+
+    const openModelsFolder = useCallback(async () => {
+        if (!isBrowserTauri) return;
+        try {
+            const mod = await getTauri();
+            await mod.invoke('open_ai_models_folder');
+        } catch (err) {
+            console.error('Failed to open models folder:', err);
+        }
+    }, []);
+
+    const importModelFromFile = useCallback(async (modelCode: string) => {
+        if (!isBrowserTauri) return;
+        try {
+            const mod = await getTauri();
+            const path = await mod.invoke<string | null>('pick_single_file', {
+                title: `Pilih Berkas Model (${modelCode}) - (.bin)`,
+                filters: [{ name: 'Binary Model', extensions: ['bin'] }],
+            });
+            if (path) {
+                await mod.invoke('import_ai_model_file', { srcPath: path, modelCode });
+                await refreshDownloadedModels();
+            }
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
+            setErrorMsg(msg);
+        }
+    }, [refreshDownloadedModels]);
 
     return {
         pluginStatus,
@@ -361,6 +446,11 @@ export function useAiLyricsPlugin() {
         modelDownloadProgress,
         downloadedModels,
         refreshDownloadedModels,
+        systemSpecs,
+        downloadModel,
+        deleteModel,
+        openModelsFolder,
+        importModelFromFile,
         errorMsg,
         refreshStatus,
         downloadPlugin,
@@ -372,4 +462,5 @@ export function useAiLyricsPlugin() {
         cancelGeneration,
     };
 }
+
 

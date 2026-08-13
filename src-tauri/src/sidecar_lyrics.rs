@@ -235,6 +235,70 @@ pub fn cancel_ai_lyrics(_app: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+pub fn download_ai_model(app: &AppHandle, model_name: String) -> Result<(), String> {
+    ensure_running(app)?;
+
+    let models_dir = ai_lyrics_plugin_manager::plugin_dir(app)?
+        .join("models")
+        .to_string_lossy()
+        .to_string();
+
+    let cmd = json!({
+        "command": "download_model",
+        "modelName": model_name,
+        "modelsDir": models_dir
+    });
+
+    let line = serde_json::to_string(&cmd).map_err(|e| e.to_string())?;
+
+    let mut guard = AI_LYRICS_ENGINE.lock().map_err(|e| e.to_string())?;
+    let proc = guard
+        .as_mut()
+        .ok_or_else(|| "AI Lyrics engine is not running".to_string())?;
+    proc.send(&line)
+}
+
+pub fn delete_ai_model(app: &AppHandle, model_name: String) -> Result<(), String> {
+    let dir = ai_lyrics_plugin_manager::plugin_dir(app)?.join("models");
+    let file_name = format!("ggml-{}.bin", model_name);
+    let path = dir.join(file_name);
+    if path.exists() {
+        std::fs::remove_file(&path).map_err(|e| format!("Gagal menghapus model: {}", e))?;
+    }
+    Ok(())
+}
+
+pub fn open_ai_models_folder(app: &AppHandle) -> Result<(), String> {
+    let dir = ai_lyrics_plugin_manager::plugin_dir(app)?.join("models");
+    if !dir.exists() {
+        std::fs::create_dir_all(&dir).map_err(|e| format!("Gagal membuat folder model: {}", e))?;
+    }
+    #[cfg(target_os = "windows")]
+    {
+        let _ = Command::new("explorer").arg(dir).spawn();
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = Command::new("open").arg(dir).spawn();
+    }
+    Ok(())
+}
+
+pub fn import_ai_model_file(app: &AppHandle, src_path: String, model_code: String) -> Result<(), String> {
+    let src = std::path::Path::new(&src_path);
+    if !src.exists() {
+        return Err("Berkas asal tidak ditemukan".into());
+    }
+    let models_dir = ai_lyrics_plugin_manager::plugin_dir(app)?.join("models");
+    if !models_dir.exists() {
+        std::fs::create_dir_all(&models_dir).map_err(|e| format!("Gagal membuat folder model: {}", e))?;
+    }
+    let target_file_name = format!("ggml-{}.bin", model_code);
+    let target_path = models_dir.join(target_file_name);
+    std::fs::copy(src, target_path).map_err(|e| format!("Gagal mengimpor berkas model: {}", e))?;
+    Ok(())
+}
+
 pub fn stop_engine() {
     if let Ok(mut state) = AI_LYRICS_STATE.lock() {
         state.is_generating = false;
@@ -250,4 +314,5 @@ pub fn stop_engine() {
         }
     }
 }
+
 
