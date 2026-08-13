@@ -25,9 +25,18 @@ public class WhisperTranscriber
         string fileName = $"ggml-{modelName.ToLowerInvariant()}.bin";
         string targetPath = Path.Combine(targetDir, fileName);
 
-        if (File.Exists(targetPath) && new FileInfo(targetPath).Length > 1024 * 1024)
+        // Check if fully downloaded model file already exists and is valid
+        if (File.Exists(targetPath))
         {
-            return targetPath;
+            if (ValidateModelFile(targetPath, modelName))
+            {
+                return targetPath;
+            }
+            else
+            {
+                // Corrupt existing model file, delete to redownload
+                try { File.Delete(targetPath); } catch { }
+            }
         }
 
         if (!ModelUrls.TryGetValue(modelName, out var url))
@@ -42,38 +51,110 @@ public class WhisperTranscriber
             targetPath
         });
 
-        using var response = await HttpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        response.EnsureSuccessStatusCode();
-
-        long totalBytes = response.Content.Headers.ContentLength ?? 0;
-        using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         string tempPath = targetPath + ".tmp";
-        using (var fileStream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true))
+        long existingTempLength = 0;
+
+        if (File.Exists(tempPath))
         {
-            byte[] buffer = new byte[65536];
-            long totalRead = 0;
-            int bytesRead;
-            long lastEmit = 0;
-
-            while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0)
+            try
             {
-                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
-                totalRead += bytesRead;
+                existingTempLength = new FileInfo(tempPath).Length;
+            }
+            catch
+            {
+                existingTempLength = 0;
+            }
+        }
 
-                if (Environment.TickCount64 - lastEmit >= 200)
+        HttpResponseMessage response;
+        bool isResuming = false;
+        long totalBytes = 0;
+
+        if (existingTempLength > 0)
+        {
+            using var rangeRequest = new HttpRequestMessage(HttpMethod.Get, url);
+            rangeRequest.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(existingTempLength, null);
+            response = await HttpClient.SendAsync(rangeRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.PartialContent)
+            {
+                isResuming = true;
+                long contentLen = response.Content.Headers.ContentLength ?? 0;
+                totalBytes = existingTempLength + contentLen;
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.RequestedRangeNotSatisfiable)
+            {
+                response.Dispose();
+                try { File.Delete(tempPath); } catch { }
+                existingTempLength = 0;
+                response = await HttpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                response.EnsureSuccessStatusCode();
+                totalBytes = response.Content.Headers.ContentLength ?? 0;
+            }
+            else
+            {
+                try { File.Delete(tempPath); } catch { }
+                existingTempLength = 0;
+                response.EnsureSuccessStatusCode();
+                totalBytes = response.Content.Headers.ContentLength ?? 0;
+            }
+        }
+        else
+        {
+            response = await HttpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            totalBytes = response.Content.Headers.ContentLength ?? 0;
+        }
+
+        using (response)
+        using (var stream = await response.Content.ReadAsStreamAsync(cancellationToken))
+        {
+            FileMode mode = isResuming ? FileMode.Append : FileMode.Create;
+            using (var fileStream = new FileStream(tempPath, mode, FileAccess.Write, FileShare.None, 65536, true))
+            {
+                byte[] buffer = new byte[65536];
+                long totalRead = existingTempLength;
+                int bytesRead;
+                long lastEmit = 0;
+
+                // Immediate emit upon starting / resuming
+                int initialPercent = totalBytes > 0 ? (int)((totalRead * 100) / totalBytes) : 0;
+                Protocol.Emit(new
                 {
-                    lastEmit = Environment.TickCount64;
-                    int percent = totalBytes > 0 ? (int)((totalRead * 100) / totalBytes) : 0;
-                    Protocol.Emit(new
+                    @event = "model_download_progress",
+                    modelName,
+                    downloaded = totalRead,
+                    total = totalBytes,
+                    percent = initialPercent
+                });
+
+                while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0)
+                {
+                    await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
+                    totalRead += bytesRead;
+
+                    if (Environment.TickCount64 - lastEmit >= 200)
                     {
-                        @event = "model_download_progress",
-                        modelName,
-                        downloaded = totalRead,
-                        total = totalBytes,
-                        percent
-                    });
+                        lastEmit = Environment.TickCount64;
+                        int percent = totalBytes > 0 ? (int)((totalRead * 100) / totalBytes) : 0;
+                        Protocol.Emit(new
+                        {
+                            @event = "model_download_progress",
+                            modelName,
+                            downloaded = totalRead,
+                            total = totalBytes,
+                            percent
+                        });
+                    }
                 }
             }
+        }
+
+        // Integrity Check & Validation
+        if (!ValidateTempModelFile(tempPath, totalBytes))
+        {
+            try { File.Delete(tempPath); } catch { }
+            throw new InvalidOperationException($"Model file verification failed for '{modelName}'. The temporary download file was corrupted and has been removed.");
         }
 
         if (File.Exists(targetPath))
@@ -89,6 +170,61 @@ public class WhisperTranscriber
         });
 
         return targetPath;
+    }
+
+    private static bool ValidateTempModelFile(string tempPath, long expectedTotalBytes)
+    {
+        if (!File.Exists(tempPath)) return false;
+        var info = new FileInfo(tempPath);
+        if (expectedTotalBytes > 0 && info.Length != expectedTotalBytes) return false;
+        if (info.Length < 1024 * 1024) return false;
+
+        try
+        {
+            using var fs = new FileStream(tempPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (fs.Length < 4) return false;
+            byte[] magic = new byte[4];
+            fs.Read(magic, 0, 4);
+            uint magicValue = BitConverter.ToUInt32(magic, 0);
+            return magicValue == 0x67676d6c || magicValue == 0x666d6767 || magicValue == 0x746a6767 || magicValue == 0x66756767;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool ValidateModelFile(string targetPath, string modelName)
+    {
+        if (!File.Exists(targetPath)) return false;
+        var info = new FileInfo(targetPath);
+
+        long minExpectedSize = modelName.ToLowerInvariant() switch
+        {
+            "tiny" => 60L * 1024 * 1024,
+            "base" => 120L * 1024 * 1024,
+            "small" => 400L * 1024 * 1024,
+            "medium" => 1300L * 1024 * 1024,
+            "large-v3-turbo" => 1400L * 1024 * 1024,
+            "large-v3" => 2700L * 1024 * 1024,
+            _ => 10L * 1024 * 1024
+        };
+
+        if (info.Length < minExpectedSize) return false;
+
+        try
+        {
+            using var fs = new FileStream(targetPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (fs.Length < 4) return false;
+            byte[] magic = new byte[4];
+            fs.Read(magic, 0, 4);
+            uint magicValue = BitConverter.ToUInt32(magic, 0);
+            return magicValue == 0x67676d6c || magicValue == 0x666d6767 || magicValue == 0x746a6767 || magicValue == 0x66756767;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     /// <summary>

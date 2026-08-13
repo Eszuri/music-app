@@ -33,37 +33,100 @@ public class VocalExtractor
             targetPath
         });
 
-        using var response = await HttpClient.GetAsync(DefaultModelUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        response.EnsureSuccessStatusCode();
-
-        long totalBytes = response.Content.Headers.ContentLength ?? 0;
-        using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         string tempPath = targetPath + ".tmp";
+        long existingTempLength = 0;
 
-        using (var fileStream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 65536, true))
+        if (File.Exists(tempPath))
         {
-            byte[] buffer = new byte[65536];
-            long totalRead = 0;
-            int bytesRead;
-            long lastEmit = 0;
-
-            while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0)
+            try
             {
-                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
-                totalRead += bytesRead;
+                existingTempLength = new FileInfo(tempPath).Length;
+            }
+            catch
+            {
+                existingTempLength = 0;
+            }
+        }
 
-                if (Environment.TickCount64 - lastEmit >= 200)
+        HttpResponseMessage response;
+        bool isResuming = false;
+        long totalBytes = 0;
+
+        if (existingTempLength > 0)
+        {
+            using var rangeRequest = new HttpRequestMessage(HttpMethod.Get, DefaultModelUrl);
+            rangeRequest.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(existingTempLength, null);
+            response = await HttpClient.SendAsync(rangeRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.PartialContent)
+            {
+                isResuming = true;
+                long contentLen = response.Content.Headers.ContentLength ?? 0;
+                totalBytes = existingTempLength + contentLen;
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.RequestedRangeNotSatisfiable)
+            {
+                response.Dispose();
+                try { File.Delete(tempPath); } catch { }
+                existingTempLength = 0;
+                response = await HttpClient.GetAsync(DefaultModelUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                response.EnsureSuccessStatusCode();
+                totalBytes = response.Content.Headers.ContentLength ?? 0;
+            }
+            else
+            {
+                try { File.Delete(tempPath); } catch { }
+                existingTempLength = 0;
+                response.EnsureSuccessStatusCode();
+                totalBytes = response.Content.Headers.ContentLength ?? 0;
+            }
+        }
+        else
+        {
+            response = await HttpClient.GetAsync(DefaultModelUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            totalBytes = response.Content.Headers.ContentLength ?? 0;
+        }
+
+        using (response)
+        using (var stream = await response.Content.ReadAsStreamAsync(cancellationToken))
+        {
+            FileMode mode = isResuming ? FileMode.Append : FileMode.Create;
+            using (var fileStream = new FileStream(tempPath, mode, FileAccess.Write, FileShare.None, 65536, true))
+            {
+                byte[] buffer = new byte[65536];
+                long totalRead = existingTempLength;
+                int bytesRead;
+                long lastEmit = 0;
+
+                int initialPercent = totalBytes > 0 ? (int)((totalRead * 100) / totalBytes) : 0;
+                Protocol.Emit(new
                 {
-                    lastEmit = Environment.TickCount64;
-                    int percent = totalBytes > 0 ? (int)((totalRead * 100) / totalBytes) : 0;
-                    Protocol.Emit(new
+                    @event = "vocal_model_download_progress",
+                    modelName = DefaultModelFileName,
+                    downloaded = totalRead,
+                    total = totalBytes,
+                    percent = initialPercent
+                });
+
+                while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0)
+                {
+                    await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
+                    totalRead += bytesRead;
+
+                    if (Environment.TickCount64 - lastEmit >= 200)
                     {
-                        @event = "vocal_model_download_progress",
-                        modelName = DefaultModelFileName,
-                        downloaded = totalRead,
-                        total = totalBytes,
-                        percent
-                    });
+                        lastEmit = Environment.TickCount64;
+                        int percent = totalBytes > 0 ? (int)((totalRead * 100) / totalBytes) : 0;
+                        Protocol.Emit(new
+                        {
+                            @event = "vocal_model_download_progress",
+                            modelName = DefaultModelFileName,
+                            downloaded = totalRead,
+                            total = totalBytes,
+                            percent
+                        });
+                    }
                 }
             }
         }
