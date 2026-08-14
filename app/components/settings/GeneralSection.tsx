@@ -1,12 +1,27 @@
 'use client';
 
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {motion} from 'framer-motion';
 import type {KeyboardEvent} from 'react';
 import {getAccent} from '../../lib/colors';
 import {t, type Lang} from '../../lib/translations';
 import {SelectStub, SettingGroup, SettingRow, ToggleStub} from './controls';
 import {useHoverDescription} from '../../hooks/useHoverDescription';
+import {
+    getStorageUsage,
+    openConfigFolder,
+    cleanAiModelsData,
+    cleanAllAppData,
+    type StorageUsage,
+} from '../../lib/storage';
+
+function formatBytes(bytes: number): string {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
 
 export default function GeneralSection({
     lang,
@@ -77,6 +92,20 @@ export default function GeneralSection({
 }) {
     const accent = getAccent(accentColor);
     const [showResetConfirm, setShowResetConfirm] = useState(false);
+    const [showCleanModelsConfirm, setShowCleanModelsConfirm] = useState(false);
+    const [showFullWipeConfirm, setShowFullWipeConfirm] = useState(false);
+    const [storageCleaning, setStorageCleaning] = useState(false);
+    const [storageInfo, setStorageInfo] = useState<StorageUsage | null>(null);
+
+    const refreshStorage = useCallback(async () => {
+        const usage = await getStorageUsage();
+        if (usage) setStorageInfo(usage);
+    }, []);
+
+    useEffect(() => {
+        refreshStorage();
+    }, [refreshStorage]);
+
     const folderBtnHover = useHoverDescription(t(lang, 'status.changeFolder'));
     const wallpaperChangeBtnHover = useHoverDescription(t(lang, 'status.settingItem'));
     const wallpaperDeleteBtnHover = useHoverDescription(t(lang, 'status.settingItem'));
@@ -292,7 +321,52 @@ export default function GeneralSection({
                 </SettingRow>
             </SettingGroup>
 
-            <SettingGroup title={t(lang, 'general.resetSettings.title')}>
+            <SettingGroup title={t(lang, 'general.group.storage')}>
+                <SettingRow
+                    title={t(lang, 'general.storage.total')}
+                    description={t(lang, 'general.storage.desc')}
+                >
+                    <div className="flex flex-col items-end gap-2">
+                        <div className="flex items-center gap-3 text-xs text-zinc-300">
+                            {storageInfo ? (
+                                <span className="font-mono font-medium text-zinc-200">
+                                    {formatBytes(storageInfo.total_bytes)}
+                                </span>
+                            ) : (
+                                <span className="text-zinc-500 font-mono">--</span>
+                            )}
+                            <button
+                                onClick={openConfigFolder}
+                                className="px-2.5 py-1 rounded-md text-[11px] font-medium text-zinc-300 bg-zinc-800/60 hover:bg-zinc-700/70 border border-zinc-700/50 transition-colors cursor-pointer"
+                            >
+                                {t(lang, 'general.storage.openFolder')}
+                            </button>
+                        </div>
+                        {storageInfo && (
+                            <div className="flex items-center gap-3 text-[11px] text-zinc-400 font-mono">
+                                <span>Config: {formatBytes(storageInfo.config_bytes)}</span>
+                                <span>•</span>
+                                <span>Models: {formatBytes(storageInfo.models_bytes)}</span>
+                            </div>
+                        )}
+                    </div>
+                </SettingRow>
+
+                {storageInfo && storageInfo.models_bytes > 0 && (
+                    <SettingRow
+                        title={t(lang, 'general.storage.cleanModels')}
+                        description={t(lang, 'general.storage.cleanModelsDesc')}
+                    >
+                        <button
+                            onClick={() => setShowCleanModelsConfirm(true)}
+                            disabled={storageCleaning}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium text-amber-400 bg-amber-950/30 hover:bg-amber-900/40 border border-amber-800/40 transition-colors cursor-pointer"
+                        >
+                            {t(lang, 'general.storage.cleanModels')}
+                        </button>
+                    </SettingRow>
+                )}
+
                 <SettingRow
                     title={t(lang, 'general.resetSettings.title')}
                     description={t(lang, 'general.resetSettings.desc')}
@@ -300,13 +374,27 @@ export default function GeneralSection({
                     <button
                         {...resetBtnHover}
                         onClick={() => setShowResetConfirm(true)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-red-400 bg-red-950/30 hover:bg-red-900/50 border border-red-800/40 transition-colors cursor-pointer"
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 bg-zinc-800/60 hover:bg-zinc-700/70 border border-zinc-700/50 transition-colors cursor-pointer"
                     >
                         {t(lang, 'general.resetSettings.button')}
                     </button>
                 </SettingRow>
+
+                <SettingRow
+                    title={t(lang, 'general.storage.cleanAll')}
+                    description={t(lang, 'general.storage.cleanAllDesc')}
+                >
+                    <button
+                        onClick={() => setShowFullWipeConfirm(true)}
+                        disabled={storageCleaning}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-red-400 bg-red-950/30 hover:bg-red-900/50 border border-red-800/40 transition-colors cursor-pointer"
+                    >
+                        {t(lang, 'general.storage.cleanAll')}
+                    </button>
+                </SettingRow>
             </SettingGroup>
 
+            {/* Reset Settings Confirmation Modal */}
             {showResetConfirm && (
                 <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/70 backdrop-blur-sm">
                     <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-5 w-95 max-w-[90vw] shadow-2xl">
@@ -328,6 +416,72 @@ export default function GeneralSection({
                                 className={`px-3 py-1.5 rounded-lg text-xs font-medium text-white ${accent.bg500} hover:opacity-90 transition-opacity cursor-pointer border ${accent.border500}`}
                             >
                                 {t(lang, 'general.resetSettings.confirm')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Clean AI Models Confirmation Modal */}
+            {showCleanModelsConfirm && (
+                <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                    <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-5 w-95 max-w-[90vw] shadow-2xl">
+                        <h3 className="text-sm font-semibold text-amber-300 mb-2">
+                            {t(lang, 'general.storage.cleanModels')}
+                        </h3>
+                        <p className="text-xs text-zinc-400 mb-5 leading-relaxed">
+                            {t(lang, 'general.storage.cleanModelsConfirm')}
+                        </p>
+                        <div className="flex justify-end gap-2">
+                            <button
+                                onClick={() => setShowCleanModelsConfirm(false)}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 bg-zinc-800/60 hover:bg-zinc-700/70 border border-zinc-700/50 transition-colors cursor-pointer"
+                            >
+                                {t(lang, 'confirm.defaultCancel')}
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    setStorageCleaning(true);
+                                    await cleanAiModelsData();
+                                    await refreshStorage();
+                                    setStorageCleaning(false);
+                                    setShowCleanModelsConfirm(false);
+                                }}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-amber-600 hover:bg-amber-500 transition-colors cursor-pointer"
+                            >
+                                {t(lang, 'general.storage.cleanModels')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Full Wipe Confirmation Modal */}
+            {showFullWipeConfirm && (
+                <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                    <div className="bg-zinc-900 border border-red-800/60 rounded-xl p-5 w-95 max-w-[90vw] shadow-2xl">
+                        <h3 className="text-sm font-semibold text-red-400 mb-2">
+                            {t(lang, 'general.storage.cleanAll')}
+                        </h3>
+                        <p className="text-xs text-zinc-400 mb-5 leading-relaxed">
+                            {t(lang, 'general.storage.cleanAllConfirm')}
+                        </p>
+                        <div className="flex justify-end gap-2">
+                            <button
+                                onClick={() => setShowFullWipeConfirm(false)}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 bg-zinc-800/60 hover:bg-zinc-700/70 border border-zinc-700/50 transition-colors cursor-pointer"
+                            >
+                                {t(lang, 'confirm.defaultCancel')}
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    setStorageCleaning(true);
+                                    await cleanAllAppData();
+                                    window.location.reload();
+                                }}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-red-600 hover:bg-red-500 transition-colors cursor-pointer"
+                            >
+                                {t(lang, 'general.storage.cleanAll')}
                             </button>
                         </div>
                     </div>

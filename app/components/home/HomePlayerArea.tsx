@@ -23,6 +23,7 @@ import {EmptyFolderState, NoFolderEmptyState} from "./HomeEmptyStates";
 import ContextMenu, {type ContextMenuItem} from "../ContextMenu";
 import {EditIcon} from "../icons";
 import {getTauri} from "../../lib/homeState";
+import {getStoredValue, setStoredValue} from "../../lib/storage";
 import SpotifyLayout from "../layout/SpotifyLayout";
 import {t, type Lang} from "../../lib/translations";
 import {contentMotion} from "../../lib/animations";
@@ -235,25 +236,15 @@ function HomePlayerArea({
         y: number;
         items: ContextMenuItem[];
     } | null>(null);
-    const [isFullScreenAlbum, setIsFullScreenAlbum] = useState(false);
+    const [isFullScreenAlbum, setIsFullScreenAlbum] = useState(() => getStoredValue('fullscreen', false));
     const [controlsVisible, setControlsVisible] = useState(true);
-    const [hideDelayMs, setHideDelayMs] = useState(2000);
+    const [hideDelayMs, setHideDelayMs] = useState(() => getStoredValue('autohide_delay_ms', 3000));
     const controlsHoverRef = useRef(false);
     const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            const val = localStorage.getItem("music-app-fullscreen");
-            if (val) setIsFullScreenAlbum(val === "true");
-            const delay = localStorage.getItem("music-app-autohide-ms");
-            if (delay) setHideDelayMs(parseInt(delay, 10) || 2000);
-        }
-    }, []);
-
     const updateHideDelayMs = useCallback((val: number) => {
         setHideDelayMs(val);
-        if (typeof window !== "undefined")
-            localStorage.setItem("music-app-autohide-ms", val.toString());
+        setStoredValue('autohide_delay_ms', val);
     }, []);
 
     const triggerControlsVisibility = useCallback(() => {
@@ -310,8 +301,7 @@ function HomePlayerArea({
                     onClick: () =>
                         setIsFullScreenAlbum((prev) => {
                             const next = !prev;
-                            if (typeof window !== "undefined")
-                                localStorage.setItem("music-app-fullscreen", String(next));
+                            setStoredValue('fullscreen', next);
                             return next;
                         }),
                     active: isFullScreenAlbum,

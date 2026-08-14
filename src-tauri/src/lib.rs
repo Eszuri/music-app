@@ -47,6 +47,24 @@ pub fn run() {
                 let _ = window.set_focus();
             }
         }))
+        .setup(|app| {
+            let handle = app.handle();
+            let initial_config = commands::config::load_config(handle);
+            let json_str = serde_json::to_string(&initial_config).unwrap_or_else(|_| "{}".to_string());
+            if let Some(window) = app.get_webview_window("main") {
+                let script = format!("window.__SYMVONIA_INITIAL_CONFIG__ = {};", json_str);
+                let _ = window.eval(&script);
+            }
+            Ok(())
+        })
+        .on_page_load(|window, _payload| {
+            let handle = window.app_handle();
+            let initial_config = commands::config::load_config(handle);
+            if let Ok(json_str) = serde_json::to_string(&initial_config) {
+                let script = format!("window.__SYMVONIA_INITIAL_CONFIG__ = {};", json_str);
+                let _ = window.eval(&script);
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             list_files,
             get_metadata,
@@ -97,7 +115,15 @@ pub fn run() {
             open_ai_models_folder,
             import_ai_model_file,
             open_external_url,
-            get_system_specs
+            get_system_specs,
+            get_app_config,
+            save_app_config,
+            set_app_config_key,
+            reset_app_config,
+            open_config_folder,
+            get_storage_usage,
+            clean_ai_models_data,
+            clean_all_app_data
         ])
         .register_uri_scheme_protocol("stream", |_app, request| {
             if request.method() == tauri::http::Method::OPTIONS {

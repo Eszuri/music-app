@@ -228,28 +228,13 @@ function StatusBarSkeleton({accentColor}: {accentColor: string}) {
     );
 }
 
-function InitSkeleton({accentColor = "violet"}: {accentColor?: string}) {
-    const [leftWidth, setLeftWidth] = useState<number>(360);
-    const [rightWidth, setRightWidth] = useState<number>(360);
-
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            const rawL = window.localStorage.getItem('music-app-sidebar-width');
-            const nL = Number(rawL);
-            if (Number.isFinite(nL) && nL >= 360 && nL <= 640) setLeftWidth(nL);
-
-            const rawR = window.localStorage.getItem('music-app-details-width');
-            const nR = Number(rawR);
-            if (Number.isFinite(nR) && nR >= 360 && nR <= 640) setRightWidth(nR);
-        }
-    }, []);
-
+function InitSkeleton({accentColor = "sky"}: {accentColor?: string}) {
     return (
         <div className="flex-1 flex overflow-hidden">
             {/* Left Panel: Folder Explorer */}
             <div
                 suppressHydrationWarning
-                style={{ width: leftWidth }}
+                style={{ width: 360 }}
                 className="shrink-0 border-r border-zinc-800/50 bg-black/30 flex flex-col max-lg:hidden overflow-hidden"
             >
                 <div className="flex items-center gap-2 px-3 py-2.5 border-b border-zinc-800/30">
@@ -279,7 +264,7 @@ function InitSkeleton({accentColor = "violet"}: {accentColor?: string}) {
             {/* Right Panel: Metadata & Lyrics */}
             <div
                 suppressHydrationWarning
-                style={{ width: rightWidth }}
+                style={{ width: 360 }}
                 className="shrink-0 border-l border-zinc-800/50 bg-zinc-950/40 flex flex-col max-lg:hidden overflow-hidden"
             >
                 <div className="flex items-center border-b border-zinc-800/40 bg-zinc-900/50 p-1.5 gap-1.5 shrink-0">
@@ -294,20 +279,9 @@ function InitSkeleton({accentColor = "violet"}: {accentColor?: string}) {
     );
 }
 
-export function FullInitSkeleton() {
-    const [accentColor, setAccentColor] = useState<string>("green");
-
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            const saved = window.localStorage.getItem("music-app-accent");
-            if (saved) {
-                setAccentColor(saved);
-            }
-        }
-    }, []);
-
+export function FullInitSkeleton({accentColor = "sky"}: {accentColor?: string}) {
     return (
-        <div className="h-full flex flex-col overflow-hidden bg-linear-to-b from-zinc-950 to-black text-zinc-100 select-none font-sans">
+        <div suppressHydrationWarning className="h-full flex flex-col overflow-hidden bg-linear-to-b from-zinc-950 to-black text-zinc-100 select-none font-sans">
             <HeaderSkeleton accentColor={accentColor} />
             <InitSkeleton accentColor={accentColor} />
             <StatusBarSkeleton accentColor={accentColor} />

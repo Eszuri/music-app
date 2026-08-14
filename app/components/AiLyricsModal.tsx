@@ -6,6 +6,7 @@ import { t, type Lang } from '../lib/translations';
 import { useAiLyricsPlugin } from '../hooks/useAiLyricsPlugin';
 import { isBrowserTauri, getTauri } from '../lib/homeState';
 import { getAccent } from '../lib/colors';
+import { getStoredValue, setStoredValue } from '../lib/storage';
 
 export interface AiModelSpec {
     code: string;
@@ -123,18 +124,11 @@ export function AiLyricsModal({
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
     const [selectedAiModel, setSelectedAiModel] = useState<string>(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('symvonia_ai_lyrics_model') || 'base';
-        }
-        return 'base';
+        return getStoredValue('ai_lyrics_model', 'base');
     });
 
     const [isolateVocals, setIsolateVocals] = useState<boolean>(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('symvonia_ai_isolate_vocals');
-            if (saved !== null) return saved === 'true';
-        }
-        return false;
+        return getStoredValue('ai_isolate_vocals', false);
     });
 
     const [systemSpecs, setSystemSpecs] = useState<{ ramGb: number; cpuCores: number }>(() => {
@@ -403,9 +397,7 @@ export function AiLyricsModal({
                                                             onClick={() => {
                                                                 if (isProcessing) return;
                                                                 setSelectedAiModel(m.code);
-                                                                if (typeof window !== 'undefined') {
-                                                                    localStorage.setItem('symvonia_ai_lyrics_model', m.code);
-                                                                }
+                                                                setStoredValue('ai_lyrics_model', m.code);
                                                                 setIsDropdownOpen(false);
                                                             }}
                                                             className={`w-full px-3.5 py-3 rounded-lg text-left transition-colors flex items-center justify-between gap-3 cursor-pointer ${
@@ -492,9 +484,7 @@ export function AiLyricsModal({
                                     if (isProcessing) return;
                                     const next = !isolateVocals;
                                     setIsolateVocals(next);
-                                    if (typeof window !== 'undefined') {
-                                        localStorage.setItem('symvonia_ai_isolate_vocals', String(next));
-                                    }
+                                    setStoredValue('ai_isolate_vocals', next);
                                 }}
                                 className={`bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-4 sm:p-4.5 flex items-center justify-between gap-4 transition-all relative z-10 ${
                                     isProcessing

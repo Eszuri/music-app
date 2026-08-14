@@ -209,23 +209,37 @@ function isBrowserTauri(): boolean {
     return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 }
 
+import {getStoredValue, setStoredValue} from '../lib/storage';
+
 function loadHistory(): StreamHistoryEntry[] {
-    try {
-        const raw = localStorage.getItem(STREAM_HISTORY_KEY);
-        if (raw) return JSON.parse(raw);
-    } catch {}
+    const list = getStoredValue('stream_history', []);
+    if (Array.isArray(list) && list.length > 0) {
+        return list.map(item => {
+            let domain = '';
+            try { domain = new URL(item.url).hostname.replace(/^www\./, ''); } catch {}
+            return {
+                url: item.url,
+                timestamp: item.timestamp || Date.now(),
+                domain,
+            };
+        });
+    }
     return [];
 }
 
 function saveHistory(entries: StreamHistoryEntry[]) {
-    try {
-        localStorage.setItem(STREAM_HISTORY_KEY, JSON.stringify(entries));
-    } catch {}
+    setStoredValue('stream_history', entries.map(e => ({
+        id: String(e.timestamp),
+        title: e.domain || '',
+        url: e.url,
+        timestamp: e.timestamp,
+    })));
 }
 
 function addToHistory(url: string) {
     const entries = loadHistory();
-    const domain = new URL(url).hostname.replace(/^www\./, '');
+    let domain = '';
+    try { domain = new URL(url).hostname.replace(/^www\./, ''); } catch {}
     entries.unshift({url, timestamp: Date.now(), domain});
     const unique = entries.filter((e, i, a) => a.findIndex(x => x.url === e.url) === i).slice(0, 200);
     saveHistory(unique);

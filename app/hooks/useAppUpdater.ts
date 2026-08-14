@@ -14,19 +14,14 @@ interface AutoUpdateInfo {
     update: unknown;
 }
 
+import { getStoredValue, setStoredValue } from '../lib/storage';
+
 function getSkippedVersion(): string | null {
-    if (typeof window === 'undefined') return null;
-    try {
-        return window.localStorage.getItem(UPDATE_SKIP_KEY);
-    } catch {
-        return null;
-    }
+    return getStoredValue('skipped_update_version', null);
 }
 
 function setSkippedVersion(version: string) {
-    try {
-        window.localStorage.setItem(UPDATE_SKIP_KEY, version);
-    } catch { }
+    setStoredValue('skipped_update_version', version);
 }
 
 export function useAppUpdater(options: UseAppUpdaterOptions) {

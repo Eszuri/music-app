@@ -48,20 +48,17 @@ function isAncestorOf(folderPath: string, targetPath: string): boolean {
     return t.startsWith(f + '\\') || t.startsWith(f + '/');
 }
 
+import {getStoredValue, setStoredValue} from '../lib/storage';
+
 const MIN_WIDTH = 360;
 const MAX_WIDTH = 640;
 const DEFAULT_WIDTH = 360;
-const STORAGE_KEY = 'music-app-sidebar-width';
 const ROW_HEIGHT = 36;
 const VIRTUAL_BUFFER = 5;
 
 function loadSavedWidth(): number {
-    if (typeof window === 'undefined') return DEFAULT_WIDTH;
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_WIDTH;
-    const n = Number(raw);
-    if (!Number.isFinite(n)) return DEFAULT_WIDTH;
-    return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, n));
+    const val = getStoredValue('sidebar_width', DEFAULT_WIDTH);
+    return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, Number(val) || DEFAULT_WIDTH));
 }
 
 function FolderExplorer({
@@ -127,15 +124,13 @@ function FolderExplorer({
     useEffect(() => {
         if (resetSidebarToken === 0) return;
         setWidth(DEFAULT_WIDTH);
-        window.localStorage.removeItem(STORAGE_KEY);
+        setStoredValue('sidebar_width', DEFAULT_WIDTH);
     }, [resetSidebarToken]);
 
     useEffect(() => {
         const handleWindowResize = () => {
             const currentWinW = window.innerWidth;
-            const metaWidth = typeof window !== 'undefined'
-                ? Number(window.localStorage.getItem('music-app-meta-width') || 360)
-                : 360;
+            const metaWidth = getStoredValue('meta_width', 360);
             const maxAllowed = Math.max(MIN_WIDTH, currentWinW - metaWidth - 300);
             const effectiveMax = Math.min(MAX_WIDTH, maxAllowed);
             setWidth(prev => (prev > effectiveMax ? effectiveMax : prev));
@@ -148,9 +143,7 @@ function FolderExplorer({
         if (!isDraggingRef.current) return;
         const delta = e.clientX - startXRef.current;
         const currentWinW = window.innerWidth;
-        const metaWidth = typeof window !== 'undefined'
-            ? Number(window.localStorage.getItem('music-app-meta-width') || 360)
-            : 360;
+        const metaWidth = getStoredValue('meta_width', 360);
         const maxAllowed = Math.max(MIN_WIDTH, currentWinW - metaWidth - 300);
         const effectiveMax = Math.min(MAX_WIDTH, maxAllowed);
         const next = Math.min(effectiveMax, Math.max(MIN_WIDTH, startWidthRef.current + delta));
@@ -166,7 +159,7 @@ function FolderExplorer({
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
         if (widthPendingRef.current !== null) {
-            window.localStorage.setItem(STORAGE_KEY, String(widthPendingRef.current));
+            setStoredValue('sidebar_width', widthPendingRef.current);
             widthPendingRef.current = null;
         }
         window.removeEventListener('mousemove', onMouseMove);

@@ -80,7 +80,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     const [filesLoadedOnce, setFilesLoadedOnce] = useState(false);
     const [sessionRestored, setSessionRestored] = useState(false);
     const [loadingFiles, setLoadingFiles] = useState(false);
-    const [currentPath, setCurrentPath] = useState<string | null>(null);
+    const [currentPath, setCurrentPath] = useState<string | null>(() => options.musicFolder || null);
     const [selectedSong, setSelectedSong] = useState<FileEntry | null>(null);
     const [metadata, setMetadata] = useState<SongMetadata | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -238,23 +238,24 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 const mod = await getTauri();
                 const result = await mod.invoke<FileEntry[]>("list_files", {
                     path: dirPath,
-                    folderSort: folderSortRef.current,
-                    fileSort: fileSortRef.current,
-                    sortDir: sortDirRef.current,
-                    nameSource: nameSourceRef.current,
-                    formats: formatsRef.current,
+                    folderSort: folderSortRef.current || "name",
+                    fileSort: fileSortRef.current || "name",
+                    sortDir: sortDirRef.current || "asc",
+                    nameSource: nameSourceRef.current || "filename",
+                    formats: formatsRef.current && formatsRef.current.length > 0 ? formatsRef.current : ['mp3', 'flac', 'ogg', 'wav', 'm4a', 'wma'],
                 });
-                if (token !== loadFilesTokenRef.current || !isMountedRef.current)
+                if (token !== loadFilesTokenRef.current)
                     return;
-                setFiles(result);
+                setFiles(result || []);
                 setSelectedSong((prev) => {
                     if (!prev) return null;
-                    const updated = result.find((f) => f.path === prev.path);
+                    const updated = (result || []).find((f) => f.path === prev.path);
                     return updated || prev;
                 });
             } catch (e) {
-                if (token !== loadFilesTokenRef.current || !isMountedRef.current)
+                if (token !== loadFilesTokenRef.current)
                     return;
+                console.error("[Symvonia] Failed to list files in:", dirPath, e);
                 showError(String(e));
                 setFiles([]);
             } finally {
@@ -337,12 +338,17 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     // ─── path / folder effects ─────────────────────────────────────────────────
 
     useEffect(() => {
-        if (musicFolder && !currentPath) {
-            setCurrentPath(musicFolder);
-        } else if (!musicFolder && currentPath) {
+        if (musicFolder) {
+            setCurrentPath((prev) => {
+                if (!prev || !prev.startsWith(musicFolder)) {
+                    return musicFolder;
+                }
+                return prev;
+            });
+        } else {
             setCurrentPath(null);
         }
-    }, [musicFolder, currentPath]);
+    }, [musicFolder]);
 
     useEffect(() => {
         if (currentPath) {
@@ -837,6 +843,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     // ─── audio element lifecycle ───────────────────────────────────────────────
 
     useEffect(() => {
+        isMountedRef.current = true;
         const audio = new Audio();
         audio.crossOrigin = "anonymous";
         audioRef.current = audio;

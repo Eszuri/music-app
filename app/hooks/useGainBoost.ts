@@ -1,22 +1,16 @@
 import {useCallback, useEffect, useRef, useState} from "react";
-import {safeSetLocalStorage} from "../lib/homeState";
+import {getStoredValue, setStoredValue} from "../lib/storage";
 
-const GAIN_BOOST_KEY = "music-app-gain-boost";
 const DEFAULT_GAIN = 1; // 100%
 const MIN_GAIN = 1; // 100%
 const MAX_GAIN = 3; // 300%
 
 function loadSavedGain(): number {
-    if (typeof window === "undefined") return DEFAULT_GAIN;
-    try {
-        const saved = window.localStorage.getItem(GAIN_BOOST_KEY);
-        if (!saved) return DEFAULT_GAIN;
-        const val = parseFloat(saved);
-        if (isNaN(val)) return DEFAULT_GAIN;
-        return Math.max(MIN_GAIN, Math.min(MAX_GAIN, val));
-    } catch {
-        return DEFAULT_GAIN;
+    const val = getStoredValue('gain_boost', DEFAULT_GAIN);
+    if (typeof val === 'number' && !isNaN(val) && val >= MIN_GAIN && val <= MAX_GAIN) {
+        return val;
     }
+    return DEFAULT_GAIN;
 }
 
 /** Get optimal Q factor according to number of EQ bands to prevent filter overlap distortion */
@@ -178,7 +172,7 @@ export function useGainBoost(
         if (gainNodeRef.current && ctxRef.current) {
             gainNodeRef.current.gain.setTargetAtTime(gain, ctxRef.current.currentTime, 0.015);
         }
-        safeSetLocalStorage(GAIN_BOOST_KEY, String(gain));
+        setStoredValue('gain_boost', gain, { debounceMs: 150 });
     }, [gain]);
 
     // Sync Equalizer & Preamp state live without clicks or pops
@@ -231,6 +225,7 @@ export function useGainBoost(
     const setGain = useCallback((newGain: number) => {
         const clamped = Math.max(MIN_GAIN, Math.min(MAX_GAIN, newGain));
         setGainState(clamped);
+        setStoredValue('gain_boost', clamped, { debounceMs: 150 });
     }, []);
 
     return {

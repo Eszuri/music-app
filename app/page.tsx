@@ -24,13 +24,20 @@ import {useAudioPlayer} from "./hooks/useAudioPlayer";
 import {useKeyboardShortcuts} from "./hooks/useKeyboardShortcuts";
 import {usePlayerSettings} from "./hooks/usePlayerSettings";
 import {getTauri, isBrowserTauri} from "./lib/homeState";
+import {resetAppConfig} from "./lib/storage";
 import {useModalRouter} from "./hooks/useModalRouter";
 import {useGlobalContextMenu} from "./hooks/useGlobalContextMenu";
 
 export default function Home() {
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     return (
         <HoverInfoProvider>
-            <HomeContent />
+            {!mounted ? <FullInitSkeleton /> : <HomeContent />}
         </HoverInfoProvider>
     );
 }
@@ -367,9 +374,11 @@ function HomeContent() {
         await doPickFolder();
     }, [lang, player.isPlaying, doPickFolder, setDebugError, showError]);
 
-    const handleResetAllSettings = useCallback(() => {
+    const handleResetAllSettings = useCallback(async () => {
         (window as unknown as { __symvoniaResetInProgress?: boolean }).__symvoniaResetInProgress = true;
-        localStorage.clear();
+        try {
+            await resetAppConfig();
+        } catch {}
         window.location.reload();
     }, []);
 

@@ -1,4 +1,4 @@
-export const isBrowserTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+export const isBrowserTauri = typeof window !== 'undefined';
 
 export const FOLDER_STORAGE_KEY = 'music-app-folder';
 export const AUTO_WALLPAPER_KEY = 'music-app-auto-wallpaper';
@@ -57,44 +57,33 @@ export async function getTauri(): Promise<TauriCore> {
     });
 }
 
-export function loadSavedFolder(): string | null {
-    if (typeof window === 'undefined') return null;
-    try {
-        return window.localStorage.getItem(FOLDER_STORAGE_KEY);
-    } catch {
-        return null;
-    }
-}
+import { getStoredValue, setStoredValue } from './storage';
 
-export function safeSetLocalStorage(key: string, value: string) {
-    try {
-        window.localStorage.setItem(key, value);
-    } catch {
-    }
+export function loadSavedFolder(): string | null {
+    return getStoredValue('music_folder', null);
 }
 
 export function loadSessionState(): SessionState | null {
-    if (typeof window === 'undefined') return null;
-    try {
-        const raw = window.localStorage.getItem(SESSION_STATE_KEY);
-        if (!raw) return null;
-        const s: SessionState = JSON.parse(raw);
-        if (!s.filePath || typeof s.currentTime !== 'number') return null;
-        return s;
-    } catch {
+    const raw = getStoredValue('last_session', null);
+    if (!raw || !raw.file_path || typeof raw.current_time !== 'number') {
         return null;
     }
+    return {
+        filePath: raw.file_path,
+        currentTime: raw.current_time,
+        timestamp: raw.timestamp,
+    };
 }
 
 export function saveSessionState(state: SessionState | null): void {
-    if (typeof window === 'undefined') return;
-    try {
-        if (!state) {
-            window.localStorage.removeItem(SESSION_STATE_KEY);
-        } else {
-            safeSetLocalStorage(SESSION_STATE_KEY, JSON.stringify({...state, timestamp: Date.now()}));
-        }
-    } catch {
-        // ignore
+    if (!state) {
+        setStoredValue('last_session', null);
+    } else {
+        const payload = {
+            file_path: state.filePath,
+            current_time: state.currentTime,
+            timestamp: state.timestamp || Date.now(),
+        };
+        setStoredValue('last_session', payload, { debounceMs: 1000 });
     }
 }

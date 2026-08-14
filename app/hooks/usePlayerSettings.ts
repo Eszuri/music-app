@@ -1,85 +1,66 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {removeCustomAccentVars, setCustomAccentVars} from '../lib/colors';
 import {
-    ACCENT_KEY,
-    AUTO_WALLPAPER_KEY,
-    CUSTOM_ACCENT_KEY,
     DEFAULT_FORMATS,
     DEFAULT_LANGUAGE,
     DEFAULT_SHORTCUTS,
     DEFAULT_VOLUME_STEP,
-    FILE_SORT_KEY,
-    FOLDER_SORT_KEY,
-    FOLDER_STORAGE_KEY,
-    FORMATS_KEY,
     getTauri,
     isBrowserTauri,
-    LANGUAGE_KEY,
-    loadSavedFolder,
-    NAME_SOURCE_KEY,
-    RESET_ON_CLOSE_KEY,
-    safeSetLocalStorage,
-    SHORTCUTS_KEY,
-    SORT_DIR_KEY,
-    OUTPUT_MODE_KEY,
-    OUTPUT_DEVICE_KEY,
-    LAYOUT_MODE_KEY,
-    VOLUME_LIMIT_KEY,
-    VOLUME_MODE_KEY,
-    VOLUME_STEP_KEY,
-    WALLPAPER_KEY,
     type ShortcutAction,
 } from '../lib/homeState';
-
-const PAUSE_IF_MUTED_KEY = 'music-app-pause-if-muted';
+import {getInitialConfig, setStoredValue, syncConfigFromBackend, type SymvoniaConfig} from '../lib/storage';
 import type {Lang} from '../lib/translations';
-import {t} from '../lib/translations';
-
-const APP_VOLUME_KEY = 'music-app-app-volume';
-const FADE_AUDIO_KEY = 'music-app-fade-audio';
-const FADE_DURATION_KEY = 'music-app-fade-duration';
 
 export function usePlayerSettings() {
-    const [musicFolder, setMusicFolderState] = useState<string | null>(null);
-    const [initialized, setInitialized] = useState(false);
-    const [autoWallpaper, setAutoWallpaperState] = useState(true);
-    const [resetOnClose, setResetOnCloseState] = useState(true);
-    const [folderSort, setFolderSortState] = useState('name');
-    const [fileSort, setFileSortState] = useState('name');
-    const [sortDir, setSortDirState] = useState('asc');
-    const [nameSource, setNameSourceState] = useState('filename');
-    const [volumeMode, setVolumeModeState] = useState<'app' | 'system'>('app');
-    const [appVolume, setAppVolumeState] = useState<number>(1); // 0.0 to 1.0 (100% normal sound)
-    const [systemVolume, setSystemVolumeState] = useState<number>(1); // 0.0 to 1.0 (Windows master volume)
+    const init = getInitialConfig();
+
+    const [musicFolder, setMusicFolderState] = useState<string | null>(init.music_folder);
+    const [initialized, setInitialized] = useState(true);
+    const [autoWallpaper, setAutoWallpaperStateInternal] = useState(init.auto_wallpaper);
+    const [resetOnClose, setResetOnCloseStateInternal] = useState(init.reset_on_close);
+    const [folderSort, setFolderSortStateInternal] = useState(init.folder_sort);
+    const [fileSort, setFileSortStateInternal] = useState(init.file_sort);
+    const [sortDir, setSortDirStateInternal] = useState<string>(init.sort_dir);
+    const [nameSource, setNameSourceStateInternal] = useState<string>(init.name_source);
+    const [volumeMode, setVolumeModeStateInternal] = useState<'app' | 'system'>(init.volume_mode as 'app' | 'system');
+    const [appVolume, setAppVolumeState] = useState<number>(init.app_volume);
+    const [systemVolume, setSystemVolumeState] = useState<number>(1);
     const [systemVolumeSynced, setSystemVolumeSynced] = useState(false);
     const [systemMuted, setSystemMuted] = useState(false);
-    const [volumeLimit, setVolumeLimitState] = useState(0); // 0 = no limit
+    const [volumeLimit, setVolumeLimitState] = useState(init.volume_limit);
     const [volumeLimitExceeded, setVolumeLimitExceeded] = useState(false);
-    const [volumeStep, setVolumeStepState] = useState(DEFAULT_VOLUME_STEP);
-    const [language, setLanguageState] = useState<Lang>(DEFAULT_LANGUAGE as Lang);
-    const [formats, setFormatsState] = useState<string[]>(DEFAULT_FORMATS);
-    const [shuffle, setShuffleState] = useState(false);
-    const [repeat, setRepeatState] = useState<'off' | 'all' | 'one'>('off');
-    const [accentColor, setAccentColorState] = useState('sky');
-    const [customAccentHex, setCustomAccentHexState] = useState('#0284c7');
-    const [defaultWallpaper, setDefaultWallpaperState] = useState<string | null>(null);
-    const [outputDevice, setOutputDeviceStateInternal] = useState<string | null>(null);
-    const [outputMode, setOutputModeStateInternal] = useState<'default' | 'bitperfect'>('default');
-    const [layoutMode, setLayoutModeStateInternal] = useState<'default' | 'spotify'>('default');
-    const [shortcuts, setShortcutsState] = useState<Record<ShortcutAction, string>>(DEFAULT_SHORTCUTS);
-    const [pauseIfMuted, setPauseIfMutedState] = useState(true);
-    const [fadeAudio, setFadeAudioStateInternal] = useState(true);
-    const [fadeDuration, setFadeDurationStateInternal] = useState(500);
+    const [volumeStep, setVolumeStepState] = useState(init.volume_step);
+    const [language, setLanguageState] = useState<Lang>(init.language as Lang);
+    const [formats, setFormatsStateInternal] = useState<string[]>(init.formats);
+    const [shuffle, setShuffleStateInternal] = useState(init.shuffle);
+    const [repeat, setRepeatStateInternal] = useState<'off' | 'all' | 'one'>(init.repeat as 'off' | 'all' | 'one');
+    const [accentColor, setAccentColorStateInternal] = useState(init.accent_color);
+    const [customAccentHex, setCustomAccentHexStateInternal] = useState(init.custom_accent_hex);
+    const [defaultWallpaper, setDefaultWallpaperState] = useState<string | null>(init.default_wallpaper);
+    const [outputDevice, setOutputDeviceStateInternal] = useState<string | null>(init.output_device);
+    const [outputMode, setOutputModeStateInternal] = useState<'default' | 'bitperfect'>(init.output_mode as 'default' | 'bitperfect');
+    const [layoutMode, setLayoutModeStateInternal] = useState<'default' | 'spotify'>(init.layout_mode as 'default' | 'spotify');
+    const [shortcuts, setShortcutsState] = useState<Record<ShortcutAction, string>>({
+        ...DEFAULT_SHORTCUTS,
+        ...(init.shortcuts as Record<ShortcutAction, string>),
+    });
+    const [pauseIfMuted, setPauseIfMutedState] = useState(init.pause_if_muted);
+    const [fadeAudio, setFadeAudioStateInternal] = useState(init.fade_audio);
+    const [fadeDuration, setFadeDurationStateInternal] = useState(init.fade_duration);
 
-    const shortcutsRef = useRef<Record<ShortcutAction, string>>(DEFAULT_SHORTCUTS);
-    const volumeLimitRef = useRef<number>(0);
-    const volumeStepRef = useRef<number>(DEFAULT_VOLUME_STEP);
-    const volumeModeRef = useRef<'app' | 'system'>('app');
-    const appVolumeRef = useRef<number>(1);
+    const shortcutsRef = useRef<Record<ShortcutAction, string>>({
+        ...DEFAULT_SHORTCUTS,
+        ...(init.shortcuts as Record<ShortcutAction, string>),
+    });
+    const volumeLimitRef = useRef<number>(init.volume_limit);
+    const volumeStepRef = useRef<number>(init.volume_step);
+    const volumeModeRef = useRef<'app' | 'system'>(init.volume_mode as 'app' | 'system');
+    const appVolumeRef = useRef<number>(init.app_volume);
     const systemVolumeRef = useRef<number>(1);
     const lastLocalVolumeSetRef = useRef<number>(0);
-    const fadeAudioRef = useRef(true);
-    const fadeDurationRef = useRef(500);
+    const fadeAudioRef = useRef(init.fade_audio);
+    const fadeDurationRef = useRef(init.fade_duration);
 
     useEffect(() => {
         fadeAudioRef.current = fadeAudio;
@@ -88,12 +69,12 @@ export function usePlayerSettings() {
 
     const setFadeAudio = useCallback((v: boolean) => {
         setFadeAudioStateInternal(v);
-        safeSetLocalStorage(FADE_AUDIO_KEY, String(v));
+        setStoredValue('fade_audio', v);
     }, []);
 
     const setFadeDuration = useCallback((v: number) => {
         setFadeDurationStateInternal(v);
-        safeSetLocalStorage(FADE_DURATION_KEY, String(v));
+        setStoredValue('fade_duration', v);
     }, []);
 
     useEffect(() => {
@@ -104,23 +85,94 @@ export function usePlayerSettings() {
         systemVolumeRef.current = systemVolume;
     });
 
+    const setAutoWallpaperState = useCallback((v: boolean) => {
+        setAutoWallpaperStateInternal(v);
+        setStoredValue('auto_wallpaper', v);
+    }, []);
+
+    const setResetOnCloseState = useCallback((v: boolean) => {
+        setResetOnCloseStateInternal(v);
+        setStoredValue('reset_on_close', v);
+        if (isBrowserTauri) {
+            getTauri().then(mod => mod.invoke('set_reset_on_close', {enabled: v})).catch(() => {});
+        }
+    }, []);
+
+    const setFolderSortState = useCallback((v: string) => {
+        setFolderSortStateInternal(v);
+        setStoredValue('folder_sort', v);
+    }, []);
+
+    const setFileSortState = useCallback((v: string) => {
+        setFileSortStateInternal(v);
+        setStoredValue('file_sort', v);
+    }, []);
+
+    const setSortDirState = useCallback((v: string) => {
+        setSortDirStateInternal(v);
+        setStoredValue('sort_dir', v as 'asc' | 'desc');
+    }, []);
+
+    const setNameSourceState = useCallback((v: string) => {
+        setNameSourceStateInternal(v);
+        setStoredValue('name_source', v as 'filename' | 'title');
+    }, []);
+
+    const setVolumeModeState = useCallback((v: 'app' | 'system') => {
+        setVolumeModeStateInternal(v);
+        setStoredValue('volume_mode', v);
+    }, []);
+
+    const setFormatsState = useCallback((v: string[]) => {
+        setFormatsStateInternal(v);
+        setStoredValue('formats', v);
+    }, []);
+
+    const setShuffleState = useCallback((v: boolean) => {
+        setShuffleStateInternal(v);
+        setStoredValue('shuffle', v);
+    }, []);
+
+    const setRepeatState = useCallback((v: 'off' | 'all' | 'one') => {
+        setRepeatStateInternal(v);
+        setStoredValue('repeat', v);
+    }, []);
+
+    const setAccentColorState = useCallback((v: string) => {
+        setAccentColorStateInternal(v);
+        setStoredValue('accent_color', v);
+        if (v === 'custom') {
+            setCustomAccentVars(customAccentHex);
+        } else {
+            removeCustomAccentVars();
+        }
+    }, [customAccentHex]);
+
+    const setCustomAccentHexState = useCallback((v: string) => {
+        setCustomAccentHexStateInternal(v);
+        setStoredValue('custom_accent_hex', v);
+        if (accentColor === 'custom') {
+            setCustomAccentVars(v);
+        }
+    }, [accentColor]);
+
     const setAppVolume = useCallback((v: number) => {
         const clamped = Math.max(0, Math.min(1, v));
         setAppVolumeState(clamped);
         appVolumeRef.current = clamped;
-        safeSetLocalStorage(APP_VOLUME_KEY, String(clamped));
+        setStoredValue('app_volume', clamped, { debounceMs: 150 });
     }, []);
 
     const setLanguage = useCallback((v: Lang) => {
         setLanguageState(v);
-        safeSetLocalStorage(LANGUAGE_KEY, v);
+        setStoredValue('language', v);
     }, []);
 
     const setVolumeStep = useCallback((v: number) => {
         const clamped = Math.max(1, Math.min(10, v));
         setVolumeStepState(clamped);
         volumeStepRef.current = clamped;
-        safeSetLocalStorage(VOLUME_STEP_KEY, String(clamped));
+        setStoredValue('volume_step', clamped);
     }, []);
 
     const setSystemVolume = useCallback((v: number) => {
@@ -131,159 +183,81 @@ export function usePlayerSettings() {
 
     const setMusicFolder = useCallback((folder: string | null) => {
         setMusicFolderState(folder);
-        if (folder) {
-            safeSetLocalStorage(FOLDER_STORAGE_KEY, folder);
-        } else {
-            window.localStorage.removeItem(FOLDER_STORAGE_KEY);
-        }
+        setStoredValue('music_folder', folder);
     }, []);
 
     const setDefaultWallpaper = useCallback((path: string | null) => {
         setDefaultWallpaperState(path);
-        if (path) {
-            safeSetLocalStorage(WALLPAPER_KEY, path);
+        setStoredValue('default_wallpaper', path);
+        if (isBrowserTauri) {
+            getTauri().then(mod => {
+                mod.invoke('set_default_wallpaper_path', {path});
+            }).catch(() => {});
+        }
+    }, []);
+
+    // Initial setup of custom accent variables if active
+    useEffect(() => {
+        if (accentColor === 'custom') {
+            setCustomAccentVars(customAccentHex);
         } else {
-            window.localStorage.removeItem(WALLPAPER_KEY);
+            removeCustomAccentVars();
         }
-    }, []);
+    }, [accentColor, customAccentHex]);
 
-    useEffect(() => {
-        const saved = loadSavedFolder();
-        if (saved) {
-            setMusicFolderState(saved);
-        }
-    }, []);
-
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        const aw = window.localStorage.getItem(AUTO_WALLPAPER_KEY);
-        if (aw !== null) setAutoWallpaperState(aw === 'true');
-        const rc = window.localStorage.getItem(RESET_ON_CLOSE_KEY);
-        if (rc !== null) setResetOnCloseState(rc === 'true');
-        const fs = window.localStorage.getItem(FOLDER_SORT_KEY);
-        if (fs) setFolderSortState(fs);
-        const fls = window.localStorage.getItem(FILE_SORT_KEY);
-        if (fls) setFileSortState(fls);
-        const sd = window.localStorage.getItem(SORT_DIR_KEY);
-        if (sd) setSortDirState(sd);
-        const fm = window.localStorage.getItem(FORMATS_KEY);
-        if (fm) {
-            try {
-                const parsed = JSON.parse(fm);
-                if (Array.isArray(parsed) && parsed.every((x) => typeof x === 'string' && x.length > 0)) {
-                    setFormatsState(parsed);
-                }
-            } catch { /* ignore */}
-        }
-        const ac = window.localStorage.getItem(ACCENT_KEY);
-        if (ac) setAccentColorState(ac);
-        const ca = window.localStorage.getItem(CUSTOM_ACCENT_KEY);
-        if (ca) setCustomAccentHexState(ca);
-        const wp = window.localStorage.getItem(WALLPAPER_KEY);
-        if (wp) setDefaultWallpaperState(wp);
-
-        const od = window.localStorage.getItem(OUTPUT_DEVICE_KEY);
-        if (od) {
-            setOutputDeviceStateInternal(od);
-        }
-        const om = window.localStorage.getItem(OUTPUT_MODE_KEY);
-        if (om === 'bitperfect') setOutputModeStateInternal('bitperfect');
-        const sh = window.localStorage.getItem('music-app-shuffle');
-        if (sh !== null) setShuffleState(sh === 'true');
-        const rp = window.localStorage.getItem('music-app-repeat');
-        if (rp === 'all' || rp === 'one') setRepeatState(rp);
-        const ns = window.localStorage.getItem(NAME_SOURCE_KEY);
-        if (ns === 'filename' || ns === 'title') setNameSourceState(ns);
-        const vm = window.localStorage.getItem(VOLUME_MODE_KEY);
-        if (vm === 'system') setVolumeModeState('system');
-        const av = window.localStorage.getItem(APP_VOLUME_KEY);
-        if (av !== null) {
-            const parsedAv = parseFloat(av);
-            if (!isNaN(parsedAv) && parsedAv >= 0 && parsedAv <= 1) {
-                setAppVolumeState(parsedAv);
-                appVolumeRef.current = parsedAv;
-            }
-        }
-        const vl = window.localStorage.getItem(VOLUME_LIMIT_KEY);
-        if (vl) {
-            const n = parseInt(vl, 10);
-            if (!isNaN(n) && n >= 0 && n <= 100) setVolumeLimitState(n);
-        }
-        const vs = window.localStorage.getItem(VOLUME_STEP_KEY);
-        if (vs) {
-            const n = parseInt(vs, 10);
-            if (!isNaN(n) && n >= 1 && n <= 10) {
-                setVolumeStepState(n);
-                volumeStepRef.current = n;
-            }
-        }
-        const ln = window.localStorage.getItem(LANGUAGE_KEY);
-        if (ln === 'en' || ln === 'id') {
-            setLanguageState(ln);
-        }
-        const sc = window.localStorage.getItem(SHORTCUTS_KEY);
-        if (sc) {
-            try {
-                const parsed = JSON.parse(sc);
-                if (parsed && typeof parsed === 'object') {
-                    setShortcutsState({...DEFAULT_SHORTCUTS, ...parsed});
-                    shortcutsRef.current = {...DEFAULT_SHORTCUTS, ...parsed};
-                }
-            } catch { /* ignore */}
-        }
-        const pm = window.localStorage.getItem(PAUSE_IF_MUTED_KEY);
-        if (pm !== null) setPauseIfMutedState(pm === 'true');
-        const fa = window.localStorage.getItem(FADE_AUDIO_KEY);
-        if (fa !== null) setFadeAudioStateInternal(fa === 'true');
-        const fd = window.localStorage.getItem(FADE_DURATION_KEY);
-        if (fd !== null) {
-            const num = parseInt(fd, 10);
-            if (!isNaN(num) && num > 0) setFadeDurationStateInternal(num);
-        }
-        const lm = window.localStorage.getItem(LAYOUT_MODE_KEY);
-        if (lm === 'default' || lm === 'spotify') {
-            setLayoutModeStateInternal(lm);
-        }
-        setInitialized(true);
-    }, []);
-
+    // Asynchronously fetch config from Rust backend on startup and apply any updates
     useEffect(() => {
         if (!isBrowserTauri) return;
-        safeSetLocalStorage(AUTO_WALLPAPER_KEY, String(autoWallpaper));
-    }, [autoWallpaper]);
+        let cancelled = false;
+        getTauri().then(tauri => tauri.invoke<SymvoniaConfig>('get_app_config')).then(backendConfig => {
+            if (cancelled || !backendConfig) return;
+            syncConfigFromBackend(backendConfig);
+            if (backendConfig.music_folder !== undefined) setMusicFolderState(backendConfig.music_folder);
+            if (backendConfig.language) setLanguageState(backendConfig.language as Lang);
+            if (backendConfig.accent_color) setAccentColorStateInternal(backendConfig.accent_color);
+            if (backendConfig.custom_accent_hex) setCustomAccentHexStateInternal(backendConfig.custom_accent_hex);
+            if (backendConfig.layout_mode) setLayoutModeStateInternal(backendConfig.layout_mode as 'default' | 'spotify');
+            if (backendConfig.auto_wallpaper !== undefined) setAutoWallpaperStateInternal(backendConfig.auto_wallpaper);
+            if (backendConfig.reset_on_close !== undefined) setResetOnCloseStateInternal(backendConfig.reset_on_close);
+            if (backendConfig.folder_sort) setFolderSortStateInternal(backendConfig.folder_sort);
+            if (backendConfig.file_sort) setFileSortStateInternal(backendConfig.file_sort);
+            if (backendConfig.sort_dir) setSortDirStateInternal(backendConfig.sort_dir);
+            if (backendConfig.name_source) setNameSourceStateInternal(backendConfig.name_source);
+            if (backendConfig.volume_mode) setVolumeModeStateInternal(backendConfig.volume_mode as 'app' | 'system');
+            if (backendConfig.app_volume !== undefined) {
+                setAppVolumeState(backendConfig.app_volume);
+                appVolumeRef.current = backendConfig.app_volume;
+            }
+            if (backendConfig.volume_limit !== undefined) {
+                setVolumeLimitState(backendConfig.volume_limit);
+                volumeLimitRef.current = backendConfig.volume_limit;
+            }
+            if (backendConfig.volume_step !== undefined) {
+                setVolumeStepState(backendConfig.volume_step);
+                volumeStepRef.current = backendConfig.volume_step;
+            }
+            if (backendConfig.formats && backendConfig.formats.length > 0) setFormatsStateInternal(backendConfig.formats);
+            if (backendConfig.shuffle !== undefined) setShuffleStateInternal(backendConfig.shuffle);
+            if (backendConfig.repeat) setRepeatStateInternal(backendConfig.repeat as 'off' | 'all' | 'one');
+            if (backendConfig.default_wallpaper !== undefined) setDefaultWallpaperState(backendConfig.default_wallpaper);
+            if (backendConfig.output_device !== undefined) setOutputDeviceStateInternal(backendConfig.output_device);
+            if (backendConfig.output_mode) setOutputModeStateInternal(backendConfig.output_mode as 'default' | 'bitperfect');
+            if (backendConfig.shortcuts) {
+                const sc = { ...DEFAULT_SHORTCUTS, ...backendConfig.shortcuts };
+                setShortcutsState(sc as Record<ShortcutAction, string>);
+                shortcutsRef.current = sc as Record<ShortcutAction, string>;
+            }
+            if (backendConfig.pause_if_muted !== undefined) setPauseIfMutedState(backendConfig.pause_if_muted);
+            if (backendConfig.fade_audio !== undefined) setFadeAudioStateInternal(backendConfig.fade_audio);
+            if (backendConfig.fade_duration !== undefined) setFadeDurationStateInternal(backendConfig.fade_duration);
+        }).catch(err => {
+            console.error('[Symvonia Settings] Failed to load config from backend:', err);
+        });
 
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        safeSetLocalStorage(RESET_ON_CLOSE_KEY, String(resetOnClose));
-        if (isBrowserTauri) {
-            getTauri().then(mod => mod.invoke('set_reset_on_close', {enabled: resetOnClose})).catch(() => {});
-        }
-    }, [resetOnClose]);
-
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        safeSetLocalStorage(FOLDER_SORT_KEY, folderSort);
-    }, [folderSort]);
-
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        safeSetLocalStorage(FILE_SORT_KEY, fileSort);
-    }, [fileSort]);
-
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        safeSetLocalStorage(SORT_DIR_KEY, sortDir);
-    }, [sortDir]);
-
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        safeSetLocalStorage(NAME_SOURCE_KEY, nameSource);
-    }, [nameSource]);
-
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        safeSetLocalStorage(VOLUME_MODE_KEY, volumeMode);
-    }, [volumeMode]);
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     useEffect(() => {
         if (!isBrowserTauri || volumeMode !== 'system') {
@@ -382,38 +356,6 @@ export function usePlayerSettings() {
     }, [language, volumeMode]);
 
     useEffect(() => {
-        if (typeof window === 'undefined') return;
-        safeSetLocalStorage(FORMATS_KEY, JSON.stringify(formats));
-    }, [formats]);
-
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        safeSetLocalStorage('music-app-shuffle', String(shuffle));
-    }, [shuffle]);
-
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        safeSetLocalStorage(ACCENT_KEY, accentColor);
-        if (accentColor === 'custom') {
-            setCustomAccentVars(customAccentHex);
-        } else {
-            removeCustomAccentVars();
-        }
-    }, [accentColor, customAccentHex]);
-
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        safeSetLocalStorage(CUSTOM_ACCENT_KEY, customAccentHex);
-    }, [customAccentHex]);
-
-    useEffect(() => {
-        if (!isBrowserTauri) return;
-        getTauri().then(mod => {
-            mod.invoke('set_default_wallpaper_path', {path: defaultWallpaper});
-        }).catch(() => {});
-    }, [defaultWallpaper]);
-
-    useEffect(() => {
         if (!isBrowserTauri) return;
         let cancelled = false;
         let unlisten: (() => void) | null = null;
@@ -422,14 +364,13 @@ export function usePlayerSettings() {
                 try {
                     const url = event.payload;
                     const domain = new URL(url).hostname.replace(/^www\./, '');
-                    const raw = localStorage.getItem('music-app-stream-history');
-                    const entries: Array<{url: string; timestamp: number; domain: string}> = raw ? JSON.parse(raw) : [];
-                    entries.unshift({url, timestamp: Date.now(), domain});
-                    const unique = entries.filter((e, i, a) => a.findIndex(x => x.url === e.url) === i).slice(0, 200);
-                    try {
-                        localStorage.setItem('music-app-stream-history', JSON.stringify(unique));
-                    } catch {}
-                } catch {}
+                    const currentHistory = getInitialConfig().stream_history || [];
+                    const newEntry = { id: String(Date.now()), title: domain, url, timestamp: Date.now() };
+                    const updated = [newEntry, ...currentHistory.filter(x => x.url !== url)].slice(0, 200);
+                    setStoredValue('stream_history', updated);
+                } catch {
+                    // ignore
+                }
             }).then((fn) => {
                 if (cancelled) {
                     fn();
@@ -448,7 +389,7 @@ export function usePlayerSettings() {
         setShortcutsState(prev => {
             const next = {...prev, [action]: newKey};
             shortcutsRef.current = next as Record<ShortcutAction, string>;
-            safeSetLocalStorage(SHORTCUTS_KEY, JSON.stringify(next));
+            setStoredValue('shortcuts', next);
             return next as Record<ShortcutAction, string>;
         });
     }, []);
@@ -456,12 +397,12 @@ export function usePlayerSettings() {
     const resetShortcuts = useCallback(() => {
         setShortcutsState(DEFAULT_SHORTCUTS);
         shortcutsRef.current = DEFAULT_SHORTCUTS;
-        safeSetLocalStorage(SHORTCUTS_KEY, JSON.stringify(DEFAULT_SHORTCUTS));
+        setStoredValue('shortcuts', DEFAULT_SHORTCUTS);
     }, []);
 
     const handleVolumeLimitSetting = (v: number) => {
         setVolumeLimitState(v);
-        safeSetLocalStorage(VOLUME_LIMIT_KEY, String(v));
+        setStoredValue('volume_limit', v);
         if (v > 0 && volumeModeRef.current === 'system' && systemVolumeRef.current * 100 > v) {
             const newVol = v / 100;
             setSystemVolume(newVol);
@@ -473,26 +414,22 @@ export function usePlayerSettings() {
 
     const setOutputDeviceState = useCallback((name: string | null) => {
         setOutputDeviceStateInternal(name);
-        if (name) {
-            safeSetLocalStorage(OUTPUT_DEVICE_KEY, name);
-        } else {
-            window.localStorage.removeItem(OUTPUT_DEVICE_KEY);
-        }
+        setStoredValue('output_device', name);
     }, []);
 
     const setOutputMode = useCallback((mode: 'default' | 'bitperfect') => {
         setOutputModeStateInternal(mode);
-        safeSetLocalStorage(OUTPUT_MODE_KEY, mode);
+        setStoredValue('output_mode', mode);
     }, []);
 
     const setLayoutModeState = useCallback((mode: 'default' | 'spotify') => {
         setLayoutModeStateInternal(mode);
-        safeSetLocalStorage(LAYOUT_MODE_KEY, mode);
+        setStoredValue('layout_mode', mode);
     }, []);
 
     const setPauseIfMuted = useCallback((v: boolean) => {
         setPauseIfMutedState(v);
-        safeSetLocalStorage(PAUSE_IF_MUTED_KEY, String(v));
+        setStoredValue('pause_if_muted', v);
     }, []);
 
     return {

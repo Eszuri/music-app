@@ -36,23 +36,19 @@ interface MetadataPanelProps {
 }
 
 
+import {getStoredValue, setStoredValue} from '../lib/storage';
+
 const MIN_WIDTH = 360;
 const MAX_WIDTH = 640;
 const DEFAULT_WIDTH = 360;
-const STORAGE_KEY = 'music-app-meta-width';
-const TAB_STORAGE_KEY = 'music-app-meta-tab';
 
 function loadSavedWidth(): number {
-    if (typeof window === 'undefined') return DEFAULT_WIDTH;
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_WIDTH;
-    const num = parseInt(raw, 10);
+    const num = Number(getStoredValue('meta_width', DEFAULT_WIDTH));
     return isNaN(num) ? DEFAULT_WIDTH : Math.min(Math.max(num, MIN_WIDTH), MAX_WIDTH);
 }
 
 function loadSavedTab(): 'metadata' | 'lyrics' {
-    if (typeof window === 'undefined') return 'metadata';
-    const raw = window.localStorage.getItem(TAB_STORAGE_KEY);
+    const raw = getStoredValue('active_metadata_tab', 'metadata');
     return raw === 'lyrics' ? 'lyrics' : 'metadata';
 }
 
@@ -486,17 +482,10 @@ function MetadataPanel({
 
     const changeTab = useCallback((tab: 'metadata' | 'lyrics') => {
         setActiveTab(tab);
-        if (typeof window !== 'undefined') {
-            window.localStorage.setItem(TAB_STORAGE_KEY, tab);
-        }
+        setStoredValue('active_metadata_tab', tab);
     }, []);
-    const [width, setWidth] = useState<number>(DEFAULT_WIDTH);
+    const [width, setWidth] = useState<number>(() => loadSavedWidth());
 
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            setWidth(loadSavedWidth());
-        }
-    }, []);
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
     const isDraggingRef = useRef(false);
     const startXRef = useRef(0);
@@ -530,18 +519,14 @@ function MetadataPanel({
         if (resetSidebarToken === 0) return;
         setWidth(DEFAULT_WIDTH);
         setActiveTab('metadata');
-        if (typeof window !== 'undefined') {
-            window.localStorage.removeItem(STORAGE_KEY);
-            window.localStorage.removeItem(TAB_STORAGE_KEY);
-        }
+        setStoredValue('meta_width', DEFAULT_WIDTH);
+        setStoredValue('active_metadata_tab', 'metadata');
     }, [resetSidebarToken]);
 
     useEffect(() => {
         const handleWindowResize = () => {
             const currentWinW = window.innerWidth;
-            const folderWidth = typeof window !== 'undefined'
-                ? Number(window.localStorage.getItem('music-app-sidebar-width') || 360)
-                : 360;
+            const folderWidth = getStoredValue('sidebar_width', 360);
             const maxAllowed = Math.max(MIN_WIDTH, currentWinW - folderWidth - 300);
             const effectiveMax = Math.min(MAX_WIDTH, maxAllowed);
             setWidth(prev => (prev > effectiveMax ? effectiveMax : prev));
@@ -554,9 +539,7 @@ function MetadataPanel({
         if (!isDraggingRef.current) return;
         const delta = startXRef.current - e.clientX;
         const currentWinW = window.innerWidth;
-        const folderWidth = typeof window !== 'undefined'
-            ? Number(window.localStorage.getItem('music-app-sidebar-width') || 360)
-            : 360;
+        const folderWidth = getStoredValue('sidebar_width', 360);
         const maxAllowed = Math.max(MIN_WIDTH, currentWinW - folderWidth - 300);
         const effectiveMax = Math.min(MAX_WIDTH, maxAllowed);
         const next = Math.min(effectiveMax, Math.max(MIN_WIDTH, startWidthRef.current + delta));
@@ -571,9 +554,8 @@ function MetadataPanel({
         isDraggingRef.current = false;
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
-        // Write to localStorage once on release instead of every frame
         if (widthPendingRef.current !== null) {
-            window.localStorage.setItem(STORAGE_KEY, String(widthPendingRef.current));
+            setStoredValue('meta_width', widthPendingRef.current);
             widthPendingRef.current = null;
         }
         window.removeEventListener('mousemove', onMouseMove);

@@ -1,7 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {safeSetLocalStorage} from '../lib/homeState';
-
-const EQ_STORAGE_KEY = 'music-app-equalizer-state';
+import {getStoredValue, setStoredValue} from '../lib/storage';
 
 export type EQBandMode = 5 | 10 | 15 | 31;
 
@@ -118,27 +116,25 @@ const DEFAULT_STATE: EqualizerState = {
 };
 
 function loadSavedEqualizer(): EqualizerState {
-    if (typeof window === 'undefined') return DEFAULT_STATE;
-    try {
-        const raw = window.localStorage.getItem(EQ_STORAGE_KEY);
-        if (!raw) return DEFAULT_STATE;
-        const parsed = JSON.parse(raw);
-        if (typeof parsed !== 'object' || !parsed) return DEFAULT_STATE;
-
-        const enabled = typeof parsed.enabled === 'boolean' ? parsed.enabled : true;
-        const bandMode = ([5, 10, 15, 31].includes(parsed.bandMode) ? parsed.bandMode : 10) as EQBandMode;
-        const preampDb = Math.max(-12, Math.min(12, Number(parsed.preampDb) || 0));
-        const autoPreamp = typeof parsed.autoPreamp === 'boolean' ? parsed.autoPreamp : true;
-        const preset = typeof parsed.preset === 'string' ? (parsed.preset as EQPresetKey) : 'flat';
-        const gains = Array.isArray(parsed.gains) && parsed.gains.length === bandMode
-            ? parsed.gains.map((v: number) => Math.max(-12, Math.min(12, Number(v) || 0)))
-            : getPresetGains(bandMode, preset);
-        const zoomLevel = Math.max(1, Math.min(2, Number(parsed.zoomLevel) || 1));
-
-        return {enabled, bandMode, preampDb, autoPreamp, preset, gains, zoomLevel};
-    } catch {
-        return DEFAULT_STATE;
+    const eq = getStoredValue('equalizer');
+    if (eq && typeof eq === 'object') {
+        const enabled = typeof eq.enabled === 'boolean' ? eq.enabled : false;
+        const preset = typeof eq.preset === 'string' ? (eq.preset as EQPresetKey) : 'flat';
+        const preampDb = Math.max(-12, Math.min(12, Number(eq.pre_amp) || 0));
+        const gains = Array.isArray(eq.bands) && eq.bands.length === 10
+            ? eq.bands.map((v: number) => Math.max(-12, Math.min(12, Number(v) || 0)))
+            : getPresetGains(10, preset);
+        return {
+            enabled,
+            bandMode: 10,
+            preampDb,
+            autoPreamp: true,
+            preset,
+            gains,
+            zoomLevel: 1,
+        };
     }
+    return DEFAULT_STATE;
 }
 
 export function useEqualizer() {
@@ -147,7 +143,12 @@ export function useEqualizer() {
     stateRef.current = state;
 
     useEffect(() => {
-        safeSetLocalStorage(EQ_STORAGE_KEY, JSON.stringify(state));
+        setStoredValue('equalizer', {
+            enabled: state.enabled,
+            preset: state.preset,
+            bands: state.gains,
+            pre_amp: state.preampDb,
+        }, { debounceMs: 200 });
     }, [state]);
 
     const setEnabled = useCallback((enabled: boolean) => {
