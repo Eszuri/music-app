@@ -588,7 +588,7 @@ export default function LyricsSection({
                                         {/* Hardware Details & Speed */}
                                         <div className="flex items-center gap-2 pt-0.5 text-[10px] flex-wrap">
                                             <span className="px-2 py-0.5 rounded bg-zinc-900/90 border border-zinc-800 text-zinc-300 font-sans">
-                                                ⚡ {t(lang, model.speedRatingKey)}
+                                                🎯 {t(lang, model.speedRatingKey)}
                                             </span>
                                             <span className="px-2 py-0.5 rounded bg-zinc-900/90 border border-zinc-800 text-zinc-300 font-sans">
                                                 💻 {t(lang, model.gpuRequirementKey)}
