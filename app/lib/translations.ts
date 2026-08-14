@@ -704,7 +704,7 @@ const id: Record<string, string> = {
     'lyrics.model.medium.speed': 'Tinggi Akurasi (~2x speed)',
     'lyrics.model.turbo.gpu': 'Disarankan GPU Dedicated (VRAM 4GB+)',
     'lyrics.model.turbo.speed': 'Tinggi Akurasi & Cepat (~8x speed)',
-    'lyrics.model.large.gpu': 'Wajib GPU Dedicated (VRAM 6GB+)',
+    'lyrics.model.large.gpu': 'GPU Dedicated (VRAM 6GB+)',
     'lyrics.model.large.speed': 'Presisi Maksimal (~1x speed di CPU)',
     'lyrics.manual.title': 'Petunjuk Pemasangan Model Secara Manual',
     'lyrics.manual.step1': '1. Unduh berkas model .bin pilihan Anda secara langsung dari repository HuggingFace (ggml-*.bin).',
@@ -1299,7 +1299,7 @@ const id: Record<string, string> = {
     'log.autoUpdateFailed': 'Download pembaruan otomatis gagal: {msg}',
 };
 
-const all: Record<Lang, Record<string, string>> = { en, id };
+const all: Record<Lang, Record<string, string>> = {en, id};
 
 export function t(lang: Lang, key: string, vars?: Record<string, string | number>): string {
     const map = all[lang] || en;

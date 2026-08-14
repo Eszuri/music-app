@@ -303,7 +303,8 @@ export default function LyricsSection({
                 {/* 2-Column Overview Grid: Narrower Filter Column (4) & Wider Specs Column (8) */}
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 pt-2 items-stretch">
                     {/* KOLOM 1: FILTER MODEL AI (Narrower 4-Span Column) */}
-                    <div className="md:col-span-4 p-4 rounded-2xl bg-zinc-900/70 border border-zinc-800/80 flex flex-col justify-between space-y-3">
+                    <div className="md:col-span-4 p-2 rounded-2xl bg-zinc-900/70 border border-zinc-800/80 flex flex-col h-full min-h-full">
+                        {/* Title Header at Top */}
                         <div className="flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={accent.text400}>
                                 <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
@@ -313,49 +314,51 @@ export default function LyricsSection({
                             </span>
                         </div>
 
-                        {/* Filter Control Vertical List (Clean Text + Number Badges) */}
-                        <div className="p-1 rounded-xl bg-zinc-950/90 border border-zinc-800/80 flex flex-col gap-1">
-                            <button
-                                onClick={() => setFilterStatus('all')}
-                                className={`py-2 px-3 text-xs font-semibold rounded-lg transition-all flex items-center justify-between cursor-pointer ${
-                                    filterStatus === 'all'
-                                        ? `${accent.bg500} text-white font-bold shadow-xs`
-                                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60'
-                                }`}
-                            >
-                                <span>{t(lang, 'lyrics.filter.all')}</span>
-                                <span className="text-[10px] font-mono font-bold opacity-90 px-2 py-0.5 rounded bg-black/30 shrink-0">
-                                    {AI_MODELS_LIST.length}
-                                </span>
-                            </button>
+                        {/* Filter Control Vertical List (Positioned EXACTLY IN VERTICAL CENTER Top-to-Bottom via my-auto) */}
+                        <div className="my-auto pt-3">
+                            <div className="p-1.5 rounded-xl bg-zinc-950/90 border border-zinc-800/80 flex flex-col gap-2">
+                                <button
+                                    onClick={() => setFilterStatus('all')}
+                                    className={`py-3 px-4 text-xs font-semibold rounded-lg transition-all flex items-center justify-between cursor-pointer min-h-[42px] ${
+                                        filterStatus === 'all'
+                                            ? `${accent.bg500} text-white font-bold shadow-xs`
+                                            : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60'
+                                    }`}
+                                >
+                                    <span>{t(lang, 'lyrics.filter.all')}</span>
+                                    <span className="text-[10px] font-mono text-white font-bold opacity-90 px-2 py-1 rounded bg-black/30 shrink-0">
+                                        {AI_MODELS_LIST.length}
+                                    </span>
+                                </button>
 
-                            <button
-                                onClick={() => setFilterStatus('installed')}
-                                className={`py-2 px-3 text-xs font-semibold rounded-lg transition-all flex items-center justify-between cursor-pointer ${
-                                    filterStatus === 'installed'
-                                        ? `${accent.bg500} text-white font-bold shadow-xs`
-                                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60'
-                                }`}
-                            >
-                                <span>{t(lang, 'lyrics.filter.installed')}</span>
-                                <span className="text-[10px] font-mono font-bold opacity-90 px-2 py-0.5 rounded bg-black/30 shrink-0">
-                                    {downloadedModels.length}
-                                </span>
-                            </button>
+                                <button
+                                    onClick={() => setFilterStatus('installed')}
+                                    className={`py-3 px-4 text-xs font-semibold rounded-lg transition-all flex items-center justify-between cursor-pointer min-h-[42px] ${
+                                        filterStatus === 'installed'
+                                            ? `${accent.bg500} text-white font-bold shadow-xs`
+                                            : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60'
+                                    }`}
+                                >
+                                    <span>{t(lang, 'lyrics.filter.installed')}</span>
+                                    <span className="text-[10px] font-mono text-white font-bold opacity-90 px-2 py-1 rounded bg-black/30 shrink-0">
+                                        {downloadedModels.length}
+                                    </span>
+                                </button>
 
-                            <button
-                                onClick={() => setFilterStatus('not_installed')}
-                                className={`py-2 px-3 text-xs font-semibold rounded-lg transition-all flex items-center justify-between cursor-pointer ${
-                                    filterStatus === 'not_installed'
-                                        ? `${accent.bg500} text-white font-bold shadow-xs`
-                                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60'
-                                }`}
-                            >
-                                <span>{t(lang, 'lyrics.filter.notInstalled')}</span>
-                                <span className="text-[10px] font-mono font-bold opacity-90 px-2 py-0.5 rounded bg-black/30 shrink-0">
-                                    {AI_MODELS_LIST.length - downloadedModels.length}
-                                </span>
-                            </button>
+                                <button
+                                    onClick={() => setFilterStatus('not_installed')}
+                                    className={`py-3 px-4 text-xs font-semibold rounded-lg transition-all flex items-center justify-between cursor-pointer min-h-[42px] ${
+                                        filterStatus === 'not_installed'
+                                            ? `${accent.bg500} text-white font-bold shadow-xs`
+                                            : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60'
+                                    }`}
+                                >
+                                    <span>{t(lang, 'lyrics.filter.notInstalled')}</span>
+                                    <span className="text-[10px] font-mono text-white font-bold opacity-90 px-2 py-1 rounded bg-black/30 shrink-0">
+                                        {AI_MODELS_LIST.length - downloadedModels.length}
+                                    </span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
