@@ -221,7 +221,7 @@ pub fn verify_plugin_executable(src: &Path) -> Result<(), String> {
 
     let meta = fs::metadata(src).map_err(|e| format!("Gagal membaca metadata berkas: {}", e))?;
     let len = meta.len();
-    if len < 500 * 1024 || len > 500 * 1024 * 1024 {
+    if !(500 * 1024..=500 * 1024 * 1024).contains(&len) {
         return Err(format!(
             "Ukuran berkas ({:.2} MB) tidak valid untuk plugin Symvonia AI Lyrics Engine.",
             len as f64 / (1024.0 * 1024.0)
@@ -236,10 +236,8 @@ pub fn verify_plugin_executable(src: &Path) -> Result<(), String> {
     }
 
     let pe_offset = u32::from_le_bytes([header[60], header[61], header[62], header[63]]) as usize;
-    if pe_offset + 4 <= n {
-        if &header[pe_offset..pe_offset + 4] != b"PE\0\0" {
-            return Err("Berkas bukan merupakan PE Executable Windows yang valid (Missing PE signature).".into());
-        }
+    if pe_offset + 4 <= n && &header[pe_offset..pe_offset + 4] != b"PE\0\0" {
+        return Err("Berkas bukan merupakan PE Executable Windows yang valid (Missing PE signature).".into());
     }
 
     let nonce: u64 = std::time::SystemTime::now()

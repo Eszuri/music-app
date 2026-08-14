@@ -76,20 +76,24 @@ export function useAppLogging() {
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
+        let cancelled = false;
         let unlisten: (() => void) | null = null;
         import('../lib/homeState').then(({ isBrowserTauri }) => {
-            if (!isBrowserTauri) return;
+            if (!isBrowserTauri || cancelled) return;
             import('@tauri-apps/api/event').then(({ listen }) => {
+                if (cancelled) return;
                 listen<string>('ai-lyrics-event', (event) => {
                     if (event.payload) {
                         addLog('info', event.payload);
                     }
                 }).then((fn) => {
-                    unlisten = fn;
+                    if (cancelled) fn();
+                    else unlisten = fn;
                 });
             });
         });
         return () => {
+            cancelled = true;
             if (unlisten) unlisten();
         };
     }, [addLog]);

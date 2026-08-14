@@ -12,6 +12,8 @@ import {t, type Lang} from "../lib/translations";
 import {useGainBoost} from "./useGainBoost";
 import {useEqualizer} from "./useEqualizer";
 import {useBitPerfectEngine} from "./useBitPerfectEngine";
+import {useVolumeFade} from "./audio/useVolumeFade";
+import {useAudioSrc} from "./audio/useAudioSrc";
 
 interface UseAudioPlayerOptions {
     lang: Lang;
@@ -117,25 +119,19 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     const sessionRestoreAttemptedRef = useRef(false);
     const playlistFolderRef = useRef<string | null>(null);
     const skipPlaylistRebuildRef = useRef(false);
-    const fadeAudioRef = useRef(fadeAudio);
-    const fadeDurationRef = useRef(fadeDuration);
-    const fadeAnimationRef = useRef<number | null>(null);
-    const fadeTokenRef = useRef(0);
     const outputDeviceRef = useRef<string | null>(outputDevice);
     const bpActiveRef = useRef(false);
     const prevBpActiveRef = useRef<boolean | null>(null);
     const bpSendCommandRef = useRef<(cmd: Record<string, unknown>) => Promise<void>>(async () => {});
     const enginePlayRef = useRef<(file: FileEntry, seekPosition?: number) => Promise<void>>(async () => {});
 
+    const { fadeVolumeTo, cancelFade, fadeTokenRef, fadeAudioRef, fadeDurationRef } = useVolumeFade(audioRef, fadeAudio, fadeDuration);
+    const { getAudioSrc } = useAudioSrc();
+
     const currentPathRef = useRef<string | null>(currentPath);
     useEffect(() => {
         currentPathRef.current = currentPath;
     }, [currentPath]);
-
-    useEffect(() => {
-        fadeAudioRef.current = fadeAudio;
-        fadeDurationRef.current = fadeDuration;
-    }, [fadeAudio, fadeDuration]);
 
     const makeTempFileEntry = (filePath: string): FileEntry => {
         const name = filePath.split(/[/\\]/).pop() || filePath;
@@ -155,63 +151,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
 
 
-    const fadeVolumeTo = useCallback((targetVol: number, durationMs: number, onComplete?: () => void) => {
-        const audio = audioRef.current;
-        const currentToken = fadeTokenRef.current;
 
-        if (fadeAnimationRef.current) {
-            cancelAnimationFrame(fadeAnimationRef.current);
-            fadeAnimationRef.current = null;
-        }
-
-        const clampedTarget = Math.max(0, Math.min(1, targetVol));
-
-        if (!audio || !fadeAudioRef.current || durationMs <= 0) {
-            if (audio) audio.volume = clampedTarget;
-            if (currentToken === fadeTokenRef.current) {
-                onComplete?.();
-            }
-            return;
-        }
-
-        const startVol = audio.volume;
-        const startTime = performance.now();
-
-        const step = (now: number) => {
-            if (currentToken !== fadeTokenRef.current) return;
-
-            const elapsed = now - startTime;
-            const progress = Math.min(1, elapsed / durationMs);
-            const current = startVol + (clampedTarget - startVol) * progress;
-            if (audio) audio.volume = Math.max(0, Math.min(1, current));
-
-            if (progress < 1) {
-                fadeAnimationRef.current = requestAnimationFrame(step);
-            } else {
-                fadeAnimationRef.current = null;
-                if (audio) audio.volume = clampedTarget;
-                if (currentToken === fadeTokenRef.current) {
-                    onComplete?.();
-                }
-            }
-        };
-
-        fadeAnimationRef.current = requestAnimationFrame(step);
-    }, []);
-
-    const getAudioSrc = useCallback((filePath: string): string => {
-        if (isBrowserTauri && typeof window !== "undefined") {
-            const internals = (window as unknown as {
-                __TAURI_INTERNALS__?: {
-                    convertFileSrc: (p: string, protocol?: string) => string;
-                };
-            }).__TAURI_INTERNALS__;
-            if (internals?.convertFileSrc) {
-                return internals.convertFileSrc(filePath, "stream");
-            }
-        }
-        return filePath;
-    }, []);
 
     useEffect(() => {
         filesRef.current = files;
