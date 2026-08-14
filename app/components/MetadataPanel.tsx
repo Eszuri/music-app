@@ -309,8 +309,8 @@ function LyricsSection({
                                 style={
                                     isActive
                                         ? {
-                                              color: accent.hex || '#22c55e',
-                                              textShadow: `0 0 16px ${accent.hex || '#22c55e'}30`,
+                                              color: accent.hex500 || accentColor,
+                                              textShadow: `0 0 16px ${accent.hex500 || accentColor}30`,
                                           }
                                         : undefined
                                 }
@@ -347,7 +347,7 @@ function LyricsSection({
                                 disabled={isFetchingOnline}
                                 {...hSearchOnline}
                                 className="px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all shadow-md cursor-pointer flex items-center justify-center space-x-1.5 disabled:opacity-50"
-                                style={{ backgroundColor: accent.hex || '#22c55e' }}
+                                style={{ backgroundColor: accent.hex500 || accentColor }}
                             >
                                 <LyricsIcon size={14} />
                                 <span>{t(lang, 'lyrics.searchBtn')}</span>
@@ -424,7 +424,7 @@ function LyricsSection({
                 lang={lang}
                 initialTitle={songTitle}
                 initialArtist={artistName}
-                accentColor={accent.hex || '#22c55e'}
+                accentColor={accentColor}
                 songPath={songPath}
                 searchOnlineLyrics={searchOnlineLyrics}
                 onSelectLyric={(content) => applyLyrics(content, 'lrclib')}
@@ -437,7 +437,7 @@ function LyricsSection({
                 lang={lang}
                 initialTitle={songTitle}
                 initialArtist={artistName}
-                accentColor={accent.hex || '#22c55e'}
+                accentColor={accentColor}
                 songPath={songPath ?? undefined}
                 onSelectLyric={(content) => applyLyrics(content, 'lrclib')}
             />
