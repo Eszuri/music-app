@@ -338,18 +338,23 @@ while ((line = Console.In.ReadLine()) != null)
             {
                 if (!string.IsNullOrEmpty(cmd.ModelName))
                 {
-                    if (downloadCtsDict.TryRemove(cmd.ModelName, out var targetCts))
+                    string targetKey = cmd.ModelName;
+                    if (downloadCtsDict.TryRemove(targetKey, out var targetCts))
                     {
-                        targetCts.Cancel();
-                        Protocol.Emit(new { @event = "model_download_cancelled", modelName = cmd.ModelName });
+                        try { targetCts.Cancel(); } catch { }
                     }
+                    if (targetKey.Equals("vocal", StringComparison.OrdinalIgnoreCase) || targetKey.Equals("htdemucs", StringComparison.OrdinalIgnoreCase))
+                    {
+                        try { activeCts?.Cancel(); } catch { }
+                    }
+                    Protocol.Emit(new { @event = "model_download_cancelled", modelName = targetKey });
                 }
                 else
                 {
-                    activeCts?.Cancel();
+                    try { activeCts?.Cancel(); } catch { }
                     foreach (var kvp in downloadCtsDict)
                     {
-                        kvp.Value.Cancel();
+                        try { kvp.Value.Cancel(); } catch { }
                     }
                     downloadCtsDict.Clear();
                     Protocol.Emit(new { @event = "cancelled" });

@@ -224,45 +224,32 @@ export function useAiLyricsPlugin() {
                             }
                         } else if (parsed.event === 'model_download_progress' || parsed.event === 'vocal_model_download_progress') {
                             if ((parsed.percent ?? 0) < 100) {
-                                setModelDownloadProgress({
-                                    modelName: parsed.modelName ?? (parsed.event === 'vocal_model_download_progress' ? 'vocal' : ''),
+                                const mName = parsed.modelName ?? (parsed.event === 'vocal_model_download_progress' ? 'vocal' : '');
+                                const prog: ModelDownloadProgress = {
+                                    modelName: mName,
                                     percent: parsed.percent ?? 0,
                                     downloadedBytes: parsed.downloadedBytes ?? parsed.downloaded,
                                     totalBytes: parsed.totalBytes ?? parsed.total,
-                                });
-                            } else {
-                                setModelDownloadProgress(null);
+                                };
+                                updateModelProgress(mName, prog);
+                                setModelDownloadProgress(prog);
                             }
                         }
                     } catch {
                         // ignore parse error
                     }
                 }
-            } else if (state?.last_event) {
-                try {
-                    const parsed = typeof state.last_event === 'string' ? JSON.parse(state.last_event) : state.last_event;
-                    if (parsed.event === 'model_download_progress' || parsed.event === 'vocal_model_download_progress') {
-                        if ((parsed.percent ?? 0) < 100) {
-                            setModelDownloadProgress({
-                                modelName: parsed.modelName ?? (parsed.event === 'vocal_model_download_progress' ? 'vocal' : ''),
-                                percent: parsed.percent ?? 0,
-                                downloadedBytes: parsed.downloadedBytes ?? parsed.downloaded,
-                                totalBytes: parsed.totalBytes ?? parsed.total,
-                            });
-                        } else {
-                            setModelDownloadProgress(null);
-                        }
-                    }
-                } catch {
-                    // ignore
-                }
             } else {
                 setIsGenerating(false);
+                setGenerateProgress(null);
+                if (Object.keys(globalDownloadingModels).length === 0) {
+                    setModelDownloadProgress(null);
+                }
             }
         } catch (err) {
             console.error('Failed to sync AI lyrics state:', err);
         }
-    }, []);
+    }, [updateModelProgress]);
 
     useEffect(() => {
         refreshStatus();
@@ -414,14 +401,38 @@ export function useAiLyricsPlugin() {
                         case 'model_download_cancelled':
                             if (parsed.modelName) {
                                 updateModelProgress(parsed.modelName, null);
+                            } else {
+                                globalDownloadingModels = {};
+                                setDownloadingModels({});
+                                if (typeof window !== 'undefined') {
+                                    window.dispatchEvent(new CustomEvent('ai-lyrics-downloading-models-changed', { detail: {} }));
+                                }
                             }
                             setModelDownloadProgress(null);
+                            refreshDownloadedModels();
                             break;
                         case 'vocal_extraction_cancelled':
-                        case 'transcribe_cancelled':
                             setIsGenerating(false);
                             setGenerateProgress(null);
                             setModelDownloadProgress(null);
+                            updateModelProgress('vocal', null);
+                            refreshDownloadedModels();
+                            if (generateResolverRef.current) {
+                                generateResolverRef.current.reject(new Error('Operation cancelled'));
+                                generateResolverRef.current = null;
+                            }
+                            break;
+                        case 'transcribe_cancelled':
+                        case 'cancelled':
+                            setIsGenerating(false);
+                            setGenerateProgress(null);
+                            setModelDownloadProgress(null);
+                            globalDownloadingModels = {};
+                            setDownloadingModels({});
+                            if (typeof window !== 'undefined') {
+                                window.dispatchEvent(new CustomEvent('ai-lyrics-downloading-models-changed', { detail: {} }));
+                            }
+                            refreshDownloadedModels();
                             if (generateResolverRef.current) {
                                 generateResolverRef.current.reject(new Error('Operation cancelled'));
                                 generateResolverRef.current = null;
@@ -603,8 +614,11 @@ export function useAiLyricsPlugin() {
     const cancelGeneration = useCallback(async () => {
         if (!isBrowserTauri) return;
         try {
-            const mod = await getTauri();
-            await mod.invoke('cancel_ai_lyrics');
+            globalDownloadingModels = {};
+            setDownloadingModels({});
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('ai-lyrics-downloading-models-changed', { detail: {} }));
+            }
             setIsGenerating(false);
             setGenerateProgress(null);
             setModelDownloadProgress(null);
@@ -612,6 +626,8 @@ export function useAiLyricsPlugin() {
                 generateResolverRef.current.resolve('');
                 generateResolverRef.current = null;
             }
+            const mod = await getTauri();
+            await mod.invoke('cancel_ai_lyrics');
         } catch (err) {
             console.error('Failed to cancel AI lyrics generation:', err);
         }
@@ -620,13 +636,20 @@ export function useAiLyricsPlugin() {
     const cancelModelDownload = useCallback(async (modelCode?: string) => {
         if (!isBrowserTauri) return;
         try {
-            const mod = await getTauri();
             if (modelCode) {
                 updateModelProgress(modelCode, null);
+                const mod = await getTauri();
                 await mod.invoke('cancel_ai_model_download', { modelName: modelCode });
             } else {
                 globalDownloadingModels = {};
                 setDownloadingModels({});
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('ai-lyrics-downloading-models-changed', { detail: {} }));
+                }
+                setIsGenerating(false);
+                setGenerateProgress(null);
+                setModelDownloadProgress(null);
+                const mod = await getTauri();
                 await mod.invoke('cancel_ai_lyrics');
             }
         } catch (err) {
