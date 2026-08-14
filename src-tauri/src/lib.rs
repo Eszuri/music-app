@@ -1183,13 +1183,16 @@ fn cancel_bit_perfect_plugin_download() {
 
 /// Installs the engine from a local exe path (development / sideload).
 #[tauri::command]
+#[allow(non_snake_case)]
 async fn install_bit_perfect_plugin_from_file(
     app: AppHandle,
-    path: String,
+    path: Option<String>,
+    srcPath: Option<String>,
 ) -> Result<plugin_manager::PluginStatus, String> {
+    let p = path.or(srcPath).ok_or_else(|| "Missing path parameter".to_string())?;
     let app_clone = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        plugin_manager::install_from_file(&app_clone, &path)
+        plugin_manager::install_from_file(&app_clone, &p)
     })
     .await
     .map_err(|e| format!("Task error: {}", e))?
@@ -1230,13 +1233,16 @@ fn cancel_ai_lyrics_plugin_download() {
 }
 
 #[tauri::command]
+#[allow(non_snake_case)]
 async fn install_ai_lyrics_plugin_from_file(
     app: AppHandle,
-    path: String,
+    path: Option<String>,
+    srcPath: Option<String>,
 ) -> Result<ai_lyrics_plugin_manager::PluginStatus, String> {
+    let p = path.or(srcPath).ok_or_else(|| "Missing path parameter".to_string())?;
     let app_clone = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        ai_lyrics_plugin_manager::install_from_file(&app_clone, &path)
+        ai_lyrics_plugin_manager::install_from_file(&app_clone, &p)
     })
     .await
     .map_err(|e| format!("Task error: {}", e))?
@@ -1317,6 +1323,12 @@ fn download_ai_model(app: AppHandle, modelName: String) -> Result<(), String> {
 
 #[tauri::command]
 #[allow(non_snake_case)]
+fn cancel_ai_model_download(app: AppHandle, modelName: String) -> Result<(), String> {
+    sidecar_lyrics::cancel_ai_model_download(&app, modelName)
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
 fn delete_ai_model(app: AppHandle, modelName: String) -> Result<(), String> {
     sidecar_lyrics::delete_ai_model(&app, modelName)
 }
@@ -1328,8 +1340,9 @@ fn open_ai_models_folder(app: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 #[allow(non_snake_case)]
-fn import_ai_model_file(app: AppHandle, srcPath: String, modelCode: String) -> Result<(), String> {
-    sidecar_lyrics::import_ai_model_file(&app, srcPath, modelCode)
+fn import_ai_model_file(app: AppHandle, srcPath: Option<String>, path: Option<String>, modelCode: String) -> Result<(), String> {
+    let p = srcPath.or(path).ok_or_else(|| "Missing path parameter".to_string())?;
+    sidecar_lyrics::import_ai_model_file(&app, p, modelCode)
 }
 
 #[tauri::command]
@@ -1632,6 +1645,7 @@ pub fn run() {
             get_ai_lyrics_current_state,
             get_downloaded_ai_models,
             download_ai_model,
+            cancel_ai_model_download,
             delete_ai_model,
             open_ai_models_folder,
             import_ai_model_file,

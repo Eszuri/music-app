@@ -5,8 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Lang, t } from '../lib/translations';
 import { OnlineLyricItem } from '../hooks/useLyrics';
 import { LyricsIcon } from './icons';
-
-
+import { getAccent } from '../lib/colors';
 
 interface LyricsSearchModalProps {
     isOpen: boolean;
@@ -28,8 +27,6 @@ function formatDuration(seconds?: number): string {
 }
 
 export function LyricsSearchModal({
-
-
     isOpen,
     onClose,
     lang,
@@ -40,6 +37,11 @@ export function LyricsSearchModal({
     searchOnlineLyrics,
     onSelectLyric,
 }: LyricsSearchModalProps) {
+    const accent = getAccent(accentColor);
+    const accentHex = accentColor?.startsWith('#')
+        ? accentColor
+        : (accent?.hex500 || '#0284c7');
+
     const [query, setQuery] = useState<string>('');
     const [results, setResults] = useState<OnlineLyricItem[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
@@ -159,7 +161,7 @@ export function LyricsSearchModal({
                             <div className="flex items-center space-x-3">
                                 <div
                                     className="p-2 rounded-xl bg-zinc-800/80 border border-zinc-700/50"
-                                    style={{ color: accentColor }}
+                                    style={{ color: accentHex }}
                                 >
                                     <LyricsIcon size={20} />
                                 </div>
@@ -197,8 +199,8 @@ export function LyricsSearchModal({
                                 <button
                                     type="submit"
                                     disabled={loading || !query.trim()}
-                                    className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white transition-all shadow-md cursor-pointer disabled:opacity-50"
-                                    style={{ backgroundColor: accentColor }}
+                                    className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white transition-all shadow-md cursor-pointer disabled:opacity-50 hover:brightness-110 active:scale-[0.98]"
+                                    style={{ backgroundColor: accentHex }}
                                 >
                                     {loading ? t(lang, 'lyrics.autoFetching') : t(lang, 'lyrics.searchBtn')}
                                 </button>
@@ -240,8 +242,8 @@ export function LyricsSearchModal({
                                                         onClose();
                                                     }
                                                 }}
-                                                className="px-4 py-1.5 rounded-xl text-xs font-semibold text-white transition-all cursor-pointer shadow-md"
-                                                style={{ backgroundColor: accentColor }}
+                                                className="px-4 py-1.5 rounded-xl text-xs font-semibold text-white transition-all cursor-pointer shadow-md hover:brightness-110 active:scale-[0.98]"
+                                                style={{ backgroundColor: accentHex }}
                                             >
                                                 {t(lang, 'lyrics.applyBtn')}
                                             </button>
@@ -257,7 +259,7 @@ export function LyricsSearchModal({
                                     >
                                         <style>{`
                                             .lyrics-preview-box::selection, .lyrics-preview-box *::selection {
-                                                background-color: ${accentColor}66 !important;
+                                                background-color: ${accentHex}66 !important;
                                                 color: #ffffff !important;
                                             }
                                         `}</style>
@@ -313,8 +315,8 @@ export function LyricsSearchModal({
                                                                     onClose();
                                                                 }
                                                             }}
-                                                            className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white transition-all shadow-sm cursor-pointer"
-                                                            style={{ backgroundColor: accentColor }}
+                                                            className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white transition-all shadow-sm cursor-pointer hover:brightness-110 active:scale-[0.98]"
+                                                            style={{ backgroundColor: accentHex }}
                                                         >
                                                             {t(lang, 'lyrics.applyBtn')}
                                                         </button>

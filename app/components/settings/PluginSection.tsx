@@ -41,6 +41,7 @@ export default function PluginSection({
     } = useAiLyricsPlugin();
 
     const [actionError, setActionError] = useState<string | null>(null);
+    const [aiActionError, setAiActionError] = useState<string | null>(null);
     const [installingFromFile, setInstallingFromFile] = useState(false);
 
     const installed = status?.installed === true;
@@ -102,6 +103,40 @@ export default function PluginSection({
             await uninstall();
         } catch (e) {
             setActionError(String(e));
+        }
+    };
+
+    const handleAiInstall = async () => {
+        setAiActionError(null);
+        try {
+            await aiDownload();
+        } catch (e) {
+            const msg = String(e);
+            if (!msg.toLowerCase().includes("dibatalkan") && !msg.toLowerCase().includes("cancel")) {
+                setAiActionError(msg);
+            }
+        }
+    };
+
+    const handleAiInstallFromFile = async () => {
+        if (!isBrowserTauri) return;
+        setInstallingFromFile(true);
+        setAiActionError(null);
+        try {
+            await aiInstallFromFile();
+        } catch (e) {
+            setAiActionError((e as Error).message || String(e));
+        } finally {
+            setInstallingFromFile(false);
+        }
+    };
+
+    const handleAiUninstall = async () => {
+        setAiActionError(null);
+        try {
+            await aiUninstall();
+        } catch (e) {
+            setAiActionError(String(e));
         }
     };
 
@@ -308,24 +343,39 @@ export default function PluginSection({
                             ) : (
                                 <div className="flex gap-2">
                                     <button
-                                        onClick={() => aiInstallFromFile()}
-                                        className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95"
+                                        onClick={handleAiInstallFromFile}
+                                        disabled={installingFromFile}
+                                        className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95"
                                     >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">
+                                            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+                                            <path d="M14 2v4a1 1 0 0 0 1 1h4"/>
+                                        </svg>
                                         <span>{t(lang, 'audio.bitperfect.plugin.installFromFile')}</span>
                                     </button>
                                     <button
-                                        onClick={() => aiDownload()}
-                                        className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl ${accent.bg500} text-white hover:opacity-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95`}
+                                        onClick={handleAiInstall}
+                                        disabled={installingFromFile}
+                                        className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl ${accent.bg500} text-white hover:opacity-95 transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95`}
                                     >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                            <polyline points="7 10 12 15 17 10"/>
+                                            <line x1="12" y1="15" x2="12" y2="3"/>
+                                        </svg>
                                         <span>{t(lang, 'audio.bitperfect.plugin.install')}</span>
                                     </button>
                                 </div>
                             )
                         ) : (
                             <button
-                                onClick={() => aiUninstall()}
+                                onClick={handleAiUninstall}
                                 className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/25 transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95"
                             >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="3 6 5 6 21 6"/>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                </svg>
                                 <span>{t(lang, 'audio.bitperfect.plugin.uninstall')}</span>
                             </button>
                         )}
@@ -343,6 +393,15 @@ export default function PluginSection({
                             </span>
                         </div>
                     </SettingRow>
+                )}
+
+                {aiActionError && (
+                    <div className="px-4 py-3 bg-rose-500/10 border-t border-rose-500/20 rounded-b-2xl">
+                        <p className="text-xs text-rose-400 flex items-start gap-2 leading-relaxed">
+                            <span className="mt-0.5 text-sm">⚠️</span>
+                            <span className="flex-1 break-all">{aiActionError}</span>
+                        </p>
+                    </div>
                 )}
             </SettingGroup>
         </div>

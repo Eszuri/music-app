@@ -21,7 +21,7 @@ const AI_MODELS: AiModelSpec[] = [
     {
         code: 'tiny',
         label: 'Tiny',
-        sizeText: '74 MB',
+        sizeText: '75 MB',
         descId: 'Paling ringan & cepat',
         descEn: 'Ultra fast & lightweight',
         minRamGb: 2,
@@ -30,7 +30,7 @@ const AI_MODELS: AiModelSpec[] = [
     {
         code: 'base',
         label: 'Base',
-        sizeText: '141 MB',
+        sizeText: '142 MB',
         descId: 'Seimbang & efisien',
         descEn: 'Balanced & efficient',
         minRamGb: 4,
@@ -39,7 +39,7 @@ const AI_MODELS: AiModelSpec[] = [
     {
         code: 'small',
         label: 'Small',
-        sizeText: '465 MB',
+        sizeText: '466 MB',
         descId: 'Akurasi tinggi untuk lagu kompleks',
         descEn: 'High accuracy for complex songs',
         minRamGb: 6,
@@ -73,6 +73,29 @@ const AI_MODELS: AiModelSpec[] = [
         minCpuCores: 8,
     },
 ];
+
+function formatBytes(bytes?: number): string {
+    if (!bytes || bytes <= 0) return '0 MB';
+    if (bytes < 1024 * 1024) {
+        return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+    const mb = bytes / (1024 * 1024);
+    if (mb >= 1000) {
+        return `${(mb / 1024).toFixed(2)} GB`;
+    }
+    return `${mb.toFixed(1)} MB`;
+}
+
+function getModelDisplayName(code?: string): string {
+    if (!code) return 'AI';
+    const clean = code.toLowerCase();
+    if (clean === 'vocal' || clean.includes('demucs') || clean.includes('htdemucs')) {
+        return 'Vocal Extractor';
+    }
+    const found = AI_MODELS.find((m) => m.code.toLowerCase() === clean);
+    if (found) return found.label;
+    return code.charAt(0).toUpperCase() + code.slice(1);
+}
 
 interface AiLyricsModalProps {
     isOpen: boolean;
@@ -137,6 +160,36 @@ export function AiLyricsModal({
         };
     }, [isOpen]);
 
+    const [isLocalGenerating, setIsLocalGenerating] = useState(false);
+
+    const {
+        pluginStatus: aiStatus,
+        isDownloading: isAiDownloading,
+        isGenerating: isAiGenerating,
+        modelDownloadProgress: aiModelProgress,
+        generateProgress: aiGenerateProgress,
+        downloadedModels,
+        downloadPlugin: downloadAiPlugin,
+        generateLyrics: generateAiLyrics,
+        cancelGeneration: cancelAiGeneration,
+        syncCurrentState,
+        refreshDownloadedModels,
+    } = useAiLyricsPlugin();
+
+    const isProcessing = isAiGenerating || isAiDownloading || Boolean(aiModelProgress) || isLocalGenerating;
+
+    useEffect(() => {
+        if (isProcessing && isDropdownOpen) {
+            setIsDropdownOpen(false);
+        }
+    }, [isProcessing, isDropdownOpen]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        syncCurrentState?.();
+        refreshDownloadedModels?.();
+    }, [isOpen, syncCurrentState, refreshDownloadedModels]);
+
     useEffect(() => {
         if (!isOpen) return;
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -170,20 +223,9 @@ export function AiLyricsModal({
     const isCpuLow = systemSpecs.cpuCores < selectedModelInfo.minCpuCores;
     const isLowSpecsWarning = isRamLow || isCpuLow;
 
-    const {
-        pluginStatus: aiStatus,
-        isDownloading: isAiDownloading,
-        isGenerating: isAiGenerating,
-        modelDownloadProgress: aiModelProgress,
-        generateProgress: aiGenerateProgress,
-        downloadedModels,
-        downloadPlugin: downloadAiPlugin,
-        generateLyrics: generateAiLyrics,
-        cancelGeneration: cancelAiGeneration,
-    } = useAiLyricsPlugin();
-
     const handleGenerateAiLyrics = async () => {
-        if (!songPath) return;
+        if (!songPath || isProcessing) return;
+        setIsLocalGenerating(true);
         try {
             const lrcContent = await generateAiLyrics(songPath, selectedAiModel, 'auto', isolateVocals);
             if (lrcContent) {
@@ -192,10 +234,14 @@ export function AiLyricsModal({
             }
         } catch {
             // Errors handled in hook
+        } finally {
+            setIsLocalGenerating(false);
         }
     };
 
     const isCurrentModelDownloaded = downloadedModels.includes(selectedAiModel);
+    const isVocalModelDownloaded = downloadedModels.includes('vocal');
+    const isNeedDownload = !isCurrentModelDownloaded || (isolateVocals && !isVocalModelDownloaded);
     const accent = getAccent(accentColor);
     const accentHex = accentColor.startsWith('#')
         ? accentColor
@@ -282,11 +328,16 @@ export function AiLyricsModal({
                                 <div className="relative">
                                     <button
                                         type="button"
-                                        onClick={() => setIsDropdownOpen((prev) => !prev)}
-                                        className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl bg-zinc-900/90 border text-left transition-all cursor-pointer ${
-                                            isDropdownOpen
-                                                ? 'border-zinc-500 bg-zinc-900 shadow-md ring-1 ring-zinc-500/40'
-                                                : 'border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900'
+                                        disabled={isProcessing}
+                                        onClick={() => {
+                                            if (!isProcessing) setIsDropdownOpen((prev) => !prev);
+                                        }}
+                                        className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl bg-zinc-900/90 border text-left transition-all ${
+                                            isProcessing
+                                                ? 'opacity-50 cursor-not-allowed border-zinc-800 pointer-events-none'
+                                                : isDropdownOpen
+                                                ? 'border-zinc-500 bg-zinc-900 shadow-md ring-1 ring-zinc-500/40 cursor-pointer'
+                                                : 'border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900 cursor-pointer'
                                         }`}
                                     >
                                         <div className="flex items-center gap-2.5 min-w-0">
@@ -348,7 +399,9 @@ export function AiLyricsModal({
                                                         <button
                                                             key={m.code}
                                                             type="button"
+                                                            disabled={isProcessing}
                                                             onClick={() => {
+                                                                if (isProcessing) return;
                                                                 setSelectedAiModel(m.code);
                                                                 if (typeof window !== 'undefined') {
                                                                     localStorage.setItem('symvonia_ai_lyrics_model', m.code);
@@ -378,7 +431,7 @@ export function AiLyricsModal({
                                                             <div className="flex items-center gap-2.5 shrink-0">
                                                                 {isHeavy && (
                                                                     <span className="text-[10px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
-                                                                        Min {m.minRamGb}GB
+                                                                        Min {m.minRamGb}GB RAM
                                                                     </span>
                                                                 )}
                                                                 {isDownloaded ? (
@@ -438,19 +491,38 @@ export function AiLyricsModal({
                             {/* Vocal Isolation Toggle Card */}
                             <div
                                 onClick={() => {
+                                    if (isProcessing) return;
                                     const next = !isolateVocals;
                                     setIsolateVocals(next);
                                     if (typeof window !== 'undefined') {
                                         localStorage.setItem('symvonia_ai_isolate_vocals', String(next));
                                     }
                                 }}
-                                className="bg-zinc-900/60 border border-zinc-800/80 hover:border-zinc-700/80 rounded-xl p-4 sm:p-4.5 flex items-center justify-between gap-4 cursor-pointer transition-all relative z-10"
+                                className={`bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-4 sm:p-4.5 flex items-center justify-between gap-4 transition-all relative z-10 ${
+                                    isProcessing
+                                        ? 'opacity-50 cursor-not-allowed pointer-events-none'
+                                        : 'hover:border-zinc-700/80 cursor-pointer'
+                                }`}
                             >
                                 <div className="min-w-0">
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center flex-wrap gap-2">
                                         <span className="text-xs font-semibold text-zinc-200">
                                             {t(lang, 'lyrics.aiPlugin.isolateVocals')}
                                         </span>
+                                        <span className="text-[11px] font-mono text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded">
+                                            302 MB
+                                        </span>
+                                        {isVocalModelDownloaded ? (
+                                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                                {t(lang, 'lyrics.aiPlugin.tagDownloaded')}
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-400 bg-zinc-800/60 px-2 py-0.5 rounded-md border border-zinc-700/40">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
+                                                {t(lang, 'lyrics.aiPlugin.tagNotDownloaded')}
+                                            </span>
+                                        )}
                                     </div>
                                     <p className="text-xs text-zinc-400 mt-0.5 leading-normal">
                                         {t(lang, 'lyrics.aiPlugin.isolateVocalsHint')}
@@ -474,7 +546,43 @@ export function AiLyricsModal({
 
                             {/* Action / Progress Area */}
                             <div className="pt-2 relative z-10">
-                                {isAiGenerating ? (
+                                {aiModelProgress ? (
+                                    <div className="space-y-2.5 bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <div className="w-4 h-4 rounded-full border-2 border-zinc-400 border-t-transparent animate-spin shrink-0" />
+                                                <span className="text-xs font-medium text-zinc-200 truncate">
+                                                    {lang === 'id'
+                                                        ? `Mengunduh Model ${getModelDisplayName(aiModelProgress.modelName)} (${aiModelProgress.percent}%)`
+                                                        : `Downloading ${getModelDisplayName(aiModelProgress.modelName)} Model (${aiModelProgress.percent}%)`}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2.5 shrink-0">
+                                                <span className="font-mono text-xs text-zinc-400">
+                                                    {aiModelProgress.downloadedBytes && aiModelProgress.totalBytes && aiModelProgress.totalBytes > 0
+                                                        ? `${formatBytes(aiModelProgress.downloadedBytes)} / ${formatBytes(aiModelProgress.totalBytes)}`
+                                                        : `${aiModelProgress.percent}%`}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={cancelAiGeneration}
+                                                    className="px-3 py-1.5 text-xs font-medium text-rose-300 hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-lg transition-colors cursor-pointer shrink-0"
+                                                >
+                                                    {t(lang, 'lyrics.aiPlugin.cancelBtn')}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full rounded-full transition-all duration-300"
+                                                style={{
+                                                    width: `${aiModelProgress.percent}%`,
+                                                    backgroundColor: accentHex,
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                ) : isAiGenerating ? (
                                     <div className="space-y-2.5 bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
                                         <div className="flex items-center justify-between gap-2">
                                             <div className="flex items-center gap-2 min-w-0">
@@ -482,7 +590,7 @@ export function AiLyricsModal({
                                                 <span className="text-xs font-medium text-zinc-200 truncate">
                                                     {aiGenerateProgress?.segmentText ||
                                                         t(lang, 'lyrics.aiPlugin.generating', {
-                                                            pct: aiGenerateProgress?.percent ?? 0,
+                                                             pct: aiGenerateProgress?.percent ?? 0,
                                                         })}
                                                 </span>
                                             </div>
@@ -504,44 +612,19 @@ export function AiLyricsModal({
                                             />
                                         </div>
                                     </div>
-                                ) : aiModelProgress ? (
-                                    <div className="space-y-2.5 bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
-                                        <div className="flex items-center justify-between text-xs text-zinc-300">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-4 h-4 rounded-full border-2 border-zinc-400 border-t-transparent animate-spin shrink-0" />
-                                                <span>
-                                                    {t(lang, 'lyrics.aiPlugin.downloadingModel', {
-                                                        model: aiModelProgress.modelName,
-                                                        pct: aiModelProgress.percent,
-                                                    })}
-                                                </span>
-                                            </div>
-                                            <span className="font-mono text-zinc-400">
-                                                {aiModelProgress.percent}%
-                                            </span>
-                                        </div>
-                                        <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
-                                            <div
-                                                className="h-full rounded-full transition-all duration-300"
-                                                style={{
-                                                    width: `${aiModelProgress.percent}%`,
-                                                    backgroundColor: accentHex,
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
                                 ) : aiStatus?.installed ? (
                                     <button
                                         type="button"
                                         onClick={handleGenerateAiLyrics}
-                                        className="w-full py-3.5 px-4 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md hover:brightness-110 active:scale-[0.99] text-white"
+                                        disabled={isProcessing}
+                                        className="w-full py-3.5 px-4 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md hover:brightness-110 active:scale-[0.99] text-white disabled:opacity-50 disabled:cursor-not-allowed"
                                         style={{ backgroundColor: accentHex }}
                                     >
                                         <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                             <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z" />
                                         </svg>
                                         <span>
-                                            {isCurrentModelDownloaded
+                                            {!isNeedDownload
                                                 ? t(lang, 'lyrics.aiPlugin.generateBtn')
                                                 : t(lang, 'lyrics.aiPlugin.generateBtnDownload')}
                                         </span>

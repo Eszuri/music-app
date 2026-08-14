@@ -43,13 +43,40 @@ export interface ModelDownloadProgress {
     totalBytes?: number;
 }
 
+export function normalizeAiModelCode(name: string): string {
+    if (!name) return '';
+    const lower = name.toLowerCase();
+    if (lower.includes('vocal') || lower.includes('onnx') || lower.includes('htdemucs')) return 'vocal';
+    if (lower.includes('turbo')) return 'large-v3-turbo';
+    if (lower.includes('large-v3')) return 'large-v3';
+    if (lower.includes('large')) return 'large';
+    if (lower.includes('medium')) return 'medium';
+    if (lower.includes('small')) return 'small';
+    if (lower.includes('base')) return 'base';
+    if (lower.includes('tiny')) return 'tiny';
+    return lower;
+}
+
+let globalDownloadedModels: string[] = [];
+let globalPluginStatus: AiPluginStatus = { installed: false };
+let globalDownloadingModels: Record<string, ModelDownloadProgress> = {};
+
+export function emitDownloadedModelsChanged(models: string[]) {
+    globalDownloadedModels = models;
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('ai-lyrics-models-changed', { detail: models }));
+    }
+}
+
 export function useAiLyricsPlugin() {
-    const [pluginStatus, setPluginStatus] = useState<AiPluginStatus>({ installed: false });
+    const [pluginStatus, setPluginStatus] = useState<AiPluginStatus>(globalPluginStatus);
     const [isDownloading, setIsDownloading] = useState(false);
     const [downloadProgress, setDownloadProgress] = useState<AiDownloadProgress | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [generateProgress, setGenerateProgress] = useState<AiGenerateProgress | null>(null);
     const [modelDownloadProgress, setModelDownloadProgress] = useState<ModelDownloadProgress | null>(null);
+    const [downloadingModels, setDownloadingModels] = useState<Record<string, ModelDownloadProgress>>(globalDownloadingModels);
+    const [downloadedModels, setDownloadedModels] = useState<string[]>(globalDownloadedModels);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     const generateResolverRef = useRef<{
@@ -57,12 +84,95 @@ export function useAiLyricsPlugin() {
         reject: (reason: Error) => void;
     } | null>(null);
 
+    const updateModelProgress = useCallback((mName: string, progress: ModelDownloadProgress | null) => {
+        const key = normalizeAiModelCode(mName);
+        if (!key) return;
+        if (progress === null) {
+            delete globalDownloadingModels[key];
+        } else {
+            globalDownloadingModels[key] = progress;
+        }
+        setDownloadingModels({ ...globalDownloadingModels });
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('ai-lyrics-downloading-models-changed', { detail: { ...globalDownloadingModels } }));
+        }
+    }, []);
+
+    useEffect(() => {
+        const handleDownloadingModels = (e: Event) => {
+            const custom = e as CustomEvent<Record<string, ModelDownloadProgress>>;
+            if (custom.detail) {
+                setDownloadingModels({ ...custom.detail });
+            }
+        };
+        window.addEventListener('ai-lyrics-downloading-models-changed', handleDownloadingModels);
+        return () => window.removeEventListener('ai-lyrics-downloading-models-changed', handleDownloadingModels);
+    }, []);
+
+    const isModelDownloading = useCallback((modelCode: string): boolean => {
+        const key = normalizeAiModelCode(modelCode);
+        return Boolean(downloadingModels[key]);
+    }, [downloadingModels]);
+
+    const getModelDownloadProgress = useCallback((modelCode: string): ModelDownloadProgress | null => {
+        const key = normalizeAiModelCode(modelCode);
+        return downloadingModels[key] || null;
+    }, [downloadingModels]);
+
     const setPluginStatusGlobal = useCallback((newStatus: AiPluginStatus) => {
+        globalPluginStatus = newStatus;
         setPluginStatus(newStatus);
         if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('ai-lyrics-status-changed', { detail: newStatus }));
         }
     }, []);
+
+    const refreshDownloadedModels = useCallback(async () => {
+        if (!isBrowserTauri) return;
+        try {
+            const mod = await getTauri();
+            const models = await mod.invoke<string[]>('get_downloaded_ai_models');
+            if (models) {
+                globalDownloadedModels = models;
+                setDownloadedModels(models);
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('ai-lyrics-models-changed', { detail: models }));
+                }
+            }
+        } catch (err) {
+            console.error('Failed to get downloaded AI models:', err);
+        }
+    }, []);
+
+    // Sync downloaded models across all hook instances in frontend
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const customEvent = e as CustomEvent<string[]>;
+            if (customEvent.detail && Array.isArray(customEvent.detail)) {
+                globalDownloadedModels = customEvent.detail;
+                setDownloadedModels(customEvent.detail);
+            }
+        };
+        window.addEventListener('ai-lyrics-models-changed', handler);
+        return () => window.removeEventListener('ai-lyrics-models-changed', handler);
+    }, []);
+
+    // Re-check downloaded models whenever user focuses the app window (e.g. after adding/deleting in Explorer)
+    useEffect(() => {
+        const handleFocus = () => {
+            refreshDownloadedModels();
+        };
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
+    }, [refreshDownloadedModels]);
+
+    // Periodic safety check every 3s to keep all views in sync
+    useEffect(() => {
+        const interval = setInterval(() => {
+            refreshDownloadedModels();
+        }, 3000);
+        return () => clearInterval(interval);
+    }, [refreshDownloadedModels]);
 
     // Refresh plugin status
     const refreshStatus = useCallback(async () => {
@@ -94,11 +204,11 @@ export function useAiLyricsPlugin() {
             const mod = await getTauri();
             const state = await mod.invoke<AiLyricsCurrentState>('get_ai_lyrics_current_state');
             if (state?.is_generating) {
+                setIsGenerating(true);
                 if (state.last_event) {
                     try {
-                        const parsed = JSON.parse(state.last_event);
+                        const parsed = typeof state.last_event === 'string' ? JSON.parse(state.last_event) : state.last_event;
                         if (parsed.event === 'progress' || parsed.event === 'vocal_extraction_progress') {
-                            setIsGenerating(true);
                             if (parsed.event === 'progress') {
                                 setGenerateProgress({
                                     percent: parsed.percent ?? 0,
@@ -112,14 +222,39 @@ export function useAiLyricsPlugin() {
                                     timestamp: '',
                                 });
                             }
-                        } else {
-                            setIsGenerating(false);
+                        } else if (parsed.event === 'model_download_progress' || parsed.event === 'vocal_model_download_progress') {
+                            if ((parsed.percent ?? 0) < 100) {
+                                setModelDownloadProgress({
+                                    modelName: parsed.modelName ?? (parsed.event === 'vocal_model_download_progress' ? 'vocal' : ''),
+                                    percent: parsed.percent ?? 0,
+                                    downloadedBytes: parsed.downloadedBytes ?? parsed.downloaded,
+                                    totalBytes: parsed.totalBytes ?? parsed.total,
+                                });
+                            } else {
+                                setModelDownloadProgress(null);
+                            }
                         }
                     } catch {
-                        setIsGenerating(false);
+                        // ignore parse error
                     }
-                } else {
-                    setIsGenerating(true);
+                }
+            } else if (state?.last_event) {
+                try {
+                    const parsed = typeof state.last_event === 'string' ? JSON.parse(state.last_event) : state.last_event;
+                    if (parsed.event === 'model_download_progress' || parsed.event === 'vocal_model_download_progress') {
+                        if ((parsed.percent ?? 0) < 100) {
+                            setModelDownloadProgress({
+                                modelName: parsed.modelName ?? (parsed.event === 'vocal_model_download_progress' ? 'vocal' : ''),
+                                percent: parsed.percent ?? 0,
+                                downloadedBytes: parsed.downloadedBytes ?? parsed.downloaded,
+                                totalBytes: parsed.totalBytes ?? parsed.total,
+                            });
+                        } else {
+                            setModelDownloadProgress(null);
+                        }
+                    }
+                } catch {
+                    // ignore
                 }
             } else {
                 setIsGenerating(false);
@@ -129,31 +264,29 @@ export function useAiLyricsPlugin() {
         }
     }, []);
 
-    const [downloadedModels, setDownloadedModels] = useState<string[]>([]);
-
-    const refreshDownloadedModels = useCallback(async () => {
-        if (!isBrowserTauri) return;
-        try {
-            const mod = await getTauri();
-            const models = await mod.invoke<string[]>('get_downloaded_ai_models');
-            if (models) setDownloadedModels(models);
-        } catch (err) {
-            console.error('Failed to get downloaded AI models:', err);
-        }
-    }, []);
-
     useEffect(() => {
         refreshStatus();
         syncCurrentState();
         refreshDownloadedModels();
     }, [refreshStatus, syncCurrentState, refreshDownloadedModels]);
 
-    // Listen to backend events (ai-lyrics-event, ai-lyrics-download-progress)
+    // Safety polling sync while active
+    useEffect(() => {
+        if (!isGenerating && !modelDownloadProgress) return;
+        const interval = setInterval(() => {
+            syncCurrentState();
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [isGenerating, modelDownloadProgress, syncCurrentState]);
+
+    // Listen to backend events (ai-lyrics-event, ai-lyrics-download-progress, ai-lyrics-models-changed)
     useEffect(() => {
         if (!isBrowserTauri) return;
 
         let cancelled = false;
-        const unlistens: (() => void)[] = [];
+        let unlistenEvent: (() => void) | null = null;
+        let unlistenDownload: (() => void) | null = null;
+        let unlistenModels: (() => void) | null = null;
 
         import('@tauri-apps/api/event').then(({ listen }) => {
             if (cancelled) return;
@@ -161,7 +294,9 @@ export function useAiLyricsPlugin() {
             listen<string>('ai-lyrics-event', (event) => {
                 if (cancelled) return;
                 try {
-                    const parsed = JSON.parse(event.payload);
+                    const parsed = typeof event.payload === 'string' ? JSON.parse(event.payload) : event.payload;
+                    if (!parsed || typeof parsed !== 'object') return;
+
                     switch (parsed.event) {
                         case 'progress':
                             setIsGenerating(true);
@@ -180,6 +315,10 @@ export function useAiLyricsPlugin() {
                             });
                             break;
                         case 'vocal_model_download_start':
+                            updateModelProgress('vocal', {
+                                modelName: 'vocal',
+                                percent: 0,
+                            });
                             setModelDownloadProgress({
                                 modelName: 'vocal',
                                 percent: 0,
@@ -187,42 +326,53 @@ export function useAiLyricsPlugin() {
                             break;
                         case 'vocal_model_download_progress':
                             if ((parsed.percent ?? 0) >= 100) {
+                                updateModelProgress('vocal', null);
                                 setModelDownloadProgress(null);
                                 refreshDownloadedModels();
                             } else {
-                                setModelDownloadProgress({
+                                const prog: ModelDownloadProgress = {
                                     modelName: 'vocal',
                                     percent: parsed.percent ?? 0,
                                     downloadedBytes: parsed.downloadedBytes ?? parsed.downloaded,
                                     totalBytes: parsed.totalBytes ?? parsed.total,
-                                });
+                                };
+                                updateModelProgress('vocal', prog);
+                                setModelDownloadProgress(prog);
                             }
                             break;
                         case 'vocal_model_download_complete':
+                            updateModelProgress('vocal', null);
                             setModelDownloadProgress(null);
                             refreshDownloadedModels();
                             break;
-                        case 'model_download_progress':
+                        case 'model_download_progress': {
+                            const mName = parsed.modelName ?? '';
                             if ((parsed.percent ?? 0) >= 100) {
+                                updateModelProgress(mName, null);
                                 setModelDownloadProgress(null);
                                 refreshDownloadedModels();
                             } else {
-                                setModelDownloadProgress({
-                                    modelName: parsed.modelName ?? '',
+                                const prog: ModelDownloadProgress = {
+                                    modelName: mName,
                                     percent: parsed.percent ?? 0,
                                     downloadedBytes: parsed.downloadedBytes ?? parsed.downloaded,
                                     totalBytes: parsed.totalBytes ?? parsed.total,
-                                });
+                                };
+                                updateModelProgress(mName, prog);
+                                setModelDownloadProgress(prog);
                             }
                             break;
+                        }
                         case 'model_download_complete':
                         case 'model_ready':
+                            updateModelProgress(parsed.modelName ?? '', null);
                             setModelDownloadProgress(null);
                             refreshDownloadedModels();
                             break;
                         case 'transcription_result':
                             setIsGenerating(false);
                             setGenerateProgress(null);
+                            setModelDownloadProgress(null);
                             refreshDownloadedModels();
                             if (generateResolverRef.current) {
                                 generateResolverRef.current.resolve(parsed.lrcContent ?? '');
@@ -250,19 +400,30 @@ export function useAiLyricsPlugin() {
                             break;
                         case 'error':
                             setIsGenerating(false);
+                            setGenerateProgress(null);
                             setModelDownloadProgress(null);
+                            if (parsed.modelName) {
+                                updateModelProgress(parsed.modelName, null);
+                            }
                             setErrorMsg(parsed.message ?? 'Unknown AI Lyrics Error');
                             if (generateResolverRef.current) {
                                 generateResolverRef.current.reject(new Error(parsed.message ?? 'Transcription failed'));
                                 generateResolverRef.current = null;
                             }
                             break;
+                        case 'model_download_cancelled':
+                            if (parsed.modelName) {
+                                updateModelProgress(parsed.modelName, null);
+                            }
+                            setModelDownloadProgress(null);
+                            break;
+                        case 'vocal_extraction_cancelled':
                         case 'transcribe_cancelled':
                             setIsGenerating(false);
                             setGenerateProgress(null);
                             setModelDownloadProgress(null);
                             if (generateResolverRef.current) {
-                                generateResolverRef.current.reject(new Error('Transcription cancelled'));
+                                generateResolverRef.current.reject(new Error('Operation cancelled'));
                                 generateResolverRef.current = null;
                             }
                             break;
@@ -270,19 +431,35 @@ export function useAiLyricsPlugin() {
                 } catch {
                     // JSON parse ignore
                 }
-            }).then((fn) => (cancelled ? fn() : unlistens.push(fn)));
+            }).then((fn) => {
+                if (cancelled) fn();
+                else unlistenEvent = fn;
+            });
 
             listen<AiDownloadProgress>('ai-lyrics-download-progress', (event) => {
                 if (cancelled) return;
                 setDownloadProgress(event.payload);
-            }).then((fn) => (cancelled ? fn() : unlistens.push(fn)));
+            }).then((fn) => {
+                if (cancelled) fn();
+                else unlistenDownload = fn;
+            });
+
+            listen<void>('ai-lyrics-models-changed', () => {
+                if (cancelled) return;
+                refreshDownloadedModels();
+            }).then((fn) => {
+                if (cancelled) fn();
+                else unlistenModels = fn;
+            });
         });
 
         return () => {
             cancelled = true;
-            unlistens.forEach((fn) => fn());
+            if (unlistenEvent) unlistenEvent();
+            if (unlistenDownload) unlistenDownload();
+            if (unlistenModels) unlistenModels();
         };
-    }, []);
+    }, [refreshDownloadedModels, updateModelProgress]);
 
 
     const downloadPlugin = useCallback(async (url?: string) => {
@@ -291,50 +468,52 @@ export function useAiLyricsPlugin() {
         setErrorMsg(null);
         try {
             const mod = await getTauri();
-            const status = await mod.invoke<AiPluginStatus>('download_ai_lyrics_plugin', { url });
-            setPluginStatusGlobal(status);
+            await mod.invoke('download_ai_lyrics_plugin', { url });
         } catch (err: unknown) {
+            setIsDownloading(false);
             const msg = err instanceof Error ? err.message : String(err);
             setErrorMsg(msg);
-        } finally {
-            setIsDownloading(false);
-            setDownloadProgress(null);
-            await refreshStatus();
+            throw err;
         }
-    }, [refreshStatus, setPluginStatusGlobal]);
+    }, []);
 
     const cancelDownloadPlugin = useCallback(async () => {
         if (!isBrowserTauri) return;
         try {
             const mod = await getTauri();
             await mod.invoke('cancel_ai_lyrics_plugin_download');
+            setIsDownloading(false);
+            setDownloadProgress(null);
         } catch (err) {
             console.error('Failed to cancel plugin download:', err);
         }
     }, []);
 
-    const installFromFile = useCallback(async () => {
+    const installFromFile = useCallback(async (customPath?: string) => {
         if (!isBrowserTauri) return;
+        setErrorMsg(null);
         try {
             const mod = await getTauri();
-            const path = await mod.invoke<string | null>('pick_single_file', {
-                title: 'Pilih File Plugin AI Lyrics (symvonia-ai-lyrics.exe)',
-                filters: [{ name: 'Executable', extensions: ['exe'] }],
-            });
-
+            let path = customPath;
+            if (!path) {
+                path = (await mod.invoke<string | null>('pick_single_file', {
+                    title: 'Pilih Berkas Executable Plugin AI Lirik (.exe)',
+                    filters: [{ name: 'Executable', extensions: ['exe'] }],
+                })) || undefined;
+            }
             if (path) {
-                setIsDownloading(true);
-                setErrorMsg(null);
-                const status = await mod.invoke<AiPluginStatus>('install_ai_lyrics_plugin_from_file', { path });
-                setPluginStatusGlobal(status);
+                const status = await mod.invoke<AiPluginStatus>('install_ai_lyrics_plugin_from_file', { path, srcPath: path });
+                if (status) {
+                    setPluginStatusGlobal(status);
+                }
+                await refreshStatus();
             }
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : String(err);
             setErrorMsg(msg);
-        } finally {
-            setIsDownloading(false);
+            throw err;
         }
-    }, [setPluginStatusGlobal]);
+    }, [refreshStatus, setPluginStatusGlobal]);
 
     const uninstallPlugin = useCallback(async () => {
         if (!isBrowserTauri) return;
@@ -342,54 +521,81 @@ export function useAiLyricsPlugin() {
             const mod = await getTauri();
             await mod.invoke('uninstall_ai_lyrics_plugin');
             await refreshStatus();
-        } catch (err) {
-            console.error('Failed to uninstall AI lyrics plugin:', err);
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
+            setErrorMsg(msg);
         }
     }, [refreshStatus]);
 
     const generateLyrics = useCallback(
-        (filePath: string, modelName = 'base', language = 'auto', isolateVocals = false): Promise<string> => {
-            return new Promise<string>(async (resolve, reject) => {
-                if (!isBrowserTauri) {
-                    reject(new Error('Only supported in Desktop app'));
-                    return;
-                }
+        async (
+            filePath: string,
+            modelName: string = 'base',
+            language: string = 'auto',
+            isolateVocals: boolean = false
+        ): Promise<string> => {
+            if (!isBrowserTauri) {
+                throw new Error('AI lyrics generation only available in Tauri desktop environment');
+            }
 
-                setIsGenerating(true);
-                setGenerateProgress({ percent: 0, segmentText: 'Inisialisasi AI...', timestamp: '' });
-                setErrorMsg(null);
-                generateResolverRef.current = { resolve, reject };
-
-                try {
-                    const mod = await getTauri();
-                    await mod.invoke('generate_ai_lyrics', { filePath, modelName, language, isolateVocals });
-                } catch (err: unknown) {
-                    setIsGenerating(false);
-                    const msg = err instanceof Error ? err.message : String(err);
-                    setErrorMsg(msg);
-                    reject(err);
-                    generateResolverRef.current = null;
-                }
+            setIsGenerating(true);
+            setGenerateProgress({
+                percent: 0,
+                segmentText: 'Inisialisasi...',
+                timestamp: '',
             });
+            setErrorMsg(null);
+
+            const resultPromise = new Promise<string>((resolve, reject) => {
+                generateResolverRef.current = { resolve, reject };
+            });
+
+            try {
+                const mod = await getTauri();
+                await mod.invoke('generate_ai_lyrics', {
+                    filePath,
+                    modelName,
+                    isolateVocals,
+                    language,
+                });
+            } catch (err: unknown) {
+                setIsGenerating(false);
+                setGenerateProgress(null);
+                generateResolverRef.current = null;
+                const msg = err instanceof Error ? err.message : String(err);
+                setErrorMsg(msg);
+                throw err;
+            }
+
+            return resultPromise;
         },
         []
     );
 
     const extractVocal = useCallback(
-        (filePath: string, outputPath?: string): Promise<void> => {
-            return new Promise<void>(async (resolve, reject) => {
-                if (!isBrowserTauri) {
-                    reject(new Error('Only supported in Desktop app'));
-                    return;
-                }
-                try {
-                    const mod = await getTauri();
-                    await mod.invoke('extract_vocal_ai', { filePath, outputPath });
-                    resolve();
-                } catch (err) {
-                    reject(err);
-                }
+        async (filePath: string, outputPath?: string): Promise<void> => {
+            if (!isBrowserTauri) return;
+            setIsGenerating(true);
+            setGenerateProgress({
+                percent: 0,
+                segmentText: 'Inisialisasi Pemisahan Vokal...',
+                timestamp: '',
             });
+            setErrorMsg(null);
+
+            try {
+                const mod = await getTauri();
+                await mod.invoke('extract_vocal_ai', {
+                    filePath,
+                    outputPath,
+                });
+            } catch (err: unknown) {
+                setIsGenerating(false);
+                setGenerateProgress(null);
+                const msg = err instanceof Error ? err.message : String(err);
+                setErrorMsg(msg);
+                throw err;
+            }
         },
         []
     );
@@ -411,6 +617,23 @@ export function useAiLyricsPlugin() {
         }
     }, []);
 
+    const cancelModelDownload = useCallback(async (modelCode?: string) => {
+        if (!isBrowserTauri) return;
+        try {
+            const mod = await getTauri();
+            if (modelCode) {
+                updateModelProgress(modelCode, null);
+                await mod.invoke('cancel_ai_model_download', { modelName: modelCode });
+            } else {
+                globalDownloadingModels = {};
+                setDownloadingModels({});
+                await mod.invoke('cancel_ai_lyrics');
+            }
+        } catch (err) {
+            console.error('Failed to cancel model download:', err);
+        }
+    }, [updateModelProgress]);
+
     const [systemSpecs, setSystemSpecs] = useState<SystemSpecsInfo | null>(null);
 
     const refreshSystemSpecs = useCallback(async () => {
@@ -430,17 +653,16 @@ export function useAiLyricsPlugin() {
 
     const downloadModel = useCallback(async (modelName: string) => {
         if (!isBrowserTauri) return;
-        // Synchronously mark download progress as initialized to lock UI instantly
-        setModelDownloadProgress({ modelName, percent: 0 });
+        updateModelProgress(modelName, { modelName, percent: 0 });
         try {
             const mod = await getTauri();
             await mod.invoke('download_ai_model', { modelName });
         } catch (err: unknown) {
-            setModelDownloadProgress(null);
+            updateModelProgress(modelName, null);
             const msg = err instanceof Error ? err.message : String(err);
             setErrorMsg(msg);
         }
-    }, []);
+    }, [updateModelProgress]);
 
     const deleteModel = useCallback(async (modelName: string) => {
         if (!isBrowserTauri) return;
@@ -469,16 +691,17 @@ export function useAiLyricsPlugin() {
         try {
             const mod = await getTauri();
             const path = await mod.invoke<string | null>('pick_single_file', {
-                title: `Pilih Berkas Model (${modelCode}) - (.bin)`,
-                filters: [{ name: 'Binary Model', extensions: ['bin'] }],
+                title: `Pilih Berkas Model (${modelCode}) - (.bin / .onnx)`,
+                filters: [{ name: 'Model Files (*.bin, *.onnx)', extensions: ['bin', 'onnx'] }],
             });
             if (path) {
-                await mod.invoke('import_ai_model_file', { srcPath: path, modelCode });
+                await mod.invoke('import_ai_model_file', { srcPath: path, path, modelCode });
                 await refreshDownloadedModels();
             }
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : String(err);
             setErrorMsg(msg);
+            throw err;
         }
     }, [refreshDownloadedModels]);
 
@@ -504,6 +727,10 @@ export function useAiLyricsPlugin() {
         isGenerating,
         generateProgress,
         modelDownloadProgress,
+        downloadingModels,
+        isModelDownloading,
+        getModelDownloadProgress,
+        cancelModelDownload,
         downloadedModels,
         refreshDownloadedModels,
         systemSpecs,
@@ -521,6 +748,7 @@ export function useAiLyricsPlugin() {
         generateLyrics,
         extractVocal,
         cancelGeneration,
+        syncCurrentState,
     };
 }
 

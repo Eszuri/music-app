@@ -97,12 +97,16 @@ fn spawn_engine(app: &AppHandle) -> Result<(), String> {
                                         state.is_generating = true;
                                         state.last_event = Some(l.clone());
                                     }
-                                    "vocal_model_download_progress" | "model_download_progress" => {
+                                    "vocal_model_download_start" | "vocal_model_download_progress" | "model_download_progress" => {
+                                        state.is_generating = true;
                                         state.last_event = Some(l.clone());
                                     }
-                                    "transcription_result" | "transcribe_cancelled" | "error" | "model_ready" | "model_download_complete" | "vocal_model_download_complete" => {
+                                    "transcription_result" | "transcribe_cancelled" | "model_download_cancelled" | "vocal_extraction_cancelled" | "error" | "model_ready" | "model_download_complete" | "vocal_model_download_complete" => {
                                         state.is_generating = false;
                                         state.last_event = Some(l.clone());
+                                        if evt == "model_ready" || evt == "model_download_complete" || evt == "vocal_model_download_complete" {
+                                            let _ = app_handle.emit("ai-lyrics-models-changed", ());
+                                        }
                                     }
                                     _ => {}
                                 }
@@ -233,6 +237,17 @@ pub fn cancel_ai_lyrics(_app: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+pub fn cancel_ai_model_download(_app: &AppHandle, model_name: String) -> Result<(), String> {
+    let mut guard = AI_LYRICS_ENGINE.lock().map_err(|e| e.to_string())?;
+    if let Some(proc) = guard.as_mut() {
+        let cmd = json!({ "command": "cancel", "modelName": model_name });
+        if let Ok(line) = serde_json::to_string(&cmd) {
+            let _ = proc.send(&line);
+        }
+    }
+    Ok(())
+}
+
 pub fn download_ai_model(app: &AppHandle, model_name: String) -> Result<(), String> {
     ensure_running(app)?;
 
@@ -270,6 +285,7 @@ pub fn delete_ai_model(app: &AppHandle, model_name: String) -> Result<(), String
             std::fs::remove_file(&path).map_err(|e| format!("Gagal menghapus model: {}", e))?;
         }
     }
+    let _ = app.emit("ai-lyrics-models-changed", ());
     Ok(())
 }
 
@@ -305,6 +321,7 @@ pub fn import_ai_model_file(app: &AppHandle, src_path: String, model_code: Strin
     };
     let target_path = models_dir.join(target_file_name);
     std::fs::copy(src, target_path).map_err(|e| format!("Gagal mengimpor berkas model: {}", e))?;
+    let _ = app.emit("ai-lyrics-models-changed", ());
     Ok(())
 }
 

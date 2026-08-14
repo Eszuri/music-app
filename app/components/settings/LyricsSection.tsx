@@ -162,7 +162,10 @@ export default function LyricsSection({
         pluginStatus,
         downloadedModels,
         refreshDownloadedModels,
-        modelDownloadProgress,
+        downloadingModels,
+        isModelDownloading,
+        getModelDownloadProgress,
+        cancelModelDownload,
         isGenerating,
         generateProgress,
         systemSpecs,
@@ -175,33 +178,19 @@ export default function LyricsSection({
         downloadPlugin,
     } = useAiLyricsPlugin();
 
-    const [downloadingModelCode, setDownloadingModelCode] = useState<string | null>(null);
-    const [isCancellingDownload, setIsCancellingDownload] = useState<boolean>(false);
-
-    const isAnyDownloadActive = Boolean(modelDownloadProgress) || Boolean(downloadingModelCode);
-    const isBusy = isGenerating || Boolean(generateProgress) || isAnyDownloadActive || Boolean(modelDownloadProgress);
-
     const handleStartDownload = async (modelCode: string) => {
-        if (isAnyDownloadActive) return;
-        setDownloadingModelCode(modelCode);
+        if (isModelDownloading(modelCode)) return;
         try {
             await downloadModel(modelCode);
         } catch (err) {
             console.error('Failed to start model download:', err);
-            setDownloadingModelCode(null);
         }
     };
-
-    useEffect(() => {
-        if (!modelDownloadProgress) {
-            setDownloadingModelCode(null);
-        }
-    }, [modelDownloadProgress]);
 
     const [deletingModelCode, setDeletingModelCode] = useState<string | null>(null);
 
     const handleDeleteModel = async (modelCode: string) => {
-        if (isBusy || deletingModelCode) return;
+        if (deletingModelCode === modelCode || isModelDownloading(modelCode)) return;
         setDeletingModelCode(modelCode);
         try {
             await deleteModel(modelCode);
@@ -209,19 +198,6 @@ export default function LyricsSection({
             console.error('Failed to delete model:', err);
         } finally {
             setDeletingModelCode(null);
-        }
-    };
-
-    const handleCancelDownload = async () => {
-        if (isCancellingDownload) return;
-        setIsCancellingDownload(true);
-        try {
-            await cancelGeneration();
-        } catch (err) {
-            console.error('Failed to cancel model download:', err);
-        } finally {
-            setIsCancellingDownload(false);
-            setDownloadingModelCode(null);
         }
     };
     const [viewTab, setViewTab] = useState<'manager' | 'manual'>('manager');
@@ -451,29 +427,6 @@ export default function LyricsSection({
                 </div>
             </div>
 
-            {/* Plugin Uninstalled Banner */}
-            {!isInstalled && (
-                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-in fade-in">
-                    <div className="flex items-start gap-3">
-                        <span className="text-xl mt-0.5">⚠️</span>
-                        <div>
-                            <h4 className="text-sm font-semibold text-amber-200">
-                                {t(lang, 'lyrics.manager.pluginNotInstalledTitle')}
-                            </h4>
-                            <p className="text-xs text-amber-300/80 mt-0.5">
-                                {t(lang, 'lyrics.manager.pluginNotInstalledDesc')}
-                            </p>
-                        </div>
-                    </div>
-                    <button
-                        onClick={() => downloadPlugin()}
-                        className={`px-4 py-2 text-xs font-bold rounded-xl ${accent.bg500} text-white hover:opacity-95 transition-all shrink-0 cursor-pointer shadow-sm active:scale-95`}
-                    >
-                        {t(lang, 'audio.bitperfect.plugin.install')}
-                    </button>
-                </div>
-            )}
-
             {/* Segmented Main View Switcher Navbar */}
             <div className="p-1.5 rounded-2xl bg-zinc-950/90 border border-zinc-800/90 grid grid-cols-2 gap-1.5 shadow-sm">
                 <button
@@ -525,16 +478,8 @@ export default function LyricsSection({
 
                 const renderModelCard = (model: typeof AI_MODELS_LIST[0]) => {
                     const isDownloaded = downloadedModels.includes(model.code);
-                    const isDownloadingThisModel =
-                        downloadingModelCode === model.code ||
-                        Boolean(modelDownloadProgress &&
-                        (modelDownloadProgress.modelName === model.code ||
-                            modelDownloadProgress.modelName.toLowerCase().includes(model.code.toLowerCase()) ||
-                            (model.code === 'vocal' && (
-                                modelDownloadProgress.modelName.toLowerCase().includes('vocal') ||
-                                modelDownloadProgress.modelName.toLowerCase().includes('onnx') ||
-                                modelDownloadProgress.modelName.toLowerCase().includes('htdemucs')
-                            ))));
+                    const thisModelProgress = getModelDownloadProgress(model.code);
+                    const isDownloadingThisModel = Boolean(thisModelProgress || isModelDownloading(model.code));
 
                     return (
                         <div
@@ -603,7 +548,7 @@ export default function LyricsSection({
                                         <div className="flex items-center gap-2">
                                             <button
                                                 onClick={() => importModelFromFile(model.code)}
-                                                disabled={isAnyDownloadActive}
+                                                disabled={isDownloadingThisModel}
                                                 className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-zinc-800/90 hover:bg-zinc-700/80 text-zinc-200 border border-zinc-700/60 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-xs disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
                                                 title={t(lang, 'lyrics.manager.importFileTitle')}
                                             >
@@ -616,10 +561,10 @@ export default function LyricsSection({
 
                                             <button
                                                 onClick={() => handleStartDownload(model.code)}
-                                                disabled={isAnyDownloadActive}
+                                                disabled={isDownloadingThisModel}
                                                 className={`px-4 py-1.5 text-xs font-bold rounded-xl ${accent.bg500} text-white hover:opacity-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none`}
                                             >
-                                                {downloadingModelCode === model.code || isDownloadingThisModel ? (
+                                                {isDownloadingThisModel ? (
                                                     <div className="flex items-center gap-1.5">
                                                         <div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
                                                         <span>Memproses...</span>
@@ -639,7 +584,7 @@ export default function LyricsSection({
                                     ) : (
                                         <button
                                             onClick={() => handleDeleteModel(model.code)}
-                                            disabled={isBusy || deletingModelCode === model.code}
+                                            disabled={isDownloadingThisModel || deletingModelCode === model.code}
                                             className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/25 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-xs disabled:opacity-40 disabled:pointer-events-none disabled:cursor-not-allowed"
                                         >
                                             {deletingModelCode === model.code ? (
@@ -662,9 +607,9 @@ export default function LyricsSection({
                             </div>
 
                             {/* Real-time Download Progress Bar */}
-                            {isDownloadingThisModel && modelDownloadProgress && (() => {
-                                const totalSize = modelDownloadProgress.totalBytes || model.sizeBytes;
-                                const formattedProgressText = formatBytes(modelDownloadProgress.downloadedBytes || 0);
+                            {isDownloadingThisModel && thisModelProgress && (() => {
+                                const totalSize = thisModelProgress.totalBytes || model.sizeBytes;
+                                const formattedProgressText = formatBytes(thisModelProgress.downloadedBytes || 0);
                                 const formattedTotalText = formatBytes(totalSize);
 
                                 return (
@@ -675,12 +620,11 @@ export default function LyricsSection({
                                             </span>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-zinc-400 text-[11px]">
-                                                    ({formattedProgressText} / {formattedTotalText} • {modelDownloadProgress.percent}%)
+                                                    ({formattedProgressText} / {formattedTotalText} • {thisModelProgress.percent}%)
                                                 </span>
                                                 <button
-                                                    onClick={handleCancelDownload}
-                                                    disabled={isCancellingDownload}
-                                                    className="px-2 py-0.5 text-[10px] font-bold rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/35 hover:bg-rose-500/30 transition-all cursor-pointer disabled:opacity-40"
+                                                    onClick={() => cancelModelDownload(model.code)}
+                                                    className="px-2 py-0.5 text-[10px] font-bold rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/35 hover:bg-rose-500/30 transition-all cursor-pointer"
                                                 >
                                                     Batal
                                                 </button>
@@ -689,7 +633,7 @@ export default function LyricsSection({
                                         <div className="w-full bg-zinc-800 rounded-full h-2 overflow-hidden">
                                             <div
                                                 className={`h-full ${accent.bg500} transition-all duration-300 rounded-full`}
-                                                style={{ width: `${modelDownloadProgress.percent}%` }}
+                                                style={{ width: `${thisModelProgress.percent}%` }}
                                             />
                                         </div>
                                     </div>

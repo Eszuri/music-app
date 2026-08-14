@@ -147,6 +147,7 @@ Protocol.Emit(new { @event = "ready", version = "1.0.0" });
 
 CancellationTokenSource? activeCts = null;
 Task? activeTask = null;
+var downloadCtsDict = new System.Collections.Concurrent.ConcurrentDictionary<string, CancellationTokenSource>(StringComparer.OrdinalIgnoreCase);
 
 string? line;
 while ((line = Console.In.ReadLine()) != null)
@@ -189,11 +190,11 @@ while ((line = Console.In.ReadLine()) != null)
                     string actualAudioPath = audioPath;
                     try
                     {
+                        // Step 1: Ensure all selected models are downloaded first before starting any processing
+                        string vocalModelPath = string.Empty;
                         if (isolateVocals)
                         {
-                            string vocalModelPath = await VocalExtractor.EnsureModelDownloadedAsync(modelsDir, token);
-                            string vocalOutputPath = GetExtractedVocalPath(audioPath, modelsDir);
-                            actualAudioPath = await VocalExtractor.ExtractVocalAsync(audioPath, vocalOutputPath, vocalModelPath, token);
+                            vocalModelPath = await VocalExtractor.EnsureModelDownloadedAsync(modelsDir, token);
                         }
 
                         if (string.IsNullOrEmpty(modelPath) || !File.Exists(modelPath))
@@ -201,6 +202,23 @@ while ((line = Console.In.ReadLine()) != null)
                             modelPath = await WhisperTranscriber.EnsureModelDownloadedAsync(modelName, modelsDir, token);
                         }
 
+                        // Step 2: Model initialization
+                        Protocol.Emit(new
+                        {
+                            @event = "progress",
+                            percent = 0,
+                            segmentText = "Inisialisasi Model AI...",
+                            timestamp = ""
+                        });
+
+                        // Step 3: Vocal extraction (if selected)
+                        if (isolateVocals && !string.IsNullOrEmpty(vocalModelPath) && File.Exists(vocalModelPath))
+                        {
+                            string vocalOutputPath = GetExtractedVocalPath(audioPath, modelsDir);
+                            actualAudioPath = await VocalExtractor.ExtractVocalAsync(audioPath, vocalOutputPath, vocalModelPath, token);
+                        }
+
+                        // Step 4: Transcribe lyrics
                         await WhisperTranscriber.TranscribeAsync(actualAudioPath, modelPath, cmd.Language, token);
                     }
                     catch (OperationCanceledException)
@@ -239,11 +257,17 @@ while ((line = Console.In.ReadLine()) != null)
                 string modelName = cmd.ModelName ?? "base";
                 string modelsDir = cmd.ModelsDir ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "models");
 
-                activeCts?.Cancel();
-                activeCts = new CancellationTokenSource();
-                var token = activeCts.Token;
+                if (downloadCtsDict.ContainsKey(modelName))
+                {
+                    // Already downloading this model
+                    break;
+                }
 
-                activeTask = Task.Run(async () =>
+                var modelCts = new CancellationTokenSource();
+                downloadCtsDict[modelName] = modelCts;
+                var token = modelCts.Token;
+
+                _ = Task.Run(async () =>
                 {
                     try
                     {
@@ -260,11 +284,15 @@ while ((line = Console.In.ReadLine()) != null)
                     }
                     catch (OperationCanceledException)
                     {
-                        Protocol.Emit(new { @event = "model_download_cancelled" });
+                        Protocol.Emit(new { @event = "model_download_cancelled", modelName });
                     }
                     catch (Exception ex)
                     {
                         Protocol.EmitError(ex.Message, "download_model");
+                    }
+                    finally
+                    {
+                        downloadCtsDict.TryRemove(modelName, out _);
                     }
                 }, token);
                 break;
@@ -307,12 +335,35 @@ while ((line = Console.In.ReadLine()) != null)
             }
 
             case "cancel":
-                activeCts?.Cancel();
-                Protocol.Emit(new { @event = "cancelled" });
+            {
+                if (!string.IsNullOrEmpty(cmd.ModelName))
+                {
+                    if (downloadCtsDict.TryRemove(cmd.ModelName, out var targetCts))
+                    {
+                        targetCts.Cancel();
+                        Protocol.Emit(new { @event = "model_download_cancelled", modelName = cmd.ModelName });
+                    }
+                }
+                else
+                {
+                    activeCts?.Cancel();
+                    foreach (var kvp in downloadCtsDict)
+                    {
+                        kvp.Value.Cancel();
+                    }
+                    downloadCtsDict.Clear();
+                    Protocol.Emit(new { @event = "cancelled" });
+                }
                 break;
+            }
 
             case "shutdown":
                 activeCts?.Cancel();
+                foreach (var kvp in downloadCtsDict)
+                {
+                    kvp.Value.Cancel();
+                }
+                downloadCtsDict.Clear();
                 Protocol.Emit(new { @event = "bye" });
                 return;
 
