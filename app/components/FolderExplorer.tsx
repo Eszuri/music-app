@@ -119,7 +119,9 @@ function FolderExplorer({
     });
 
     useEffect(() => {
-        setWidth(loadSavedWidth());
+        if (typeof window !== 'undefined') {
+            setWidth(loadSavedWidth());
+        }
     }, []);
 
     useEffect(() => {
@@ -197,6 +199,7 @@ function FolderExplorer({
 
     return (
         <aside
+            suppressHydrationWarning
             style={{width}}
             className="relative flex shrink-0 flex-col border-r border-zinc-800/50 bg-black/30 max-lg:flex-1 max-lg:min-w-0 overflow-hidden"
         >

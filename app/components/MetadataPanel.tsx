@@ -473,7 +473,9 @@ function MetadataPanel({
     const [activeTab, setActiveTab] = useState<'metadata' | 'lyrics'>('metadata');
 
     useEffect(() => {
-        setActiveTab(loadSavedTab());
+        if (typeof window !== 'undefined') {
+            setActiveTab(loadSavedTab());
+        }
     }, []);
 
     useEffect(() => {
@@ -489,6 +491,12 @@ function MetadataPanel({
         }
     }, []);
     const [width, setWidth] = useState<number>(DEFAULT_WIDTH);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setWidth(loadSavedWidth());
+        }
+    }, []);
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
     const isDraggingRef = useRef(false);
     const startXRef = useRef(0);
@@ -517,10 +525,6 @@ function MetadataPanel({
     const hLocation = useHoverDescription(selectedSong ? t(lang, 'status.meta.location') : null);
     const hCoverArt = useHoverDescription(selectedSong ? t(lang, 'status.meta.cover') : null);
     const { setHoverInfo } = useHoverInfo();
-
-    useEffect(() => {
-        setWidth(loadSavedWidth());
-    }, []);
 
     useEffect(() => {
         if (resetSidebarToken === 0) return;
@@ -614,6 +618,7 @@ function MetadataPanel({
 
     return (
         <aside
+            suppressHydrationWarning
             style={{ width }}
             className="relative flex shrink-0 flex-col border-l border-zinc-800/50 bg-zinc-950/40 max-lg:flex-1 max-lg:min-w-0 overflow-hidden"
         >

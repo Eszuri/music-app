@@ -209,9 +209,7 @@ function HeaderSkeleton({accentColor}: {accentColor: string}) {
                 <Skeleton accentColor={accentColor} variant="button" className="w-18 h-7 rounded-lg" />
                 <Skeleton accentColor={accentColor} variant="button" className="w-18 h-7 rounded-lg" />
             </div>
-            <div className="flex-1 flex justify-center">
-                <Skeleton accentColor={accentColor} variant="text" className="h-5 w-32" />
-            </div>
+            <div className="flex-1" />
             <Skeleton accentColor={accentColor} variant="button" className="w-17 h-5 rounded-full shrink-0" />
         </header>
     );
@@ -231,20 +229,41 @@ function StatusBarSkeleton({accentColor}: {accentColor: string}) {
 }
 
 function InitSkeleton({accentColor = "violet"}: {accentColor?: string}) {
+    const [leftWidth, setLeftWidth] = useState<number>(360);
+    const [rightWidth, setRightWidth] = useState<number>(360);
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const rawL = window.localStorage.getItem('music-app-sidebar-width');
+            const nL = Number(rawL);
+            if (Number.isFinite(nL) && nL >= 360 && nL <= 640) setLeftWidth(nL);
+
+            const rawR = window.localStorage.getItem('music-app-details-width');
+            const nR = Number(rawR);
+            if (Number.isFinite(nR) && nR >= 360 && nR <= 640) setRightWidth(nR);
+        }
+    }, []);
+
     return (
         <div className="flex-1 flex overflow-hidden">
-            <div className="w-72 border-r border-zinc-800/50 bg-black/30 flex flex-col">
+            {/* Left Panel: Folder Explorer */}
+            <div
+                suppressHydrationWarning
+                style={{ width: leftWidth }}
+                className="shrink-0 border-r border-zinc-800/50 bg-black/30 flex flex-col max-lg:hidden overflow-hidden"
+            >
                 <div className="flex items-center gap-2 px-3 py-2.5 border-b border-zinc-800/30">
                     <Skeleton accentColor={accentColor} variant="button" className="w-7 h-7" />
                     <Skeleton accentColor={accentColor} variant="text" className="flex-1 h-3" />
                     <Skeleton accentColor={accentColor} variant="button" className="w-7 h-7" />
                 </div>
-                <div className="flex-1 p-2">
+                <div className="flex-1 p-2 overflow-hidden">
                     <FolderExplorerSkeleton accentColor={accentColor} />
                 </div>
             </div>
 
-            <div className="flex-1 flex flex-col items-center justify-center p-6">
+            {/* Center Panel: Player & Controls */}
+            <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 overflow-hidden">
                 <div className="w-full max-w-2xl space-y-6">
                     <PlayerPanelSkeleton accentColor={accentColor} />
                     <SeekBarSkeleton accentColor={accentColor} />
@@ -257,12 +276,19 @@ function InitSkeleton({accentColor = "violet"}: {accentColor?: string}) {
                 </div>
             </div>
 
-            <div className="w-80 border-l border-zinc-800/50 bg-zinc-950/40 p-4">
-                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-zinc-800/30">
-                    <Skeleton accentColor={accentColor} variant="circle" className="w-4 h-4" />
-                    <Skeleton accentColor={accentColor} variant="text" className="w-24 h-3" />
+            {/* Right Panel: Metadata & Lyrics */}
+            <div
+                suppressHydrationWarning
+                style={{ width: rightWidth }}
+                className="shrink-0 border-l border-zinc-800/50 bg-zinc-950/40 flex flex-col max-lg:hidden overflow-hidden"
+            >
+                <div className="flex items-center border-b border-zinc-800/40 bg-zinc-900/50 p-1.5 gap-1.5 shrink-0">
+                    <Skeleton accentColor={accentColor} variant="button" className="flex-1 h-7 rounded-xl" />
+                    <Skeleton accentColor={accentColor} variant="button" className="flex-1 h-7 rounded-xl" />
                 </div>
-                <MetadataPanelSkeleton accentColor={accentColor} />
+                <div className="flex-1 p-3 md:p-4 overflow-hidden">
+                    <MetadataPanelSkeleton accentColor={accentColor} />
+                </div>
             </div>
         </div>
     );

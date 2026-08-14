@@ -548,9 +548,13 @@ function HomePlayerArea({
                             <div
                                 className={`flex flex-col items-center w-full h-full z-10 pointer-events-none ${isFullScreenAlbum ? "lg:p-4" : "p-2 sm:p-4 md:p-6"}`}
                             >
-                                {files.length === 0 ? (
+                                {files.length === 0 && !selectedSong && !loadingFiles ? (
                                     <div className="pointer-events-auto h-full flex flex-col justify-center w-full">
-                                        <EmptyFolderState lang={lang} folder={displayPath} />
+                                        {!musicFolder ? (
+                                            <NoFolderEmptyState lang={lang} onPickFolder={handlePickFolder} accentColor={accentColor} />
+                                        ) : (
+                                            <EmptyFolderState lang={lang} folder={displayPath} />
+                                        )}
                                     </div>
                                 ) : (
                                     <motion.div
