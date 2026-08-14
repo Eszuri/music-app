@@ -84,7 +84,7 @@ export default function PluginSection({
         try {
             const mod = await getTauri();
             const selected = await mod.invoke<string | null>("pick_single_file", {
-                title: lang === 'id' ? "Pilih berkas plugin (.exe)" : "Select plugin executable (.exe)",
+                title: t(lang, 'plugin.selectExeTitle'),
                 filters: [{ name: "Executable", extensions: ["exe"] }],
             });
             if (selected) {

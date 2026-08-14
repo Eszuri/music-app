@@ -408,12 +408,12 @@ export default function LyricsSection({
                                 </div>
                             </div>
 
-                            {/* CPU Cores & Threads Item (Baris di bawah Memory RAM) */}
+                            {/* CPU Cores & Threads Item */}
                             <div className="p-2.5 rounded-xl bg-zinc-950/80 border border-zinc-800/70 flex items-center justify-between gap-3">
                                 <div className="flex items-center gap-2.5 min-w-0">
                                     <span className="text-xs shrink-0">🔲</span>
                                     <span className="text-[11px] font-medium text-zinc-400 shrink-0">
-                                        CPU Cores:
+                                        {t(lang, 'lyrics.specs.cpuCores')}
                                     </span>
                                     <span className="text-xs font-bold text-zinc-100 truncate">
                                         {systemSpecs
@@ -516,18 +516,18 @@ export default function LyricsSection({
                                     <div className="pt-1.5 space-y-1 text-[11px] font-mono">
                                         {/* Memory RAM */}
                                         <div className="flex items-center gap-2 text-zinc-400 flex-wrap">
-                                            <span className="text-zinc-500 font-semibold">Memory RAM:</span>
+                                            <span className="text-zinc-500 font-semibold">{t(lang, 'lyrics.specs.ram')}</span>
                                             <span>Min {model.minRamGb} GB</span>
                                             <span className="text-zinc-600">•</span>
-                                            <span className="text-zinc-400">Rekomendasi {model.recRamGb} GB</span>
+                                            <span className="text-zinc-400">{t(lang, 'lyrics.specs.recommend')} {model.recRamGb} GB</span>
                                         </div>
 
                                         {/* CPU Cores & Threads */}
                                         <div className="flex items-center gap-2 text-zinc-400 flex-wrap">
-                                            <span className="text-zinc-500 font-semibold">CPU Cores:</span>
+                                            <span className="text-zinc-500 font-semibold">{t(lang, 'lyrics.specs.cpuCores')}</span>
                                             <span>Min {model.minCpuCores} Core / {model.minCpuThreads} Thread</span>
                                             <span className="text-zinc-600">•</span>
-                                            <span className="text-zinc-400">Rekomendasi {model.recCpuCores} Core / {model.recCpuThreads} Thread</span>
+                                            <span className="text-zinc-400">{t(lang, 'lyrics.specs.recommend')} {model.recCpuCores} Core / {model.recCpuThreads} Thread</span>
                                         </div>
 
                                         {/* Hardware Details & Speed */}
@@ -556,7 +556,7 @@ export default function LyricsSection({
                                                     <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
                                                     <path d="M14 2v4a1 1 0 0 0 1 1h4"/>
                                                 </svg>
-                                                <span>{model.code === 'vocal' ? 'Impor .onnx' : t(lang, 'lyrics.manager.importBtn')}</span>
+                                                <span>{model.code === 'vocal' ? t(lang, 'lyrics.manager.importOnnxBtn') : t(lang, 'lyrics.manager.importBtn')}</span>
                                             </button>
 
                                             <button
@@ -567,7 +567,7 @@ export default function LyricsSection({
                                                 {isDownloadingThisModel ? (
                                                     <div className="flex items-center gap-1.5">
                                                         <div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                                                        <span>Memproses...</span>
+                                                        <span>{t(lang, 'lyrics.manager.processing')}</span>
                                                     </div>
                                                 ) : (
                                                     <>
@@ -590,7 +590,7 @@ export default function LyricsSection({
                                             {deletingModelCode === model.code ? (
                                                 <>
                                                     <div className="w-3 h-3 border-2 border-rose-400 border-t-transparent rounded-full animate-spin" />
-                                                    <span>Menghapus...</span>
+                                                    <span>{t(lang, 'lyrics.manager.deleting')}</span>
                                                 </>
                                             ) : (
                                                 <>
@@ -626,7 +626,7 @@ export default function LyricsSection({
                                                     onClick={() => cancelModelDownload(model.code)}
                                                     className="px-2 py-0.5 text-[10px] font-bold rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/35 hover:bg-rose-500/30 transition-all cursor-pointer"
                                                 >
-                                                    Batal
+                                                    {t(lang, 'common.cancel')}
                                                 </button>
                                             </div>
                                         </div>

@@ -58,7 +58,7 @@ export default function SpotifyMainSection({
                         <button
                             onClick={goUp}
                             className="w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-zinc-300 hover:text-white flex items-center justify-center transition-colors"
-                            title="Ke Folder Induk (Go Up)"
+                            title={t(lang, 'status.goUp')}
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                                 <path d="m15 18-6-6 6-6" />
@@ -72,7 +72,7 @@ export default function SpotifyMainSection({
                             type="text"
                             value={searchFilter}
                             onChange={(e) => setSearchFilter(e.target.value)}
-                            placeholder="Cari lagu atau folder..."
+                            placeholder={t(lang, 'spotify.searchSongsOrFolders')}
                             className="w-full bg-zinc-800/80 border border-zinc-700/50 rounded-full py-1.5 pl-8 sm:pl-9 pr-3 text-xs text-zinc-100 placeholder-zinc-400 focus:outline-none focus:border-emerald-500/60"
                         />
                         <svg
@@ -102,10 +102,10 @@ export default function SpotifyMainSection({
                     </div>
 
                     <div className="flex flex-col gap-1 sm:gap-2 min-w-0">
-                        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-400">Folder Playlist</span>
+                        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-400">{t(lang, 'spotify.folderPlaylist')}</span>
                         <h1 className="text-xl sm:text-3xl md:text-5xl font-black text-white truncate leading-tight">{folderName}</h1>
                         <div className="flex items-center gap-2 text-[11px] sm:text-xs text-zinc-300 font-medium">
-                            <span>{audioFiles.length} Lagu</span>
+                            <span>{audioFiles.length} {t(lang, 'spotify.songs')}</span>
                             <span>•</span>
                             <span className="truncate text-zinc-400 max-w-[200px] sm:max-w-md">{displayPath}</span>
                         </div>
@@ -124,7 +124,7 @@ export default function SpotifyMainSection({
                     }}
                     disabled={audioFiles.length === 0}
                     className="w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black flex items-center justify-center transition-transform hover:scale-105 active:scale-95 shadow-lg disabled:opacity-40"
-                    title="Putar Folder"
+                    title={t(lang, 'spotify.playFolder')}
                 >
                     {isPlaying ? (
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -145,9 +145,9 @@ export default function SpotifyMainSection({
                     <thead>
                         <tr className="text-zinc-400 border-b border-zinc-800/60 uppercase font-semibold text-[11px]">
                             <th className="py-3 px-3 w-10 text-center">#</th>
-                            <th className="py-3 px-3">Judul</th>
-                            <th className="py-3 px-3 hidden md:table-cell">Album / Tipe</th>
-                            <th className="py-3 px-3 hidden lg:table-cell">Bitrate / Format</th>
+                            <th className="py-3 px-3">{t(lang, 'status.headerTitle')}</th>
+                            <th className="py-3 px-3 hidden md:table-cell">{t(lang, 'spotify.albumType')}</th>
+                            <th className="py-3 px-3 hidden lg:table-cell">{t(lang, 'spotify.bitrateFormat')}</th>
                             <th className="py-3 px-3 text-right w-16">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="ml-auto">
                                     <circle cx="12" cy="12" r="10" />
@@ -215,7 +215,7 @@ export default function SpotifyMainSection({
                                                     {file.name}
                                                 </span>
                                                 <span className="text-[11px] text-zinc-400 truncate">
-                                                    {file.is_dir ? "Folder" : isSelected && metadata?.artist ? metadata.artist : "Artis Lokal"}
+                                                    {file.is_dir ? t(lang, 'spotify.filterFolders') : isSelected && metadata?.artist ? metadata.artist : t(lang, 'player.unknownArtist')}
                                                 </span>
                                             </div>
                                         </div>
@@ -223,7 +223,7 @@ export default function SpotifyMainSection({
 
                                     {/* Album Column */}
                                     <td className="py-3 px-3 hidden md:table-cell text-zinc-400 truncate max-w-[160px]">
-                                        {file.is_dir ? "Directory" : isSelected && metadata?.album ? metadata.album : "Local Audio"}
+                                        {file.is_dir ? t(lang, 'spotify.directory') : isSelected && metadata?.album ? metadata.album : t(lang, 'player.unknownAlbum')}
                                     </td>
 
                                     {/* Format Column */}

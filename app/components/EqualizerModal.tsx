@@ -215,7 +215,7 @@ function EqualizerModal({
                             <button
                                 onClick={() => setZoomLevel(Math.max(1, +(zoomLevel - 0.25).toFixed(2)))}
                                 disabled={disabled || !enabled || zoomLevel <= 1}
-                                title="Zoom Out Sliders"
+                                title={t(lang, 'equalizer.zoomOut')}
                                 className="p-1 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 disabled:opacity-30 cursor-pointer transition-colors"
                             >
                                 <ZoomOutIcon size={14} />
@@ -226,7 +226,7 @@ function EqualizerModal({
                             <button
                                 onClick={() => setZoomLevel(Math.min(2, +(zoomLevel + 0.25).toFixed(2)))}
                                 disabled={disabled || !enabled || zoomLevel >= 2}
-                                title="Zoom In Sliders"
+                                title={t(lang, 'equalizer.zoomIn')}
                                 className="p-1 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 disabled:opacity-30 cursor-pointer transition-colors"
                             >
                                 <ZoomInIcon size={14} />

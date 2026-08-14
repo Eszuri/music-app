@@ -77,7 +77,7 @@ function HomeHeader({
 }: HomeHeaderProps) {
     const accent = getAccent(accentColor);
     const eqHover = useHoverDescription(t(lang, 'equalizer.title'));
-    const editMetaHover = useHoverDescription('Edit Metadata');
+    const editMetaHover = useHoverDescription(t(lang, 'metadataEdit.title'));
 
     const [contextMenu, setContextMenu] = useState<{x: number; y: number; items: ContextMenuItem[]} | null>(null);
     const hideContextMenu = useCallback(() => setContextMenu(null), []);

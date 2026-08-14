@@ -316,7 +316,7 @@ export function AiLyricsModal({
                                     </span>
                                     <span className="text-[11px] font-mono text-zinc-300 bg-zinc-900 border border-zinc-800/80 px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-xs">
                                         <span className="text-zinc-400 font-sans font-medium">
-                                            {lang === 'id' ? 'Sistem Komputer Ini:' : 'This PC:'}
+                                            {t(lang, 'lyrics.specs.thisPc')}
                                         </span>
                                         <span className="font-semibold text-zinc-200">
                                             {systemSpecs.ramGb}GB RAM • {systemSpecs.cpuCores} Core
@@ -480,9 +480,7 @@ export function AiLyricsModal({
                                             <polyline points="20 6 9 17 4 12" />
                                         </svg>
                                         <p className="text-xs leading-tight text-zinc-400 line-clamp-2">
-                                            {lang === 'id'
-                                                ? `Model ${selectedModelInfo.label} optimal & kompatibel dengan spesifikasi perangkat Anda.`
-                                                : `Model ${selectedModelInfo.label} is optimal and fully compatible with your system.`}
+                                            {t(lang, 'lyrics.specs.optimal', { label: selectedModelInfo.label })}
                                         </p>
                                     </div>
                                 )}
@@ -552,9 +550,10 @@ export function AiLyricsModal({
                                             <div className="flex items-center gap-2 min-w-0">
                                                 <div className="w-4 h-4 rounded-full border-2 border-zinc-400 border-t-transparent animate-spin shrink-0" />
                                                 <span className="text-xs font-medium text-zinc-200 truncate">
-                                                    {lang === 'id'
-                                                        ? `Mengunduh Model ${getModelDisplayName(aiModelProgress.modelName)} (${aiModelProgress.percent}%)`
-                                                        : `Downloading ${getModelDisplayName(aiModelProgress.modelName)} Model (${aiModelProgress.percent}%)`}
+                                                    {t(lang, 'lyrics.manager.downloadingModelWithName', {
+                                                        model: getModelDisplayName(aiModelProgress.modelName),
+                                                        pct: aiModelProgress.percent,
+                                                    })}
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-2.5 shrink-0">

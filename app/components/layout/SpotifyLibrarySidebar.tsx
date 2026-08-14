@@ -55,20 +55,20 @@ export default function SpotifyLibrarySidebar({
                         <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                         <polyline points="9 22 9 12 15 12 15 22" />
                     </svg>
-                    {!isCollapsed && <span className="max-lg:hidden">Beranda</span>}
+                    {!isCollapsed && <span className="max-lg:hidden">{t(lang, 'spotify.home')}</span>}
                 </button>
 
                 <button
                     onClick={handlePickFolder}
                     className="flex items-center gap-3.5 text-zinc-400 hover:text-white font-semibold text-sm transition-colors p-2 rounded-md hover:bg-zinc-800/60"
-                    title="Pilih Folder Musik"
+                    title={t(lang, 'spotify.pickFolder')}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                         <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L8.6 3.3A2 2 0 0 0 6.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
                         <line x1="12" y1="10" x2="12" y2="16" />
                         <line x1="9" y1="13" x2="15" y2="13" />
                     </svg>
-                    {!isCollapsed && <span className="truncate max-lg:hidden">Folder Musik</span>}
+                    {!isCollapsed && <span className="truncate max-lg:hidden">{t(lang, 'spotify.musicFolder')}</span>}
                 </button>
             </div>
 
@@ -79,14 +79,14 @@ export default function SpotifyLibrarySidebar({
                     <button
                         onClick={() => setIsCollapsed(!isCollapsed)}
                         className="flex items-center gap-3 font-bold text-xs sm:text-sm text-zinc-300 hover:text-white transition-colors p-1.5 rounded-md hover:bg-zinc-800/50"
-                        title={isCollapsed ? "Buka Sidebar Library" : "Tutup Sidebar Library"}
+                        title={isCollapsed ? t(lang, 'spotify.openSidebar') : t(lang, 'spotify.closeSidebar')}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                             <rect width="18" height="18" x="3" y="3" rx="2" />
                             <path d="M9 3v18" />
                             <path d="m14 9 3 3-3 3" />
                         </svg>
-                        {!isCollapsed && <span className="max-lg:hidden">Koleksi Kamu</span>}
+                        {!isCollapsed && <span className="max-lg:hidden">{t(lang, 'spotify.yourLibrary')}</span>}
                     </button>
 
                     {!isCollapsed && (
@@ -94,7 +94,7 @@ export default function SpotifyLibrarySidebar({
                             <button
                                 onClick={handlePickFolder}
                                 className="p-1.5 hover:bg-zinc-800 hover:text-white rounded-full transition-colors"
-                                title="Buka Folder Musik"
+                                title={t(lang, 'spotify.openMusicFolder')}
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <line x1="12" y1="5" x2="12" y2="19" />
@@ -117,7 +117,7 @@ export default function SpotifyLibrarySidebar({
                                         : "bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700/80"
                                 }`}
                             >
-                                Semua
+                                {t(lang, 'spotify.filterAll')}
                             </button>
                             <button
                                 onClick={() => setActiveFilter("folders")}
@@ -127,7 +127,7 @@ export default function SpotifyLibrarySidebar({
                                         : "bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700/80"
                                 }`}
                             >
-                                Folder ({folderFiles.length})
+                                {t(lang, 'spotify.filterFolders')} ({folderFiles.length})
                             </button>
                             <button
                                 onClick={() => setActiveFilter("audio")}
@@ -137,7 +137,7 @@ export default function SpotifyLibrarySidebar({
                                         : "bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700/80"
                                 }`}
                             >
-                                Musik ({audioFiles.length})
+                                {t(lang, 'spotify.filterMusic')} ({audioFiles.length})
                             </button>
                         </div>
 
@@ -147,7 +147,7 @@ export default function SpotifyLibrarySidebar({
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Cari di Koleksi..."
+                                placeholder={t(lang, 'spotify.searchInLibrary')}
                                 className="w-full bg-zinc-800/60 border border-zinc-700/40 rounded-md py-1.5 pl-8 pr-3 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-emerald-500/60"
                             />
                             <svg
@@ -187,10 +187,10 @@ export default function SpotifyLibrarySidebar({
                             {!isCollapsed && (
                                 <div className="flex flex-col min-w-0">
                                     <span className="text-xs font-semibold truncate">
-                                        {musicFolder.split(/[/\\]/).pop() || "Folder Musik Utama"}
+                                        {musicFolder.split(/[/\\]/).pop() || t(lang, 'spotify.musicFolder')}
                                     </span>
                                     <span className="text-[11px] text-zinc-400 truncate">
-                                        Root Folder • {audioFiles.length} Lagu
+                                        {t(lang, 'spotify.rootFolder')} • {audioFiles.length} {t(lang, 'spotify.songs')}
                                     </span>
                                 </div>
                             )}
@@ -240,7 +240,7 @@ export default function SpotifyLibrarySidebar({
                                             {file.name}
                                         </span>
                                         <span className="text-[11px] text-zinc-400 truncate">
-                                            {file.is_dir ? "Subfolder" : file.ext?.toUpperCase() || "Audio"}
+                                            {file.is_dir ? t(lang, 'spotify.subfolder') : file.ext?.toUpperCase() || "Audio"}
                                         </span>
                                     </div>
                                 )}

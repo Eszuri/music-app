@@ -35,11 +35,11 @@ export default function SpotifyNowPlayingPanel({
         <aside className="w-72 sm:w-80 h-full bg-zinc-900/95 rounded-lg p-3.5 sm:p-4 flex flex-col gap-3.5 sm:gap-4 border border-zinc-800/80 select-none shrink-0 overflow-y-auto custom-scrollbar shadow-2xl">
             {/* Header */}
             <div className="flex items-center justify-between text-zinc-200">
-                <span className="font-bold text-sm">Sedang Diputar</span>
+                <span className="font-bold text-sm">{t(lang, 'spotify.nowPlaying')}</span>
                 <button
                     onClick={onClose}
                     className="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
-                    title="Tutup Panel"
+                    title={t(lang, 'spotify.closePanel')}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18" />
@@ -62,7 +62,7 @@ export default function SpotifyNowPlayingPanel({
                             <circle cx="12" cy="12" r="10" />
                             <circle cx="12" cy="12" r="3" />
                         </svg>
-                        <span className="text-xs text-zinc-500 font-medium">Cover Art Tidak Ada</span>
+                        <span className="text-xs text-zinc-500 font-medium">{t(lang, 'spotify.noCoverArt')}</span>
                     </div>
                 )}
             </div>
@@ -76,7 +76,7 @@ export default function SpotifyNowPlayingPanel({
                     <button
                         onClick={() => onOpenEditMetadata?.(selectedSong || undefined)}
                         className="text-xs text-zinc-400 hover:text-white p-1 rounded hover:bg-zinc-800 transition-colors shrink-0"
-                        title="Edit Metadata Lagu"
+                        title={t(lang, 'spotify.editMetadata')}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M12 20h9" />
@@ -91,7 +91,7 @@ export default function SpotifyNowPlayingPanel({
             {/* Technical Audio Card */}
             <div className="bg-zinc-950/60 rounded-lg p-3 border border-zinc-800/60 flex flex-col gap-2">
                 <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
-                    <span>Kualitas Audio</span>
+                    <span>{t(lang, 'spotify.audioQuality')}</span>
                     <span className="px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-400 text-[10px] font-bold border border-emerald-500/30 uppercase">
                         {selectedSong?.ext || "AUDIO"}
                     </span>
@@ -99,11 +99,11 @@ export default function SpotifyNowPlayingPanel({
 
                 <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-zinc-800/40">
                     <div>
-                        <span className="text-zinc-500 text-[11px] block">Bitrate</span>
+                        <span className="text-zinc-500 text-[11px] block">{t(lang, 'spotify.bitrate')}</span>
                         <span className="text-zinc-200 font-semibold">{metadata?.bitrate ? `${metadata.bitrate} kbps` : "-"}</span>
                     </div>
                     <div>
-                        <span className="text-zinc-500 text-[11px] block">Sample Rate</span>
+                        <span className="text-zinc-500 text-[11px] block">{t(lang, 'spotify.sampleRate')}</span>
                         <span className="text-zinc-200 font-semibold">{metadata?.sample_rate ? `${metadata.sample_rate} Hz` : "-"}</span>
                     </div>
                 </div>
@@ -112,7 +112,7 @@ export default function SpotifyNowPlayingPanel({
             {/* Next Track in Queue Preview Card */}
             {nextSong && (
                 <div className="bg-zinc-850/80 rounded-lg p-3 border border-zinc-800/50 flex flex-col gap-2">
-                    <span className="text-xs font-bold text-zinc-300">Berikutnya dalam Antrean</span>
+                    <span className="text-xs font-bold text-zinc-300">{t(lang, 'spotify.nextInQueue')}</span>
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded bg-zinc-800 flex items-center justify-center shrink-0 text-emerald-400 border border-zinc-700/50">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -123,7 +123,7 @@ export default function SpotifyNowPlayingPanel({
                         </div>
                         <div className="flex flex-col min-w-0">
                             <span className="text-xs font-semibold text-zinc-200 truncate">{nextSong.name}</span>
-                            <span className="text-[11px] text-zinc-400">Audio Track</span>
+                            <span className="text-[11px] text-zinc-400">{t(lang, 'spotify.audioTrack')}</span>
                         </div>
                     </div>
                 </div>

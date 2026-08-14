@@ -117,7 +117,7 @@ export default function SpotifyPlayerBar({
                     className={`ml-1 transition-colors p-1.5 hover:scale-105 active:scale-95 shrink-0 ${
                         isLiked ? "text-emerald-500" : "text-zinc-400 hover:text-white"
                     }`}
-                    title={isLiked ? "Hapus dari Favorit" : "Sukai Lagu"}
+                    title={isLiked ? t(lang, 'spotify.unlike') : t(lang, 'spotify.like')}
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -145,7 +145,7 @@ export default function SpotifyPlayerBar({
                         className={`transition-colors p-1.5 relative hover:scale-105 active:scale-95 ${
                             shuffle ? "text-emerald-500" : "text-zinc-400 hover:text-white"
                         }`}
-                        title="Acak Lagu (Shuffle)"
+                        title={shuffle ? t(lang, 'status.shuffleOff') : t(lang, 'status.shuffleOn')}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22" />
@@ -162,7 +162,7 @@ export default function SpotifyPlayerBar({
                         onClick={playPrev}
                         disabled={!selectedSong}
                         className="text-zinc-400 hover:text-white disabled:opacity-30 transition-transform active:scale-90 p-1.5"
-                        title="Sebelumnya"
+                        title={t(lang, 'status.prev')}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z" />
@@ -174,7 +174,7 @@ export default function SpotifyPlayerBar({
                         onClick={togglePlayPause}
                         disabled={!selectedSong}
                         className="w-8 h-8 rounded-full bg-white hover:bg-zinc-200 text-black flex items-center justify-center transition-transform hover:scale-105 active:scale-95 disabled:opacity-40 shadow-lg"
-                        title={isPlaying ? "Jeda" : "Putar"}
+                        title={isPlaying ? t(lang, 'status.pause') : t(lang, 'status.play')}
                     >
                         {isPlaying ? (
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -193,7 +193,7 @@ export default function SpotifyPlayerBar({
                         onClick={playNext}
                         disabled={!selectedSong}
                         className="text-zinc-400 hover:text-white disabled:opacity-30 transition-transform active:scale-90 p-1.5"
-                        title="Berikutnya"
+                        title={t(lang, 'status.next')}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                             <path d="m6 18 8.5-6L6 6v12zM16 6v12h2V6h-2z" />
@@ -210,7 +210,7 @@ export default function SpotifyPlayerBar({
                         className={`transition-colors p-1.5 relative hover:scale-105 active:scale-95 ${
                             repeat !== "off" ? "text-emerald-500" : "text-zinc-400 hover:text-white"
                         }`}
-                        title={repeat === "one" ? "Ulangi Lagu Ini" : repeat === "all" ? "Ulangi Semua" : "Ulangi Mati"}
+                        title={repeat === "one" ? t(lang, 'status.repeatOne') : repeat === "all" ? t(lang, 'status.repeatAll') : t(lang, 'status.repeatOff')}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="m17 2 4 4-4 4" />
@@ -279,7 +279,7 @@ export default function SpotifyPlayerBar({
                     className={`p-1.5 rounded-md hover:bg-zinc-800/80 transition-colors ${
                         showRightSidebar ? "text-emerald-500" : "text-zinc-400 hover:text-white"
                     }`}
-                    title="Panel Sedang Diputar (Now Playing View)"
+                    title={t(lang, 'spotify.nowPlayingView')}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <rect width="18" height="18" x="3" y="3" rx="2" />
@@ -293,7 +293,7 @@ export default function SpotifyPlayerBar({
                     <button
                         onClick={toggleSystemMute}
                         className="text-zinc-400 hover:text-white transition-colors p-1"
-                        title={volume === 0 ? "Bunyikan Suara" : "Bisukan Suara"}
+                        title={volume === 0 ? t(lang, 'status.unmute') : t(lang, 'status.mute')}
                     >
                         {volume === 0 ? (
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
