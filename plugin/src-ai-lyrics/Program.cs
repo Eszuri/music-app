@@ -247,8 +247,16 @@ while ((line = Console.In.ReadLine()) != null)
                 {
                     try
                     {
-                        string path = await WhisperTranscriber.EnsureModelDownloadedAsync(modelName, modelsDir, token);
-                        Protocol.Emit(new { @event = "model_ready", modelName, path });
+                        if (modelName.Equals("vocal", StringComparison.OrdinalIgnoreCase) || modelName.Equals("htdemucs", StringComparison.OrdinalIgnoreCase) || modelName.Equals("htdemucs_ft_vocals", StringComparison.OrdinalIgnoreCase))
+                        {
+                            string path = await VocalExtractor.EnsureModelDownloadedAsync(modelsDir, token);
+                            Protocol.Emit(new { @event = "model_ready", modelName = "vocal", path });
+                        }
+                        else
+                        {
+                            string path = await WhisperTranscriber.EnsureModelDownloadedAsync(modelName, modelsDir, token);
+                            Protocol.Emit(new { @event = "model_ready", modelName, path });
+                        }
                     }
                     catch (OperationCanceledException)
                     {

@@ -169,13 +169,13 @@ export default function SettingsModal({
                     </nav>
 
                     {/* Content */}
-                    <div className="flex-1 flex flex-col">
-                        <header className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-zinc-800">
+                    <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+                        <header className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-zinc-800 shrink-0">
                             <h2 className="text-lg font-semibold text-zinc-100">
                                 {sections.find((s) => s.id === activeSection)?.label}
                             </h2>
                         </header>
-                        <div className="flex-1 overflow-y-auto p-4 md:p-6">
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 min-w-0">
                             {activeSection === 'general' && (
                                     <GeneralSection
                                         lang={lang}

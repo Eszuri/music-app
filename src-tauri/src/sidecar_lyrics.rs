@@ -260,10 +260,17 @@ pub fn download_ai_model(app: &AppHandle, model_name: String) -> Result<(), Stri
 
 pub fn delete_ai_model(app: &AppHandle, model_name: String) -> Result<(), String> {
     let dir = ai_lyrics_plugin_manager::plugin_dir(app)?.join("models");
-    let file_name = format!("ggml-{}.bin", model_name);
-    let path = dir.join(file_name);
-    if path.exists() {
-        std::fs::remove_file(&path).map_err(|e| format!("Gagal menghapus model: {}", e))?;
+    if model_name.eq_ignore_ascii_case("vocal") || model_name.eq_ignore_ascii_case("htdemucs") {
+        let p1 = dir.join("htdemucs_ft_vocals.onnx");
+        let p2 = dir.join("htdemucs.onnx");
+        if p1.exists() { let _ = std::fs::remove_file(&p1); }
+        if p2.exists() { let _ = std::fs::remove_file(&p2); }
+    } else {
+        let file_name = format!("ggml-{}.bin", model_name);
+        let path = dir.join(file_name);
+        if path.exists() {
+            std::fs::remove_file(&path).map_err(|e| format!("Gagal menghapus model: {}", e))?;
+        }
     }
     Ok(())
 }
@@ -293,7 +300,11 @@ pub fn import_ai_model_file(app: &AppHandle, src_path: String, model_code: Strin
     if !models_dir.exists() {
         std::fs::create_dir_all(&models_dir).map_err(|e| format!("Gagal membuat folder model: {}", e))?;
     }
-    let target_file_name = format!("ggml-{}.bin", model_code);
+    let target_file_name = if model_code.eq_ignore_ascii_case("vocal") || model_code.eq_ignore_ascii_case("htdemucs") {
+        "htdemucs_ft_vocals.onnx".to_string()
+    } else {
+        format!("ggml-{}.bin", model_code)
+    };
     let target_path = models_dir.join(target_file_name);
     std::fs::copy(src, target_path).map_err(|e| format!("Gagal mengimpor berkas model: {}", e))?;
     Ok(())

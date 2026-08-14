@@ -1288,13 +1288,18 @@ fn get_downloaded_ai_models(app: AppHandle) -> Vec<String> {
     let mut downloaded = Vec::new();
     if let Ok(dir) = ai_lyrics_plugin_manager::plugin_dir(&app) {
         let models_dir = dir.join("models");
-        let model_codes = ["tiny", "base", "small", "medium", "large-v3-turbo", "large-v3"];
+        let model_codes = ["vocal", "tiny", "base", "small", "medium", "large-v3-turbo", "large-v3"];
         for code in &model_codes {
-            let file_name = format!("ggml-{}.bin", code);
-            let path = models_dir.join(&file_name);
+            let path = if *code == "vocal" {
+                let p1 = models_dir.join("htdemucs_ft_vocals.onnx");
+                let p2 = models_dir.join("htdemucs.onnx");
+                if p1.exists() { p1 } else { p2 }
+            } else {
+                models_dir.join(format!("ggml-{}.bin", code))
+            };
             if path.exists() {
                 if let Ok(meta) = std::fs::metadata(&path) {
-                    if meta.len() > 1024 * 1024 {
+                    if meta.len() > 10 * 1024 * 1024 {
                         downloaded.push(code.to_string());
                     }
                 }

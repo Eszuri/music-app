@@ -7,13 +7,13 @@ export function SettingGroup({
     title,
     children,
 }: {
-    title: string;
+    title: ReactNode;
     children: ReactNode;
 }) {
     return (
         <div className="space-y-0">
-            <h3 className="text-[11px] font-semibold tracking-wider text-zinc-500 uppercase mb-3 px-0.5">{title}</h3>
-            <div className="rounded-xl bg-zinc-900/60 border border-zinc-800/60 overflow-hidden">
+            <div className="text-[11px] font-semibold tracking-wider text-zinc-500 uppercase mb-3 px-0.5">{title}</div>
+            <div className="rounded-xl bg-zinc-900/60 border border-zinc-800 border-3 overflow-hidden">
                 {children}
             </div>
         </div>

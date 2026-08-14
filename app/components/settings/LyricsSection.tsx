@@ -25,6 +25,22 @@ export interface AiModelSpec {
 
 export const AI_MODELS_LIST: AiModelSpec[] = [
     {
+        code: 'vocal',
+        label: 'Vocal Extractor (HT-Demucs)',
+        descriptionKey: 'lyrics.model.vocal.desc',
+        minRamGb: 4,
+        recRamGb: 8,
+        minCpuCores: 2,
+        minCpuThreads: 4,
+        recCpuCores: 4,
+        recCpuThreads: 8,
+        gpuRequirementKey: 'lyrics.model.vocal.gpu',
+        speedRatingKey: 'lyrics.model.vocal.speed',
+        sizeText: '301 MB',
+        sizeBytes: 316446953,
+        downloadUrl: 'https://huggingface.co/StemSplitio/htdemucs-ft-vocals-onnx/resolve/main/htdemucs_ft_vocals.onnx',
+    },
+    {
         code: 'tiny',
         label: 'Tiny',
         descriptionKey: 'lyrics.model.tiny.desc',
@@ -247,7 +263,7 @@ export default function LyricsSection({
     });
 
     return (
-        <div className="space-y-6 pb-6">
+        <div className="space-y-6 pb-6 min-w-0 w-full overflow-hidden">
             {/* Top Hero Section */}
             <div className="p-5 rounded-3xl bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 border border-zinc-800/80 shadow-lg space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -474,183 +490,242 @@ export default function LyricsSection({
             </div>
 
             {/* TAB VIEW 1: MANAGER MODEL DOWNLOADER */}
-            {viewTab === 'manager' && (
-                <SettingGroup title={t(lang, 'lyrics.manager.groupTitle')}>
-                    <div className="divide-y divide-zinc-800/50">
-                        {filteredModels.length === 0 ? (
+            {viewTab === 'manager' && (() => {
+                const vocalModels = filteredModels.filter((m) => m.code === 'vocal');
+                const whisperModels = filteredModels.filter((m) => m.code !== 'vocal');
+
+                if (filteredModels.length === 0) {
+                    return (
+                        <SettingGroup title={t(lang, 'lyrics.manager.groupTitle')}>
                             <div className="py-8 text-center text-xs text-zinc-400">
                                 {t(lang, 'lyrics.filter.empty')}
                             </div>
-                        ) : (
-                            filteredModels.map((model) => {
-                                const isDownloaded = downloadedModels.includes(model.code);
-                                const isDownloadingThisModel =
-                                    Boolean(modelDownloadProgress &&
-                                    (modelDownloadProgress.modelName === model.code ||
-                                        modelDownloadProgress.modelName.toLowerCase().includes(model.code.toLowerCase())));
+                        </SettingGroup>
+                    );
+                }
 
-                                return (
-                                    <div
-                                        key={model.code}
-                                        className="py-4 px-3.5 my-1 rounded-2xl transition-all space-y-3 hover:bg-zinc-900/40"
-                                    >
-                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5">
-                                            {/* Left Side: Model Info & Clean Text Status */}
-                                            <div className="space-y-1.5">
-                                                <div className="flex items-center gap-2.5 flex-wrap">
-                                                    <span className="font-bold text-sm text-zinc-100">
-                                                        {model.label}
-                                                    </span>
+                const renderModelCard = (model: typeof AI_MODELS_LIST[0]) => {
+                    const isDownloaded = downloadedModels.includes(model.code);
+                    const isDownloadingThisModel =
+                        Boolean(modelDownloadProgress &&
+                        (modelDownloadProgress.modelName === model.code ||
+                            modelDownloadProgress.modelName.toLowerCase().includes(model.code.toLowerCase())));
 
-                                                    <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold font-mono bg-zinc-800/70 text-zinc-300 border border-zinc-700/50">
-                                                        {model.sizeText}
-                                                    </span>
+                    return (
+                        <div
+                            key={model.code}
+                            className="py-4 px-3.5 my-1 rounded-2xl transition-all space-y-3 hover:bg-zinc-900/40"
+                        >
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5">
+                                {/* Left Side: Model Info & Clean Text Status */}
+                                <div className="space-y-1.5">
+                                    <div className="flex items-center gap-2.5 flex-wrap">
+                                        <span className="font-bold text-sm text-zinc-100">
+                                            {model.label}
+                                        </span>
 
-                                                    {isDownloaded ? (
-                                                        <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                                                            {t(lang, 'lyrics.manager.installedBadge')}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-zinc-800/80 text-zinc-400 border border-zinc-700/50">
-                                                            {t(lang, 'lyrics.manager.notDownloadedBadge')}
-                                                        </span>
-                                                    )}
-                                                </div>
+                                        <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold font-mono bg-zinc-800/70 text-zinc-300 border border-zinc-700/50">
+                                            {model.sizeText}
+                                        </span>
 
-                                                <p className="text-xs text-zinc-400 leading-relaxed">
-                                                    {t(lang, model.descriptionKey)}
-                                                </p>
+                                        {isDownloaded ? (
+                                            <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                                {t(lang, 'lyrics.manager.installedBadge')}
+                                            </span>
+                                        ) : (
+                                            <span className="px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-zinc-800/80 text-zinc-400 border border-zinc-700/50">
+                                                {t(lang, 'lyrics.manager.notDownloadedBadge')}
+                                            </span>
+                                        )}
+                                    </div>
 
-                                                <div className="pt-1.5 space-y-1 text-[11px] font-mono">
-                                                    {/* Memory RAM */}
-                                                    <div className="flex items-center gap-2 text-zinc-400 flex-wrap">
-                                                        <span className="text-zinc-500 font-semibold">Memory RAM:</span>
-                                                        <span>Min {model.minRamGb} GB</span>
-                                                        <span className="text-zinc-600">•</span>
-                                                        <span className="text-zinc-400">Rekomendasi {model.recRamGb} GB</span>
-                                                    </div>
+                                    <p className="text-xs text-zinc-400 leading-relaxed">
+                                        {t(lang, model.descriptionKey)}
+                                    </p>
 
-                                                    {/* CPU Cores & Threads */}
-                                                    <div className="flex items-center gap-2 text-zinc-400 flex-wrap">
-                                                        <span className="text-zinc-500 font-semibold">CPU Cores:</span>
-                                                        <span>Min {model.minCpuCores} Core / {model.minCpuThreads} Thread</span>
-                                                        <span className="text-zinc-600">•</span>
-                                                        <span className="text-zinc-400">Rekomendasi {model.recCpuCores} Core / {model.recCpuThreads} Thread</span>
-                                                    </div>
-
-                                                    {/* Hardware Details & Speed */}
-                                                    <div className="flex items-center gap-2 pt-0.5 text-[10px] flex-wrap">
-                                                        <span className="px-2 py-0.5 rounded bg-zinc-900/90 border border-zinc-800 text-zinc-300 font-sans">
-                                                            ⚡ {t(lang, model.speedRatingKey)}
-                                                        </span>
-                                                        <span className="px-2 py-0.5 rounded bg-zinc-900/90 border border-zinc-800 text-zinc-300 font-sans">
-                                                            💻 {t(lang, model.gpuRequirementKey)}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Right Side: Action Buttons */}
-                                            <div className="flex items-center gap-2 shrink-0 self-start md:self-center flex-wrap">
-                                                {!isDownloaded ? (
-                                                    <div className="flex items-center gap-2">
-                                                        <button
-                                                            onClick={() => importModelFromFile(model.code)}
-                                                            className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-zinc-800/90 hover:bg-zinc-700/80 text-zinc-200 border border-zinc-700/60 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-xs"
-                                                            title={t(lang, 'lyrics.manager.importFileTitle')}
-                                                        >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
-                                                                <path d="M14 2v4a1 1 0 0 0 1 1h4"/>
-                                                            </svg>
-                                                            <span>{t(lang, 'lyrics.manager.importBtn')}</span>
-                                                        </button>
-
-                                                        <button
-                                                            onClick={() => handleStartDownload(model.code)}
-                                                            disabled={isAnyDownloadActive}
-                                                            className={`px-4 py-1.5 text-xs font-bold rounded-xl ${accent.bg500} text-white hover:opacity-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none`}
-                                                        >
-                                                            {downloadingModelCode === model.code || isDownloadingThisModel ? (
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                                                                    <span>Memproses...</span>
-                                                                </div>
-                                                            ) : (
-                                                                <>
-                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                                                        <polyline points="7 10 12 15 17 10"/>
-                                                                        <line x1="12" y1="15" x2="12" y2="3"/>
-                                                                    </svg>
-                                                                    <span>{t(lang, 'lyrics.manager.downloadBtn')}</span>
-                                                                </>
-                                                            )}
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <button
-                                                        onClick={() => deleteModel(model.code)}
-                                                        disabled={isBusy}
-                                                        className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/25 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-xs disabled:opacity-40 disabled:pointer-events-none disabled:cursor-not-allowed"
-                                                    >
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                            <polyline points="3 6 5 6 21 6"/>
-                                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                                        </svg>
-                                                        <span>{t(lang, 'lyrics.manager.deleteBtn')}</span>
-                                                    </button>
-                                                )}
-                                            </div>
+                                    <div className="pt-1.5 space-y-1 text-[11px] font-mono">
+                                        {/* Memory RAM */}
+                                        <div className="flex items-center gap-2 text-zinc-400 flex-wrap">
+                                            <span className="text-zinc-500 font-semibold">Memory RAM:</span>
+                                            <span>Min {model.minRamGb} GB</span>
+                                            <span className="text-zinc-600">•</span>
+                                            <span className="text-zinc-400">Rekomendasi {model.recRamGb} GB</span>
                                         </div>
 
-                                        {/* Real-time Download Progress Bar */}
-                                        {isDownloadingThisModel && modelDownloadProgress && (() => {
-                                            const totalSize = modelDownloadProgress.totalBytes || model.sizeBytes;
-                                            const downloadedSize = modelDownloadProgress.downloadedBytes ?? Math.round((modelDownloadProgress.percent / 100) * totalSize);
-                                            const formattedDownloaded = formatBytes(downloadedSize);
-                                            const formattedTotal = formatBytes(totalSize);
+                                        {/* CPU Cores & Threads */}
+                                        <div className="flex items-center gap-2 text-zinc-400 flex-wrap">
+                                            <span className="text-zinc-500 font-semibold">CPU Cores:</span>
+                                            <span>Min {model.minCpuCores} Core / {model.minCpuThreads} Thread</span>
+                                            <span className="text-zinc-600">•</span>
+                                            <span className="text-zinc-400">Rekomendasi {model.recCpuCores} Core / {model.recCpuThreads} Thread</span>
+                                        </div>
 
-                                            return (
-                                                <div className={`p-3.5 rounded-xl bg-zinc-950/90 border ${accent.border500_30} space-y-2 animate-in fade-in duration-200`}>
-                                                    <div className="flex items-center justify-between text-xs gap-2">
-                                                        <div className={`flex items-center gap-2 ${accent.text400} font-semibold min-w-0`}>
-                                                            <div className={`w-3.5 h-3.5 rounded-full border-2 ${accent.border500} border-t-transparent animate-spin shrink-0`} />
-                                                            <span className="flex items-center gap-1.5 flex-wrap">
-                                                                <span>{t(lang, 'lyrics.manager.downloadingModelProgress')}</span>
-                                                                <span className="text-zinc-400 font-mono text-[11px] font-normal">
-                                                                    ({formattedDownloaded} / {formattedTotal} • {modelDownloadProgress.percent}%)
-                                                                </span>
-                                                            </span>
-                                                        </div>
-                                                        <button
-                                                            onClick={handleCancelDownload}
-                                                            disabled={isCancellingDownload}
-                                                            className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 border border-rose-500/35 transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none shrink-0 active:scale-95 shadow-xs"
-                                                        >
-                                                            {isCancellingDownload ? 'Membatalkan...' : t(lang, 'audio.bitperfect.plugin.cancel')}
-                                                        </button>
+                                        {/* Hardware Details & Speed */}
+                                        <div className="flex items-center gap-2 pt-0.5 text-[10px] flex-wrap">
+                                            <span className="px-2 py-0.5 rounded bg-zinc-900/90 border border-zinc-800 text-zinc-300 font-sans">
+                                                ⚡ {t(lang, model.speedRatingKey)}
+                                            </span>
+                                            <span className="px-2 py-0.5 rounded bg-zinc-900/90 border border-zinc-800 text-zinc-300 font-sans">
+                                                💻 {t(lang, model.gpuRequirementKey)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Right Side: Action Buttons */}
+                                <div className="flex items-center gap-2 shrink-0 self-start md:self-center flex-wrap">
+                                    {!isDownloaded ? (
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => importModelFromFile(model.code)}
+                                                className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-zinc-800/90 hover:bg-zinc-700/80 text-zinc-200 border border-zinc-700/60 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-xs"
+                                                title={t(lang, 'lyrics.manager.importFileTitle')}
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+                                                    <path d="M14 2v4a1 1 0 0 0 1 1h4"/>
+                                                </svg>
+                                                <span>{model.code === 'vocal' ? 'Impor .onnx' : t(lang, 'lyrics.manager.importBtn')}</span>
+                                            </button>
+
+                                            <button
+                                                onClick={() => handleStartDownload(model.code)}
+                                                disabled={isAnyDownloadActive}
+                                                className={`px-4 py-1.5 text-xs font-bold rounded-xl ${accent.bg500} text-white hover:opacity-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none`}
+                                            >
+                                                {downloadingModelCode === model.code || isDownloadingThisModel ? (
+                                                    <div className="flex items-center gap-1.5">
+                                                        <div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                                                        <span>Memproses...</span>
                                                     </div>
-                                                    <div className="w-full bg-zinc-800 rounded-full h-2 overflow-hidden">
-                                                        <div
-                                                            className={`h-full ${accent.bg500} transition-all duration-300 rounded-full`}
-                                                            style={{ width: `${modelDownloadProgress.percent}%` }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            );
-                                        })()}
+                                                ) : (
+                                                    <>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                                            <polyline points="7 10 12 15 17 10"/>
+                                                            <line x1="12" y1="15" x2="12" y2="3"/>
+                                                        </svg>
+                                                        <span>{t(lang, 'lyrics.manager.downloadBtn')}</span>
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => deleteModel(model.code)}
+                                            disabled={isBusy}
+                                            className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/25 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-xs disabled:opacity-40 disabled:pointer-events-none disabled:cursor-not-allowed"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                <polyline points="3 6 5 6 21 6"/>
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                            </svg>
+                                            <span>{t(lang, 'lyrics.manager.deleteBtn')}</span>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Real-time Download Progress Bar */}
+                            {isDownloadingThisModel && modelDownloadProgress && (() => {
+                                const totalSize = modelDownloadProgress.totalBytes || model.sizeBytes;
+                                const formattedProgressText = formatBytes(modelDownloadProgress.downloadedBytes || 0);
+                                const formattedTotalText = formatBytes(totalSize);
+
+                                return (
+                                    <div className="pt-2 space-y-1.5 animate-in fade-in">
+                                        <div className="flex items-center justify-between text-xs font-mono">
+                                            <span className={`font-semibold ${accent.text400}`}>
+                                                {t(lang, 'lyrics.manager.downloadingModelProgress')}
+                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-zinc-400 text-[11px]">
+                                                    ({formattedProgressText} / {formattedTotalText} • {modelDownloadProgress.percent}%)
+                                                </span>
+                                                <button
+                                                    onClick={handleCancelDownload}
+                                                    disabled={isCancellingDownload}
+                                                    className="px-2 py-0.5 text-[10px] font-bold rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/35 hover:bg-rose-500/30 transition-all cursor-pointer disabled:opacity-40"
+                                                >
+                                                    Batal
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="w-full bg-zinc-800 rounded-full h-2 overflow-hidden">
+                                            <div
+                                                className={`h-full ${accent.bg500} transition-all duration-300 rounded-full`}
+                                                style={{ width: `${modelDownloadProgress.percent}%` }}
+                                            />
+                                        </div>
                                     </div>
                                 );
-                            })
+                            })()}
+                        </div>
+                    );
+                };
+
+                return (
+                    <div className="space-y-6">
+                        {/* CONTAINER CARD 1: MODEL PEMISAHAN VOKAL (ONNX) */}
+                        {vocalModels.length > 0 && (
+                            <SettingGroup
+                                title={
+                                    <div className="mt-10 flex items-center justify-between w-full">
+                                        <div className="flex items-center gap-2">
+                                            <div>
+                                                <h4 className="text-xs font-bold text-zinc-100 tracking-wide uppercase">
+                                                    {t(lang, 'lyrics.category.vocalTitle')}
+                                                </h4>
+                                                <p className="text-[11px] font-normal text-zinc-400">
+                                                    {t(lang, 'lyrics.category.vocalDesc')}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-sky-500/15 text-sky-400 border border-sky-500/30">
+                                            HT-DEMUCS ONNX
+                                        </span>
+                                    </div>
+                                }
+                            >
+                                <div className="divide-y divide-zinc-800/50">
+                                    {vocalModels.map(renderModelCard)}
+                                </div>
+                            </SettingGroup>
+                        )}
+
+                        {/* CONTAINER CARD 2: MODEL PEMBUAT LIRIK (WHISPER) */}
+                        {whisperModels.length > 0 && (
+                            <SettingGroup
+                                title={
+                                    <div className="mt-16 flex items-center justify-between w-full">
+                                        <div className="flex items-center gap-2">
+                                            <div>
+                                                <h4 className="text-xs font-bold text-zinc-100 tracking-wide uppercase">
+                                                    {t(lang, 'lyrics.category.whisperTitle')}
+                                                </h4>
+                                                <p className="text-[11px] font-normal text-zinc-400">
+                                                    {t(lang, 'lyrics.category.whisperDesc')}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                            WHISPER CPP
+                                        </span>
+                                    </div>
+                                }
+                            >
+                                <div className="divide-y divide-zinc-800/50">
+                                    {whisperModels.map(renderModelCard)}
+                                </div>
+                            </SettingGroup>
                         )}
                     </div>
-                </SettingGroup>
-            )}
+                );
+            })()}
 
             {/* TAB VIEW 2: PANDUAN INSTALASI MANUAL & TERMINAL */}
             {viewTab === 'manual' && (
-                <div className={`p-6 rounded-3xl bg-zinc-900/90 border ${accent.border500_30} space-y-5 animate-in fade-in duration-200 shadow-lg`}>
+                <div className={`p-4 sm:p-6 rounded-3xl bg-zinc-900/90 border ${accent.border500_30} space-y-5 animate-in fade-in duration-200 shadow-lg min-w-0 w-full max-w-full overflow-hidden`}>
                     <div className="flex items-center gap-2.5 border-b border-zinc-800 pb-3.5">
                         <span className={`${accent.text400} text-lg`}>📘</span>
                         <h3 className="text-base font-bold text-zinc-100 tracking-tight">
@@ -688,7 +763,7 @@ export default function LyricsSection({
                                 {t(lang, 'lyrics.manual.selectModel')}
                             </span>
                             <span className={`text-[11px] font-mono ${accent.text400} font-semibold bg-zinc-950 px-2.5 py-1 rounded-lg border border-zinc-800/80 shrink-0 self-start sm:self-auto`}>
-                                Target: <span className="text-zinc-200">ggml-{selectedManualModel.code}.bin</span> ({selectedManualModel.sizeText})
+                                Target: <span className="text-zinc-200">{selectedManualModel.code === 'vocal' ? 'htdemucs_ft_vocals.onnx' : `ggml-${selectedManualModel.code}.bin`}</span> ({selectedManualModel.sizeText})
                             </span>
                         </div>
 
