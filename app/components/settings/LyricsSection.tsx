@@ -9,6 +9,7 @@ import { useAiLyricsPlugin } from '../../hooks/useAiLyricsPlugin';
 export interface AiModelSpec {
     code: string;
     label: string;
+    shortLabel?: string;
     descriptionKey: string;
     minRamGb: number;
     recRamGb: number;
@@ -27,6 +28,7 @@ export const AI_MODELS_LIST: AiModelSpec[] = [
     {
         code: 'vocal',
         label: 'Vocal Extractor (HT-Demucs)',
+        shortLabel: 'Vocal Extractor',
         descriptionKey: 'lyrics.model.vocal.desc',
         minRamGb: 4,
         recRamGb: 8,
@@ -195,6 +197,20 @@ export default function LyricsSection({
             setDownloadingModelCode(null);
         }
     }, [modelDownloadProgress]);
+
+    const [deletingModelCode, setDeletingModelCode] = useState<string | null>(null);
+
+    const handleDeleteModel = async (modelCode: string) => {
+        if (isBusy || deletingModelCode) return;
+        setDeletingModelCode(modelCode);
+        try {
+            await deleteModel(modelCode);
+        } catch (err) {
+            console.error('Failed to delete model:', err);
+        } finally {
+            setDeletingModelCode(null);
+        }
+    };
 
     const handleCancelDownload = async () => {
         if (isCancellingDownload) return;
@@ -510,33 +526,39 @@ export default function LyricsSection({
                 const renderModelCard = (model: typeof AI_MODELS_LIST[0]) => {
                     const isDownloaded = downloadedModels.includes(model.code);
                     const isDownloadingThisModel =
+                        downloadingModelCode === model.code ||
                         Boolean(modelDownloadProgress &&
                         (modelDownloadProgress.modelName === model.code ||
-                            modelDownloadProgress.modelName.toLowerCase().includes(model.code.toLowerCase())));
+                            modelDownloadProgress.modelName.toLowerCase().includes(model.code.toLowerCase()) ||
+                            (model.code === 'vocal' && (
+                                modelDownloadProgress.modelName.toLowerCase().includes('vocal') ||
+                                modelDownloadProgress.modelName.toLowerCase().includes('onnx') ||
+                                modelDownloadProgress.modelName.toLowerCase().includes('htdemucs')
+                            ))));
 
                     return (
                         <div
                             key={model.code}
                             className="py-4 px-3.5 my-1 rounded-2xl transition-all space-y-3 hover:bg-zinc-900/40"
                         >
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5">
+                            <div className="flex flex-col md:flex-row md:items-start justify-between gap-3.5">
                                 {/* Left Side: Model Info & Clean Text Status */}
-                                <div className="space-y-1.5">
-                                    <div className="flex items-center gap-2.5 flex-wrap">
-                                        <span className="font-bold text-sm text-zinc-100">
+                                <div className="space-y-1.5 min-w-0 flex-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="font-bold text-sm text-zinc-100 shrink-0">
                                             {model.label}
                                         </span>
 
-                                        <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold font-mono bg-zinc-800/70 text-zinc-300 border border-zinc-700/50">
+                                        <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold font-mono bg-zinc-800/70 text-zinc-300 border border-zinc-700/50 shrink-0">
                                             {model.sizeText}
                                         </span>
 
                                         {isDownloaded ? (
-                                            <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                            <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shrink-0">
                                                 {t(lang, 'lyrics.manager.installedBadge')}
                                             </span>
                                         ) : (
-                                            <span className="px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-zinc-800/80 text-zinc-400 border border-zinc-700/50">
+                                            <span className="px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-zinc-800/80 text-zinc-400 border border-zinc-700/50 shrink-0">
                                                 {t(lang, 'lyrics.manager.notDownloadedBadge')}
                                             </span>
                                         )}
@@ -581,7 +603,8 @@ export default function LyricsSection({
                                         <div className="flex items-center gap-2">
                                             <button
                                                 onClick={() => importModelFromFile(model.code)}
-                                                className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-zinc-800/90 hover:bg-zinc-700/80 text-zinc-200 border border-zinc-700/60 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-xs"
+                                                disabled={isAnyDownloadActive}
+                                                className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-zinc-800/90 hover:bg-zinc-700/80 text-zinc-200 border border-zinc-700/60 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-xs disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
                                                 title={t(lang, 'lyrics.manager.importFileTitle')}
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -615,15 +638,24 @@ export default function LyricsSection({
                                         </div>
                                     ) : (
                                         <button
-                                            onClick={() => deleteModel(model.code)}
-                                            disabled={isBusy}
+                                            onClick={() => handleDeleteModel(model.code)}
+                                            disabled={isBusy || deletingModelCode === model.code}
                                             className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/25 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-xs disabled:opacity-40 disabled:pointer-events-none disabled:cursor-not-allowed"
                                         >
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                <polyline points="3 6 5 6 21 6"/>
-                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                            </svg>
-                                            <span>{t(lang, 'lyrics.manager.deleteBtn')}</span>
+                                            {deletingModelCode === model.code ? (
+                                                <>
+                                                    <div className="w-3 h-3 border-2 border-rose-400 border-t-transparent rounded-full animate-spin" />
+                                                    <span>Menghapus...</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                        <polyline points="3 6 5 6 21 6"/>
+                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                                    </svg>
+                                                    <span>{t(lang, 'lyrics.manager.deleteBtn')}</span>
+                                                </>
+                                            )}
                                         </button>
                                     )}
                                 </div>
@@ -771,20 +803,20 @@ export default function LyricsSection({
                         </div>
 
                         {/* Model Tabs Pills Navbar */}
-                        <div className="p-1 rounded-2xl bg-zinc-950/90 border border-zinc-800/90 flex items-center gap-1 overflow-x-auto">
+                        <div className="p-1 rounded-2xl bg-zinc-950/90 border border-zinc-800/90 flex items-center gap-1 overflow-x-auto max-w-full min-w-0">
                             {AI_MODELS_LIST.map((m) => {
                                 const isSel = m.code === selectedManualModelCode;
                                 return (
                                     <button
                                         key={m.code}
                                         onClick={() => setSelectedManualModelCode(m.code)}
-                                        className={`flex-1 min-w-[90px] py-2 px-3 text-xs font-semibold rounded-xl transition-all text-center cursor-pointer whitespace-nowrap ${
+                                        className={`px-3.5 py-2 text-xs font-semibold rounded-xl transition-all text-center cursor-pointer whitespace-nowrap shrink-0 ${
                                             isSel
                                                 ? `${accent.bg500} text-white shadow-xs font-bold`
                                                 : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60'
                                         }`}
                                     >
-                                        {m.label}
+                                        {m.shortLabel || m.label}
                                     </button>
                                 );
                             })}

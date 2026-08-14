@@ -94,32 +94,35 @@ export function useAiLyricsPlugin() {
             const mod = await getTauri();
             const state = await mod.invoke<AiLyricsCurrentState>('get_ai_lyrics_current_state');
             if (state?.is_generating) {
-                setIsGenerating(true);
                 if (state.last_event) {
                     try {
                         const parsed = JSON.parse(state.last_event);
-                        if (parsed.event === 'progress') {
-                            setGenerateProgress({
-                                percent: parsed.percent ?? 0,
-                                segmentText: parsed.segmentText ?? '',
-                                timestamp: parsed.timestamp ?? '',
-                            });
-                        } else if (parsed.event === 'vocal_extraction_progress') {
-                            setGenerateProgress({
-                                percent: parsed.percent ?? 0,
-                                segmentText: `Memisahkan Vokal AI (${parsed.percent}%)...`,
-                                timestamp: '',
-                            });
-                        } else if (parsed.event === 'model_download_progress') {
-                            setModelDownloadProgress({
-                                modelName: parsed.modelName ?? '',
-                                percent: parsed.percent ?? 0,
-                            });
+                        if (parsed.event === 'progress' || parsed.event === 'vocal_extraction_progress') {
+                            setIsGenerating(true);
+                            if (parsed.event === 'progress') {
+                                setGenerateProgress({
+                                    percent: parsed.percent ?? 0,
+                                    segmentText: parsed.segmentText ?? '',
+                                    timestamp: parsed.timestamp ?? '',
+                                });
+                            } else {
+                                setGenerateProgress({
+                                    percent: parsed.percent ?? 0,
+                                    segmentText: `Memisahkan Vokal AI (${parsed.percent}%)...`,
+                                    timestamp: '',
+                                });
+                            }
+                        } else {
+                            setIsGenerating(false);
                         }
                     } catch {
-                        // ignore JSON parse
+                        setIsGenerating(false);
                     }
+                } else {
+                    setIsGenerating(true);
                 }
+            } else {
+                setIsGenerating(false);
             }
         } catch (err) {
             console.error('Failed to sync AI lyrics state:', err);
@@ -176,13 +179,19 @@ export function useAiLyricsPlugin() {
                                 timestamp: '',
                             });
                             break;
+                        case 'vocal_model_download_start':
+                            setModelDownloadProgress({
+                                modelName: 'vocal',
+                                percent: 0,
+                            });
+                            break;
                         case 'vocal_model_download_progress':
                             if ((parsed.percent ?? 0) >= 100) {
                                 setModelDownloadProgress(null);
                                 refreshDownloadedModels();
                             } else {
                                 setModelDownloadProgress({
-                                    modelName: 'Model Vokal ONNX',
+                                    modelName: 'vocal',
                                     percent: parsed.percent ?? 0,
                                     downloadedBytes: parsed.downloadedBytes ?? parsed.downloaded,
                                     totalBytes: parsed.totalBytes ?? parsed.total,

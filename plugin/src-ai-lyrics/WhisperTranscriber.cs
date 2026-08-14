@@ -21,6 +21,14 @@ public class WhisperTranscriber
 
     public static async Task<string> EnsureModelDownloadedAsync(string modelName, string targetDir, CancellationToken cancellationToken = default)
     {
+        if (modelName.Equals("vocal", StringComparison.OrdinalIgnoreCase)
+            || modelName.Equals("htdemucs", StringComparison.OrdinalIgnoreCase)
+            || modelName.Equals("htdemucs_ft_vocals", StringComparison.OrdinalIgnoreCase)
+            || modelName.Equals("htdemucs_ft_vocals.onnx", StringComparison.OrdinalIgnoreCase))
+        {
+            return await VocalExtractor.EnsureModelDownloadedAsync(targetDir, cancellationToken);
+        }
+
         Directory.CreateDirectory(targetDir);
         string fileName = $"ggml-{modelName.ToLowerInvariant()}.bin";
         string targetPath = Path.Combine(targetDir, fileName);

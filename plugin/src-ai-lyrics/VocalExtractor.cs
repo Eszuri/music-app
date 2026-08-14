@@ -89,43 +89,51 @@ public class VocalExtractor
         }
 
         using (response)
-        using (var stream = await response.Content.ReadAsStreamAsync(cancellationToken))
         {
-            FileMode mode = isResuming ? FileMode.Append : FileMode.Create;
-            using (var fileStream = new FileStream(tempPath, mode, FileAccess.Write, FileShare.None, 65536, true))
+            Protocol.Emit(new
             {
-                byte[] buffer = new byte[65536];
-                long totalRead = existingTempLength;
-                int bytesRead;
-                long lastEmit = 0;
+                @event = "vocal_model_download_start",
+                modelName = "vocal"
+            });
 
-                int initialPercent = totalBytes > 0 ? (int)((totalRead * 100) / totalBytes) : 0;
-                Protocol.Emit(new
+            using (var stream = await response.Content.ReadAsStreamAsync(cancellationToken))
+            {
+                FileMode mode = isResuming ? FileMode.Append : FileMode.Create;
+                using (var fileStream = new FileStream(tempPath, mode, FileAccess.Write, FileShare.None, 65536, true))
                 {
-                    @event = "vocal_model_download_progress",
-                    modelName = DefaultModelFileName,
-                    downloaded = totalRead,
-                    total = totalBytes,
-                    percent = initialPercent
-                });
+                    byte[] buffer = new byte[65536];
+                    long totalRead = existingTempLength;
+                    int bytesRead;
+                    long lastEmit = 0;
 
-                while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0)
-                {
-                    await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
-                    totalRead += bytesRead;
-
-                    if (Environment.TickCount64 - lastEmit >= 200)
+                    int initialPercent = totalBytes > 0 ? (int)((totalRead * 100) / totalBytes) : 0;
+                    Protocol.Emit(new
                     {
-                        lastEmit = Environment.TickCount64;
-                        int percent = totalBytes > 0 ? (int)((totalRead * 100) / totalBytes) : 0;
-                        Protocol.Emit(new
+                        @event = "vocal_model_download_progress",
+                        modelName = "vocal",
+                        downloaded = totalRead,
+                        total = totalBytes,
+                        percent = initialPercent
+                    });
+
+                    while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0)
+                    {
+                        await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
+                        totalRead += bytesRead;
+
+                        if (Environment.TickCount64 - lastEmit >= 200)
                         {
-                            @event = "vocal_model_download_progress",
-                            modelName = DefaultModelFileName,
-                            downloaded = totalRead,
-                            total = totalBytes,
-                            percent
-                        });
+                            lastEmit = Environment.TickCount64;
+                            int percent = totalBytes > 0 ? (int)((totalRead * 100) / totalBytes) : 0;
+                            Protocol.Emit(new
+                            {
+                                @event = "vocal_model_download_progress",
+                                modelName = "vocal",
+                                downloaded = totalRead,
+                                total = totalBytes,
+                                percent
+                            });
+                        }
                     }
                 }
             }
@@ -139,7 +147,7 @@ public class VocalExtractor
         Protocol.Emit(new
         {
             @event = "vocal_model_download_complete",
-            modelName = DefaultModelFileName,
+            modelName = "vocal",
             path = targetPath
         });
 

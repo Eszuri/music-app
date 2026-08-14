@@ -93,15 +93,14 @@ fn spawn_engine(app: &AppHandle) -> Result<(), String> {
                         if let Some(evt) = parsed.get("event").and_then(|v| v.as_str()) {
                             if let Ok(mut state) = AI_LYRICS_STATE.lock() {
                                 match evt {
-                                    "progress" | "vocal_extraction_progress" | "vocal_model_download_progress" | "model_download_progress" => {
+                                    "progress" | "vocal_extraction_progress" => {
                                         state.is_generating = true;
                                         state.last_event = Some(l.clone());
                                     }
-                                    "transcription_result" => {
-                                        state.is_generating = false;
+                                    "vocal_model_download_progress" | "model_download_progress" => {
                                         state.last_event = Some(l.clone());
                                     }
-                                    "transcribe_cancelled" | "error" => {
+                                    "transcription_result" | "transcribe_cancelled" | "error" | "model_ready" | "model_download_complete" | "vocal_model_download_complete" => {
                                         state.is_generating = false;
                                         state.last_event = Some(l.clone());
                                     }
@@ -113,7 +112,6 @@ fn spawn_engine(app: &AppHandle) -> Result<(), String> {
 
                     if let Err(e) = app_handle.emit("ai-lyrics-event", l) {
                         eprintln!("Failed to emit ai-lyrics-event: {}", e);
-                        break;
                     }
                 }
                 Ok(_) => {}
