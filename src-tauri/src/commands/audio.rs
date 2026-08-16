@@ -51,7 +51,7 @@ pub struct SongMetadata {
 fn file_display_name(path: &Path, filename: &str, name_source: &str) -> String {
     if name_source == "title" {
         if let Ok(tagged_file) = read_from_path(path) {
-            if let Some(tag) = tagged_file.primary_tag() {
+            if let Some(tag) = tagged_file.primary_tag().or_else(|| tagged_file.first_tag()) {
                 if let Some(title) = tag.title() {
                     let t = title.trim();
                     if !t.is_empty() {

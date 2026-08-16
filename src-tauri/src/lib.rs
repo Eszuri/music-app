@@ -274,12 +274,15 @@ pub fn run() {
                         .build(),
                 )?;
             }
-            let window = app.get_webview_window("main").unwrap();
-            let icon_bytes = include_bytes!("../icons/icon.png");
-            let img = image::load_from_memory(icon_bytes).unwrap().to_rgba8();
-            let (w, h) = (img.width(), img.height());
-            let icon = tauri::image::Image::new(img.as_raw(), w, h);
-            window.set_icon(icon).unwrap();
+            if let Some(window) = app.get_webview_window("main") {
+                let icon_bytes = include_bytes!("../icons/icon.png");
+                if let Ok(img) = image::load_from_memory(icon_bytes) {
+                    let img = img.to_rgba8();
+                    let (w, h) = (img.width(), img.height());
+                    let icon = tauri::image::Image::new(img.as_raw(), w, h);
+                    let _ = window.set_icon(icon);
+                }
+            }
             Ok(())
         })
         .build(tauri::generate_context!())

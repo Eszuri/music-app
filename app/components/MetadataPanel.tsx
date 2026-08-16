@@ -14,6 +14,7 @@ import { CopyIcon, MusicNoteIcon, LyricsIcon, DetailsIcon } from './icons';
 import { useLyrics } from '../hooks/useLyrics';
 import { LyricsSearchModal } from './LyricsSearchModal';
 import { AiLyricsModal } from './AiLyricsModal';
+import { getStoredValue, setStoredValue } from '../lib/storage';
 
 interface MetadataPanelProps {
     lang: Lang;
@@ -32,9 +33,6 @@ interface MetadataPanelProps {
     onOpenAiLyricsModal?: () => void;
     onCloseAiLyricsModal?: () => void;
 }
-
-
-import {getStoredValue, setStoredValue} from '../lib/storage';
 
 const MIN_WIDTH = 360;
 const MAX_WIDTH = 640;
