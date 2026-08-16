@@ -1,6 +1,22 @@
 using System.Runtime.InteropServices;
 using Symvonia.AiLyrics;
 
+Console.InputEncoding = System.Text.Encoding.UTF8;
+Console.OutputEncoding = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+
+if (args.Length >= 2 && args[0] == "--verify")
+{
+    var token = args[1];
+    Protocol.Emit(new
+    {
+        @event = "verify_response",
+        token,
+        engine = "Symvonia AI Lyrics Engine",
+        version = "1.0.0"
+    });
+    return;
+}
+
 // Pre-load all Whisper native DLLs before Whisper.net tries to load them.
 // Whisper.net uses NativeLibrary.Load internally (not [DllImport]),
 // so SetDllImportResolver won't help. We must load them ourselves.
@@ -24,9 +40,6 @@ using Symvonia.AiLyrics;
 
 // Symvonia Local AI Lyrics Generator Engine — headless console process.
 // Speaks JSON lines on stdin/stdout (see Protocol.cs).
-
-Console.InputEncoding = System.Text.Encoding.UTF8;
-Console.OutputEncoding = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
 if (args.Length >= 1 && args[0] == "--test-native")
 {
@@ -101,19 +114,6 @@ if (args.Length >= 2 && args[0] == "--extract-vocal")
     {
         Console.WriteLine($"[Vocal Extractor CLI] ERROR: {ex}");
     }
-    return;
-}
-
-if (args.Length >= 2 && args[0] == "--verify")
-{
-    var token = args[1];
-    Protocol.Emit(new
-    {
-        @event = "verify_response",
-        token = token,
-        engine = "Symvonia AI Lyrics Engine",
-        version = "1.0.0"
-    });
     return;
 }
 

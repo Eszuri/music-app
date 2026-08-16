@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -21,11 +21,39 @@ pub fn cancel_download() {
 pub const PLUGIN_DOWNLOAD_URL: &str =
     "https://github.com/Eszuri/symvonia/releases/latest/download/symvonia-audio-engine.exe";
 
-/// Expected SHA-256 of the downloaded exe. Empty = skip verification
-/// (only until the first official release pins a hash).
-pub const PLUGIN_EXPECTED_SHA256: &str = "";
+pub const PLUGIN_EXPECTED_SHA256: &str = match option_env!("SYMVONIA_AUDIO_PLUGIN_SHA256") {
+    Some(value) => value,
+    None => "",
+};
 
 pub const PLUGIN_EXE_NAME: &str = "symvonia-audio-engine.exe";
+
+fn default_plugin_download_url() -> String {
+    match option_env!("SYMVONIA_PLUGIN_RELEASE_TAG") {
+        Some(tag) if !tag.is_empty() => format!(
+            "https://github.com/Eszuri/symvonia/releases/download/{tag}/{PLUGIN_EXE_NAME}"
+        ),
+        _ => PLUGIN_DOWNLOAD_URL.to_string(),
+    }
+}
+
+fn verify_download_hash(path: &Path, expected: &str) -> Result<(), String> {
+    if expected.is_empty() {
+        return Ok(());
+    }
+    if expected.len() != 64 || !expected.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Err("Configured plugin SHA-256 must contain exactly 64 hexadecimal characters.".into());
+    }
+
+    let actual = compute_sha256(&path.to_path_buf())?;
+    if !actual.eq_ignore_ascii_case(expected) {
+        return Err(format!(
+            "Hash mismatch. Expected {}, got {}. The file may be corrupted or tampered with.",
+            expected, actual
+        ));
+    }
+    Ok(())
+}
 
 #[derive(Serialize, Clone)]
 pub struct PluginStatus {
@@ -97,7 +125,7 @@ pub fn compute_sha256(path: &PathBuf) -> Result<String, String> {
 /// into place. Emits `bit-perfect-download-progress` events along the way.
 pub fn download_and_install(app: &AppHandle, url: Option<String>) -> Result<PluginStatus, String> {
     DOWNLOAD_CANCELLED.store(false, Ordering::SeqCst);
-    let url = url.unwrap_or_else(|| PLUGIN_DOWNLOAD_URL.to_string());
+    let url = url.unwrap_or_else(default_plugin_download_url);
     let dir = plugin_dir(app)?;
     fs::create_dir_all(&dir).map_err(|e| format!("Failed to create plugin dir: {}", e))?;
 
@@ -184,18 +212,13 @@ pub fn download_and_install(app: &AppHandle, url: Option<String>) -> Result<Plug
         ));
     }
 
-    verify_plugin_executable(&tmp_path)?;
-
-    // Hash verification (mandatory once a hash is pinned).
-    if !PLUGIN_EXPECTED_SHA256.is_empty() {
-        let actual = compute_sha256(&tmp_path)?;
-        if !actual.eq_ignore_ascii_case(PLUGIN_EXPECTED_SHA256) {
-            let _ = fs::remove_file(&tmp_path);
-            return Err(format!(
-                "Hash mismatch. Expected {}, got {}. The file may be corrupted or tampered with.",
-                PLUGIN_EXPECTED_SHA256, actual
-            ));
-        }
+    if let Err(error) = verify_download_hash(&tmp_path, PLUGIN_EXPECTED_SHA256) {
+        let _ = fs::remove_file(&tmp_path);
+        return Err(error);
+    }
+    if let Err(error) = verify_plugin_executable(&tmp_path) {
+        let _ = fs::remove_file(&tmp_path);
+        return Err(error);
     }
 
     fs::rename(&tmp_path, &final_path)
@@ -207,13 +230,44 @@ pub fn download_and_install(app: &AppHandle, url: Option<String>) -> Result<Plug
 #[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
+#[derive(Deserialize)]
+struct VerifyResponse {
+    event: String,
+    token: String,
+    engine: String,
+    version: String,
+}
+
+fn verify_response_line(line: &str, token: &str) -> bool {
+    serde_json::from_str::<VerifyResponse>(line)
+        .map(|response| {
+            response.event == "verify_response"
+                && response.token == token
+                && response.engine == "Symvonia Audio Engine"
+                && response.version == "1.0.0"
+        })
+        .unwrap_or(false)
+}
+
+fn validate_plugin_file(src: &Path) -> Result<(), String> {
+    if !src.is_file() {
+        return Err(format!("Berkas plugin tidak ditemukan atau bukan file biasa: {}", src.display()));
+    }
+    Ok(())
+}
+
+fn validate_manual_import_source(src: &Path) -> Result<(), String> {
+    validate_plugin_file(src)?;
+    if !src.extension().is_some_and(|extension| extension.eq_ignore_ascii_case("exe")) {
+        return Err("Berkas plugin harus berekstensi .exe.".into());
+    }
+    Ok(())
+}
+
 /// Verifies that a local file is a valid Symvonia Audio Engine executable.
 pub fn verify_plugin_executable(src: &Path) -> Result<(), String> {
-    if !src.exists() {
-        return Err(format!("Berkas tidak ditemukan: {}", src.display()));
-    }
+    validate_plugin_file(src)?;
 
-    // 1. Size Check (500 KB to 500 MB)
     let meta = fs::metadata(src).map_err(|e| format!("Gagal membaca metadata berkas: {}", e))?;
     let len = meta.len();
     if !(500 * 1024..=500 * 1024 * 1024).contains(&len) {
@@ -223,7 +277,6 @@ pub fn verify_plugin_executable(src: &Path) -> Result<(), String> {
         ));
     }
 
-    // 2. PE Header Check (MZ & PE\0\0)
     let mut file = fs::File::open(src).map_err(|e| format!("Gagal membuka berkas: {}", e))?;
     let mut header = [0u8; 512];
     let n = file.read(&mut header).map_err(|e| format!("Gagal membaca header berkas: {}", e))?;
@@ -231,44 +284,40 @@ pub fn verify_plugin_executable(src: &Path) -> Result<(), String> {
         return Err("Berkas bukan merupakan executable Windows yang valid (Missing MZ header).".into());
     }
 
-    // Read e_lfanew offset (bytes 60..64)
     let pe_offset = u32::from_le_bytes([header[60], header[61], header[62], header[63]]) as usize;
     if pe_offset + 4 > n || &header[pe_offset..pe_offset + 4] != b"PE\0\0" {
         return Err("Berkas bukan merupakan PE Executable Windows yang valid (Missing PE signature).".into());
     }
 
-    // 3. Challenge-Response Token Verification (Mode 1 - CLI Challenge)
-    let nonce: u64 = std::time::SystemTime::now()
+    let nonce = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_nanos() as u64)
+        .map(|duration| duration.as_nanos() as u64)
         .unwrap_or(123456789);
-    let token = format!("symvonia_token_{:x}", nonce);
-
-    let mut cmd = Command::new(src);
-    cmd.arg("--verify").arg(&token);
-    cmd.stdout(Stdio::piped()).stderr(Stdio::null()).stdin(Stdio::null());
+    let token = format!("symvonia_token_{nonce:x}");
+    let mut command = Command::new(src);
+    command
+        .arg("--verify")
+        .arg(&token)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .stdin(Stdio::null());
 
     #[cfg(target_os = "windows")]
-    cmd.creation_flags(CREATE_NO_WINDOW);
+    command.creation_flags(CREATE_NO_WINDOW);
 
-    if let Ok(mut child) = cmd.spawn() {
+    if let Ok(mut child) = command.spawn() {
         if let Some(stdout) = child.stdout.take() {
             let mut reader = std::io::BufReader::new(stdout);
             let mut line = String::new();
-
             let start = std::time::Instant::now();
-            let mut read_success = false;
-
             while start.elapsed().as_millis() < 2500 {
                 if reader.read_line(&mut line).unwrap_or(0) > 0 {
-                    read_success = true;
                     break;
                 }
                 std::thread::sleep(std::time::Duration::from_millis(50));
             }
             let _ = child.kill();
-
-            if read_success && (line.contains(&token) || line.contains("verify_response")) {
+            if verify_response_line(&line, &token) {
                 return Ok(());
             }
         } else {
@@ -276,44 +325,15 @@ pub fn verify_plugin_executable(src: &Path) -> Result<(), String> {
         }
     }
 
-    // 4. Fallback Verification (Mode 2 - Standard Startup Probe)
-    let mut fallback_cmd = Command::new(src);
-    fallback_cmd.stdout(Stdio::piped()).stderr(Stdio::null()).stdin(Stdio::null());
-
-    #[cfg(target_os = "windows")]
-    fallback_cmd.creation_flags(CREATE_NO_WINDOW);
-
-    if let Ok(mut child) = fallback_cmd.spawn() {
-        if let Some(stdout) = child.stdout.take() {
-            let mut reader = std::io::BufReader::new(stdout);
-            let mut line = String::new();
-            let start = std::time::Instant::now();
-            let mut read_success = false;
-
-            while start.elapsed().as_millis() < 2500 {
-                if reader.read_line(&mut line).unwrap_or(0) > 0 {
-                    read_success = true;
-                    break;
-                }
-                std::thread::sleep(std::time::Duration::from_millis(50));
-            }
-            let _ = child.kill();
-
-            if read_success && (line.contains("ready") || line.contains("Symvonia")) {
-                return Ok(());
-            }
-        } else {
-            let _ = child.kill();
-        }
-    }
-
-    Err("Verifikasi Gagal: Berkas yang dipilih bukan merupakan plugin Symvonia Audio Engine yang valid.".into())
+    Err("Verifikasi gagal: file bukan plugin Symvonia Audio Engine yang valid.".into())
 }
 
 /// Installs the plugin from a local exe file (used for development/testing
 /// and for users who prefer sideloading over downloading).
 pub fn install_from_file(app: &AppHandle, source: &str) -> Result<PluginStatus, String> {
     let src = PathBuf::from(source);
+    validate_manual_import_source(&src)?;
+    verify_download_hash(&src, PLUGIN_EXPECTED_SHA256)?;
     verify_plugin_executable(&src)?;
 
     let dir = plugin_dir(app)?;
@@ -329,4 +349,52 @@ pub fn uninstall(app: &AppHandle) -> Result<(), String> {
         fs::remove_file(&exe).map_err(|e| format!("Failed to remove plugin: {}", e))?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+
+    #[test]
+    fn verify_response_requires_audio_engine_identity() {
+        let token = "symvonia_token_test";
+        let valid = r#"{"event":"verify_response","token":"symvonia_token_test","engine":"Symvonia Audio Engine","version":"1.0.0"}"#;
+        let ai = r#"{"event":"verify_response","token":"symvonia_token_test","engine":"Symvonia AI Lyrics Engine","version":"1.0.0"}"#;
+        let wrong_token = r#"{"event":"verify_response","token":"other","engine":"Symvonia Audio Engine","version":"1.0.0"}"#;
+        let wrong_event = r#"{"event":"ready","token":"symvonia_token_test","engine":"Symvonia Audio Engine","version":"1.0.0"}"#;
+        let wrong_version = r#"{"event":"verify_response","token":"symvonia_token_test","engine":"Symvonia Audio Engine","version":"2.0.0"}"#;
+
+        assert!(verify_response_line(valid, token));
+        assert!(!verify_response_line(ai, token));
+        assert!(!verify_response_line(wrong_token, token));
+        assert!(!verify_response_line(wrong_event, token));
+        assert!(!verify_response_line(wrong_version, token));
+        assert!(!verify_response_line("not-json", token));
+    }
+
+    #[test]
+    fn verify_download_hash_accepts_matching_case_insensitive_hash() {
+        let temp_file = std::env::temp_dir().join("symvonia-audio-hash-test.tmp");
+        let mut file = fs::File::create(&temp_file).unwrap();
+        file.write_all(b"Symvonia Audio Engine Unit Test").unwrap();
+        drop(file);
+
+        let hash = compute_sha256(&temp_file).unwrap();
+        assert!(verify_download_hash(&temp_file, &hash).is_ok());
+        assert!(verify_download_hash(&temp_file, &hash.to_uppercase()).is_ok());
+
+        let _ = fs::remove_file(temp_file);
+    }
+
+    #[test]
+    fn verify_download_hash_rejects_mismatch_and_invalid_format() {
+        let temp_file = std::env::temp_dir().join("symvonia-audio-hash-test-invalid.tmp");
+        fs::write(&temp_file, b"Symvonia Audio Engine Unit Test").unwrap();
+
+        assert!(verify_download_hash(&temp_file, &"0".repeat(64)).is_err());
+        assert!(verify_download_hash(&temp_file, "not-a-sha256").is_err());
+
+        let _ = fs::remove_file(temp_file);
+    }
 }

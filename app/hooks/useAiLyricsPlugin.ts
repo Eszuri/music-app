@@ -515,12 +515,12 @@ export function useAiLyricsPlugin() {
             let path = customPath;
             if (!path) {
                 path = (await mod.invoke<string | null>('pick_single_file', {
-                    title: 'Pilih Berkas Executable Plugin AI Lirik (.exe)',
+                    title: 'Pilih Symvonia AI Lyrics Engine (.exe)',
                     filters: [{ name: 'Executable', extensions: ['exe'] }],
                 })) || undefined;
             }
             if (path) {
-                const status = await mod.invoke<AiPluginStatus>('install_ai_lyrics_plugin_from_file', { path, srcPath: path });
+                const status = await mod.invoke<AiPluginStatus>('install_ai_lyrics_plugin_from_file', { path });
                 if (status) {
                     setPluginStatusGlobal(status);
                 }

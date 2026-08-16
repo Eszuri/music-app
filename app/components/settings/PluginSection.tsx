@@ -84,7 +84,7 @@ export default function PluginSection({
         try {
             const mod = await getTauri();
             const selected = await mod.invoke<string | null>("pick_single_file", {
-                title: t(lang, 'plugin.selectExeTitle'),
+                title: t(lang, 'plugin.selectAudioExeTitle'),
                 filters: [{ name: "Executable", extensions: ["exe"] }],
             });
             if (selected) {

@@ -698,6 +698,7 @@ const en: Record<string, string> = {
     'equalizer.zoomIn': 'Zoom In Sliders',
     'metadataEdit.errorSave': 'Failed to save metadata',
     'plugin.selectExeTitle': 'Select plugin executable (.exe)',
+    'plugin.selectAudioExeTitle': 'Select Symvonia Audio Engine (.exe)',
     'common.cancel': 'Cancel',
 
     'notification.coverSaved': 'Cover art saved',
@@ -1410,6 +1411,7 @@ const id: Record<string, string> = {
     'equalizer.zoomIn': 'Perbesar Slider',
     'metadataEdit.errorSave': 'Gagal menyimpan metadata file',
     'plugin.selectExeTitle': 'Pilih berkas plugin (.exe)',
+    'plugin.selectAudioExeTitle': 'Pilih Symvonia Audio Engine (.exe)',
     'common.cancel': 'Batal',
 
     'notification.coverSaved': 'Cover art berhasil disimpan',

@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -20,9 +20,39 @@ pub fn cancel_download() {
 pub const PLUGIN_DOWNLOAD_URL: &str =
     "https://github.com/Eszuri/symvonia/releases/latest/download/symvonia-ai-lyrics.exe";
 
-pub const PLUGIN_EXPECTED_SHA256: &str = "";
+pub const PLUGIN_EXPECTED_SHA256: &str = match option_env!("SYMVONIA_AI_PLUGIN_SHA256") {
+    Some(value) => value,
+    None => "",
+};
 
 pub const PLUGIN_EXE_NAME: &str = "symvonia-ai-lyrics.exe";
+
+fn default_plugin_download_url() -> String {
+    match option_env!("SYMVONIA_PLUGIN_RELEASE_TAG") {
+        Some(tag) if !tag.is_empty() => format!(
+            "https://github.com/Eszuri/symvonia/releases/download/{tag}/{PLUGIN_EXE_NAME}"
+        ),
+        _ => PLUGIN_DOWNLOAD_URL.to_string(),
+    }
+}
+
+fn verify_download_hash(path: &Path, expected: &str) -> Result<(), String> {
+    if expected.is_empty() {
+        return Ok(());
+    }
+    if expected.len() != 64 || !expected.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Err("Configured plugin SHA-256 must contain exactly 64 hexadecimal characters.".into());
+    }
+
+    let actual = compute_sha256(&path.to_path_buf())?;
+    if !actual.eq_ignore_ascii_case(expected) {
+        return Err(format!(
+            "Hash mismatch. Expected {}, got {}. The file may be corrupted or tampered with.",
+            expected, actual
+        ));
+    }
+    Ok(())
+}
 
 #[derive(Serialize, Clone)]
 pub struct PluginStatus {
@@ -92,7 +122,7 @@ pub fn compute_sha256(path: &PathBuf) -> Result<String, String> {
 
 pub fn download_and_install(app: &AppHandle, url: Option<String>) -> Result<PluginStatus, String> {
     DOWNLOAD_CANCELLED.store(false, Ordering::SeqCst);
-    let url = url.unwrap_or_else(|| PLUGIN_DOWNLOAD_URL.to_string());
+    let url = url.unwrap_or_else(default_plugin_download_url);
     let dir = plugin_dir(app)?;
     fs::create_dir_all(&dir).map_err(|e| format!("Failed to create plugin dir: {}", e))?;
 
@@ -194,17 +224,13 @@ pub fn download_and_install(app: &AppHandle, url: Option<String>) -> Result<Plug
         ));
     }
 
-    verify_plugin_executable(&tmp_path)?;
-
-    if !PLUGIN_EXPECTED_SHA256.is_empty() {
-        let actual = compute_sha256(&tmp_path)?;
-        if !actual.eq_ignore_ascii_case(PLUGIN_EXPECTED_SHA256) {
-            let _ = fs::remove_file(&tmp_path);
-            return Err(format!(
-                "Hash mismatch. Expected {}, got {}.",
-                PLUGIN_EXPECTED_SHA256, actual
-            ));
-        }
+    if let Err(error) = verify_download_hash(&tmp_path, PLUGIN_EXPECTED_SHA256) {
+        let _ = fs::remove_file(&tmp_path);
+        return Err(error);
+    }
+    if let Err(error) = verify_plugin_executable(&tmp_path) {
+        let _ = fs::remove_file(&tmp_path);
+        return Err(error);
     }
 
     fs::rename(&tmp_path, &final_path)
@@ -216,10 +242,42 @@ pub fn download_and_install(app: &AppHandle, url: Option<String>) -> Result<Plug
 #[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
-pub fn verify_plugin_executable(src: &Path) -> Result<(), String> {
-    if !src.exists() {
-        return Err(format!("Berkas tidak ditemukan: {}", src.display()));
+#[derive(Deserialize)]
+struct VerifyResponse {
+    event: String,
+    token: String,
+    engine: String,
+    version: String,
+}
+
+fn verify_response_line(line: &str, token: &str) -> bool {
+    serde_json::from_str::<VerifyResponse>(line)
+        .map(|response| {
+            response.event == "verify_response"
+                && response.token == token
+                && response.engine == "Symvonia AI Lyrics Engine"
+                && response.version == "1.0.0"
+        })
+        .unwrap_or(false)
+}
+
+fn validate_plugin_file(src: &Path) -> Result<(), String> {
+    if !src.is_file() {
+        return Err(format!("Berkas plugin tidak ditemukan atau bukan file biasa: {}", src.display()));
     }
+    Ok(())
+}
+
+fn validate_manual_import_source(src: &Path) -> Result<(), String> {
+    validate_plugin_file(src)?;
+    if !src.extension().is_some_and(|extension| extension.eq_ignore_ascii_case("exe")) {
+        return Err("Berkas plugin harus berekstensi .exe.".into());
+    }
+    Ok(())
+}
+
+pub fn verify_plugin_executable(src: &Path) -> Result<(), String> {
+    validate_plugin_file(src)?;
 
     let meta = fs::metadata(src).map_err(|e| format!("Gagal membaca metadata berkas: {}", e))?;
     let len = meta.len();
@@ -242,37 +300,35 @@ pub fn verify_plugin_executable(src: &Path) -> Result<(), String> {
         return Err("Berkas bukan merupakan PE Executable Windows yang valid (Missing PE signature).".into());
     }
 
-    let nonce: u64 = std::time::SystemTime::now()
+    let nonce = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_nanos() as u64)
+        .map(|duration| duration.as_nanos() as u64)
         .unwrap_or(123456789);
-    let token = format!("symvonia_ai_token_{:x}", nonce);
-
-    let mut cmd = Command::new(src);
-    cmd.arg("--verify").arg(&token);
-    cmd.stdout(Stdio::piped()).stderr(Stdio::null()).stdin(Stdio::null());
+    let token = format!("symvonia_ai_token_{nonce:x}");
+    let mut command = Command::new(src);
+    command
+        .arg("--verify")
+        .arg(&token)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .stdin(Stdio::null());
 
     #[cfg(target_os = "windows")]
-    cmd.creation_flags(CREATE_NO_WINDOW);
+    command.creation_flags(CREATE_NO_WINDOW);
 
-    if let Ok(mut child) = cmd.spawn() {
+    if let Ok(mut child) = command.spawn() {
         if let Some(stdout) = child.stdout.take() {
             let mut reader = std::io::BufReader::new(stdout);
             let mut line = String::new();
-
             let start = std::time::Instant::now();
-            let mut read_success = false;
-
             while start.elapsed().as_millis() < 2500 {
                 if reader.read_line(&mut line).unwrap_or(0) > 0 {
-                    read_success = true;
                     break;
                 }
                 std::thread::sleep(std::time::Duration::from_millis(50));
             }
             let _ = child.kill();
-
-            if read_success && (line.contains(&token) || line.contains("verify_response") || line.contains("AI Lyrics")) {
+            if verify_response_line(&line, &token) {
                 return Ok(());
             }
         } else {
@@ -280,7 +336,7 @@ pub fn verify_plugin_executable(src: &Path) -> Result<(), String> {
         }
     }
 
-    Err("Verifikasi Gagal: Berkas yang dipilih bukan merupakan plugin Symvonia AI Lyrics Engine yang valid.".into())
+    Err("Verifikasi gagal: file bukan plugin Symvonia AI Lyrics Engine yang valid.".into())
 }
 
 fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io::Result<()> {
@@ -311,6 +367,8 @@ fn kill_existing_plugin_process() {
 
 pub fn install_from_file(app: &AppHandle, source: &str) -> Result<PluginStatus, String> {
     let src = PathBuf::from(source);
+    validate_manual_import_source(&src)?;
+    verify_download_hash(&src, PLUGIN_EXPECTED_SHA256)?;
     verify_plugin_executable(&src)?;
 
     kill_existing_plugin_process();
@@ -397,7 +455,24 @@ mod tests {
     }
 
     #[test]
-    fn test_sha256_computation() {
+    fn verify_response_requires_ai_lyrics_identity() {
+        let token = "symvonia_ai_token_test";
+        let valid = r#"{"event":"verify_response","token":"symvonia_ai_token_test","engine":"Symvonia AI Lyrics Engine","version":"1.0.0"}"#;
+        let audio = r#"{"event":"verify_response","token":"symvonia_ai_token_test","engine":"Symvonia Audio Engine","version":"1.0.0"}"#;
+        let wrong_token = r#"{"event":"verify_response","token":"other","engine":"Symvonia AI Lyrics Engine","version":"1.0.0"}"#;
+        let wrong_event = r#"{"event":"ready","token":"symvonia_ai_token_test","engine":"Symvonia AI Lyrics Engine","version":"1.0.0"}"#;
+        let wrong_version = r#"{"event":"verify_response","token":"symvonia_ai_token_test","engine":"Symvonia AI Lyrics Engine","version":"2.0.0"}"#;
+
+        assert!(verify_response_line(valid, token));
+        assert!(!verify_response_line(audio, token));
+        assert!(!verify_response_line(wrong_token, token));
+        assert!(!verify_response_line(wrong_event, token));
+        assert!(!verify_response_line(wrong_version, token));
+        assert!(!verify_response_line("not-json", token));
+    }
+
+    #[test]
+    fn test_sha256_computation_and_verification() {
         let temp_dir = std::env::temp_dir();
         let temp_file = temp_dir.join("test_sha_plugin.tmp");
         let mut file = fs::File::create(&temp_file).unwrap();
@@ -405,8 +480,12 @@ mod tests {
         drop(file);
 
         let sha = compute_sha256(&temp_file).unwrap();
-        let _ = fs::remove_file(&temp_file);
-
         assert_eq!(sha.len(), 64);
+        assert!(verify_download_hash(&temp_file, &sha).is_ok());
+        assert!(verify_download_hash(&temp_file, &sha.to_uppercase()).is_ok());
+        assert!(verify_download_hash(&temp_file, &"0".repeat(64)).is_err());
+        assert!(verify_download_hash(&temp_file, "not-a-sha256").is_err());
+
+        let _ = fs::remove_file(&temp_file);
     }
 }

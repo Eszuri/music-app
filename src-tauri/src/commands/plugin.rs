@@ -31,16 +31,13 @@ pub fn cancel_bit_perfect_plugin_download() {
 }
 
 #[tauri::command]
-#[allow(non_snake_case)]
 pub async fn install_bit_perfect_plugin_from_file(
     app: AppHandle,
-    path: Option<String>,
-    srcPath: Option<String>,
+    path: String,
 ) -> Result<plugin_manager::PluginStatus, String> {
-    let p = path.or(srcPath).ok_or_else(|| "Missing path parameter".to_string())?;
     let app_clone = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        plugin_manager::install_from_file(&app_clone, &p)
+        plugin_manager::install_from_file(&app_clone, &path)
     })
     .await
     .map_err(|e| format!("Task error: {}", e))?
@@ -81,16 +78,13 @@ pub fn cancel_ai_lyrics_plugin_download() {
 }
 
 #[tauri::command]
-#[allow(non_snake_case)]
 pub async fn install_ai_lyrics_plugin_from_file(
     app: AppHandle,
-    path: Option<String>,
-    srcPath: Option<String>,
+    path: String,
 ) -> Result<ai_lyrics_plugin_manager::PluginStatus, String> {
-    let p = path.or(srcPath).ok_or_else(|| "Missing path parameter".to_string())?;
     let app_clone = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        ai_lyrics_plugin_manager::install_from_file(&app_clone, &p)
+        ai_lyrics_plugin_manager::install_from_file(&app_clone, &path)
     })
     .await
     .map_err(|e| format!("Task error: {}", e))?
