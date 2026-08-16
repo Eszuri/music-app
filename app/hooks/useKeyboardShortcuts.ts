@@ -133,7 +133,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
                         if (targetPct === 0) {
                             setSystemMuted(true);
                         }
-                        if (isBrowserTauri) {
+                        if (isBrowserTauri()) {
                             lastLocalVolumeSetRef.current = Date.now();
                             getTauri().then(async m => {
                                 await m.invoke('set_system_volume', {value: targetPct});
@@ -168,7 +168,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
                         if (targetPct === 0) {
                             setSystemMuted(true);
                         }
-                        if (isBrowserTauri) {
+                        if (isBrowserTauri()) {
                             lastLocalVolumeSetRef.current = Date.now();
                             getTauri().then(async m => {
                                 await m.invoke('set_system_volume', {value: targetPct});
@@ -191,6 +191,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions) {
         settingsOpenRef,
         streamingOpenRef,
         pendingFolderChangeRef,
+        equalizerOpenRef,
         togglePlayPauseRef,
         playNextRef,
         playPrevRef,

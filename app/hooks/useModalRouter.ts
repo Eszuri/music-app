@@ -1,6 +1,12 @@
 import { useState, useCallback, useEffect } from "react";
 import type { FileEntry } from "../components/FolderExplorer";
 
+function closeModalPath(path: string) {
+    if (typeof window !== 'undefined' && window.location.pathname.includes(path)) {
+        window.history.replaceState(null, '', '/');
+    }
+}
+
 export function useModalRouter() {
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [streamingOpen, setStreamingOpen] = useState(false);
@@ -19,9 +25,7 @@ export function useModalRouter() {
 
     const closeEqualizer = useCallback(() => {
         setEqualizerOpen(false);
-        if (typeof window !== 'undefined' && window.location.pathname.includes('/equalizer')) {
-            window.history.pushState(null, '', '/');
-        }
+        closeModalPath('/equalizer');
     }, []);
 
     const openSettings = useCallback(() => {
@@ -33,9 +37,7 @@ export function useModalRouter() {
 
     const closeSettings = useCallback(() => {
         setSettingsOpen(false);
-        if (typeof window !== 'undefined' && window.location.pathname.includes('/setting')) {
-            window.history.pushState(null, '', '/');
-        }
+        closeModalPath('/setting');
     }, []);
 
     const openStreaming = useCallback(() => {
@@ -47,9 +49,7 @@ export function useModalRouter() {
 
     const closeStreaming = useCallback(() => {
         setStreamingOpen(false);
-        if (typeof window !== 'undefined' && window.location.pathname.includes('/streaming')) {
-            window.history.pushState(null, '', '/');
-        }
+        closeModalPath('/streaming');
     }, []);
 
     const openMetadataEdit = useCallback((targetFile?: FileEntry) => {
@@ -63,9 +63,7 @@ export function useModalRouter() {
     const closeMetadataEdit = useCallback(() => {
         setMetadataEditOpen(false);
         setEditingTargetFile(null);
-        if (typeof window !== 'undefined' && window.location.pathname.includes('/metadata')) {
-            window.history.pushState(null, '', '/');
-        }
+        closeModalPath('/metadata');
     }, []);
 
     const openLyricsSearch = useCallback(() => {
@@ -77,9 +75,7 @@ export function useModalRouter() {
 
     const closeLyricsSearch = useCallback(() => {
         setLyricsSearchOpen(false);
-        if (typeof window !== 'undefined' && window.location.pathname.includes('/lyrics-search')) {
-            window.history.pushState(null, '', '/');
-        }
+        closeModalPath('/lyrics-search');
     }, []);
 
     const openAiLyricsModal = useCallback(() => {
@@ -91,9 +87,7 @@ export function useModalRouter() {
 
     const closeAiLyricsModal = useCallback(() => {
         setAiLyricsModalOpen(false);
-        if (typeof window !== 'undefined' && window.location.pathname.includes('/ai-lyrics')) {
-            window.history.pushState(null, '', '/');
-        }
+        closeModalPath('/ai-lyrics');
     }, []);
 
     useEffect(() => {

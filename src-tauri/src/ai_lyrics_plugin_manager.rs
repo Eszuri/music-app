@@ -194,6 +194,8 @@ pub fn download_and_install(app: &AppHandle, url: Option<String>) -> Result<Plug
         ));
     }
 
+    verify_plugin_executable(&tmp_path)?;
+
     if !PLUGIN_EXPECTED_SHA256.is_empty() {
         let actual = compute_sha256(&tmp_path)?;
         if !actual.eq_ignore_ascii_case(PLUGIN_EXPECTED_SHA256) {
@@ -236,7 +238,7 @@ pub fn verify_plugin_executable(src: &Path) -> Result<(), String> {
     }
 
     let pe_offset = u32::from_le_bytes([header[60], header[61], header[62], header[63]]) as usize;
-    if pe_offset + 4 <= n && &header[pe_offset..pe_offset + 4] != b"PE\0\0" {
+    if pe_offset + 4 > n || &header[pe_offset..pe_offset + 4] != b"PE\0\0" {
         return Err("Berkas bukan merupakan PE Executable Windows yang valid (Missing PE signature).".into());
     }
 

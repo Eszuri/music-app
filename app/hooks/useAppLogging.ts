@@ -79,7 +79,7 @@ export function useAppLogging() {
         let cancelled = false;
         let unlisten: (() => void) | null = null;
         import('../lib/homeState').then(({ isBrowserTauri }) => {
-            if (!isBrowserTauri || cancelled) return;
+            if (!isBrowserTauri() || cancelled) return;
             import('@tauri-apps/api/event').then(({ listen }) => {
                 if (cancelled) return;
                 listen<string>('ai-lyrics-event', (event) => {

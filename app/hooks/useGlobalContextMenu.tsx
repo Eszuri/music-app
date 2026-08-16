@@ -257,7 +257,12 @@ export function useGlobalContextMenu({
             setSettingsOpen,
             setStreamingOpen,
             settingsOpenRef,
-            streamingOpenRef
+            streamingOpenRef,
+            equalizerOpenRef,
+            metadataEditOpenRef,
+            lyricsSearchOpenRef,
+            player,
+            settings,
         ],
     );
 

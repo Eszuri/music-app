@@ -99,14 +99,14 @@ export function useLyrics(
 ): LyricsState {
     const [rawText, setRawText] = useState<string | null>(null);
     const [source, setSource] = useState<string | null>(null);
-    const [loading, setLoading] = useState<boolean>(false);
+    const [loading, setLoading] = useState<boolean>(Boolean(songPath && isBrowserTauri()));
     const [isFetchingOnline, setIsFetchingOnline] = useState<boolean>(false);
 
     // Function to manually trigger online search for lyrics
     const fetchOnlineLyrics = useCallback(
         async (title?: string, artist?: string, album?: string, dur?: number): Promise<boolean> => {
             const queryTitle = title || songTitle;
-            if (!queryTitle || !isBrowserTauri) return false;
+            if (!queryTitle || !isBrowserTauri()) return false;
 
             setIsFetchingOnline(true);
             try {
@@ -135,17 +135,18 @@ export function useLyrics(
 
     // Load lyrics from Rust IPC whenever songPath changes (local .lrc or embedded)
     useEffect(() => {
-        if (!songPath) {
+        const frame = requestAnimationFrame(() => {
             setRawText(null);
             setSource(null);
-            setLoading(false);
-            return;
+            setLoading(Boolean(songPath && isBrowserTauri()));
+        });
+        if (!songPath) {
+            return () => cancelAnimationFrame(frame);
         }
 
-        setLoading(true);
         let isMounted = true;
 
-        if (isBrowserTauri) {
+        if (isBrowserTauri()) {
             getTauri()
                 .then((mod) => mod.invoke<{ raw_text: string; source: string } | null>('get_lyrics', { filePath: songPath }))
                 .then((res) => {
@@ -167,10 +168,6 @@ export function useLyrics(
                 .finally(() => {
                     if (isMounted) setLoading(false);
                 });
-        } else {
-            setRawText(null);
-            setSource(null);
-            setLoading(false);
         }
 
         return () => {
@@ -196,7 +193,7 @@ export function useLyrics(
 
 
     const searchOnlineLyrics = useCallback(async (query: string): Promise<OnlineLyricItem[]> => {
-        if (!query.trim() || !isBrowserTauri) return [];
+        if (!query.trim() || !isBrowserTauri()) return [];
         try {
             const mod = await getTauri();
             const results = await mod.invoke<OnlineLyricItem[]>('search_online_lyrics', { query });
@@ -213,7 +210,7 @@ export function useLyrics(
     }, []);
 
     const saveAsLrcFile = useCallback(async (): Promise<boolean> => {
-        if (!songPath || !rawText || !isBrowserTauri) return false;
+        if (!songPath || !rawText || !isBrowserTauri()) return false;
         try {
             const mod = await getTauri();
             await mod.invoke('save_lrc_file', { filePath: songPath, lrcContent: rawText });

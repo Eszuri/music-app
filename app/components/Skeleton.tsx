@@ -1,6 +1,5 @@
 "use client";
 
-import {useEffect, useState} from "react";
 import {getAccent} from "../lib/colors";
 
 interface SkeletonProps {

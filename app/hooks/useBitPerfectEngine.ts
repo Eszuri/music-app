@@ -59,7 +59,7 @@ export function useBitPerfectEngine(handlers: EngineEventHandlers = {}) {
     });
 
     const refreshStatus = useCallback(async () => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         try {
             const mod = await getTauri();
             const s = await mod.invoke<BitPerfectPluginStatus>("get_bit_perfect_plugin_status");
@@ -79,12 +79,15 @@ export function useBitPerfectEngine(handlers: EngineEventHandlers = {}) {
     }, []);
 
     useEffect(() => {
-        refreshStatus();
+        const timer = window.setTimeout(() => {
+            void refreshStatus();
+        }, 0);
+        return () => window.clearTimeout(timer);
     }, [refreshStatus]);
 
     // Subscribe to engine stdout events + download progress.
     useEffect(() => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         let cancelled = false;
         const unlistens: Array<() => void> = [];
 
@@ -136,14 +139,14 @@ export function useBitPerfectEngine(handlers: EngineEventHandlers = {}) {
     }, []);
 
     const sendCommand = useCallback(async (command: Record<string, unknown>) => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         const mod = await getTauri();
         await mod.invoke("send_audio_command", {json: JSON.stringify(command)});
         setEngineRunning(true);
     }, []);
 
     const download = useCallback(async () => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         setDownloading(true);
         setDownloadProgress(null);
         try {
@@ -157,7 +160,7 @@ export function useBitPerfectEngine(handlers: EngineEventHandlers = {}) {
     }, [setStatusGlobal]);
 
     const cancelDownload = useCallback(async () => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         try {
             const mod = await getTauri();
             await mod.invoke("cancel_bit_perfect_plugin_download");
@@ -170,14 +173,14 @@ export function useBitPerfectEngine(handlers: EngineEventHandlers = {}) {
     }, []);
 
     const installFromFile = useCallback(async (path: string) => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         const mod = await getTauri();
         const s = await mod.invoke<BitPerfectPluginStatus>("install_bit_perfect_plugin_from_file", {path});
         setStatusGlobal(s);
     }, [setStatusGlobal]);
 
     const uninstall = useCallback(async () => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         const mod = await getTauri();
         await mod.invoke("uninstall_bit_perfect_plugin");
         setStatusGlobal({installed: false, path: null, size_bytes: null, sha256: null});
@@ -186,14 +189,14 @@ export function useBitPerfectEngine(handlers: EngineEventHandlers = {}) {
     }, [setStatusGlobal]);
 
     const stopEngine = useCallback(async () => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         const mod = await getTauri();
         await mod.invoke("stop_audio_engine");
         setEngineRunning(false);
     }, []);
 
     const getDevices = useCallback(async (): Promise<EngineDevice[]> => {
-        if (!isBrowserTauri) return [];
+        if (!isBrowserTauri()) return [];
         const mod = await getTauri();
         return new Promise<EngineDevice[]>((resolve) => {
             let done = false;

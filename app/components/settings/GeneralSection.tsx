@@ -103,7 +103,10 @@ export default function GeneralSection({
     }, []);
 
     useEffect(() => {
-        refreshStorage();
+        const timer = window.setTimeout(() => {
+            void refreshStorage();
+        }, 0);
+        return () => window.clearTimeout(timer);
     }, [refreshStorage]);
 
     const folderBtnHover = useHoverDescription(t(lang, 'status.changeFolder'));
@@ -567,8 +570,11 @@ function VolumeLimitInput({
     const [saved, setSaved] = useState(volumeLimit);
 
     useEffect(() => {
-        setDraft(volumeLimit.toString());
-        setSaved(volumeLimit);
+        const frame = requestAnimationFrame(() => {
+            setDraft(volumeLimit.toString());
+            setSaved(volumeLimit);
+        });
+        return () => cancelAnimationFrame(frame);
     }, [volumeLimit]);
 
     const handleSave = () => {

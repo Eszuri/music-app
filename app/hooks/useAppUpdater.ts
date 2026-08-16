@@ -1,7 +1,7 @@
 'use client';
 
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {isBrowserTauri, UPDATE_SKIP_KEY} from '../lib/homeState';
+import {isBrowserTauri} from '../lib/homeState';
 import {t, type Lang} from '../lib/translations';
 
 interface UseAppUpdaterOptions {
@@ -33,7 +33,6 @@ export function useAppUpdater(options: UseAppUpdaterOptions) {
     const updateTotalRef = useRef(0);
 
     const [autoUpdateInfo, setAutoUpdateInfo] = useState<AutoUpdateInfo | null>(null);
-    const [autoUpdateShown, setAutoUpdateShown] = useState(false);
     const [autoUpdateDownloading, setAutoUpdateDownloading] = useState(false);
     const [autoUpdateProgress, setAutoUpdateProgress] = useState(0);
     const [autoUpdateTotal, setAutoUpdateTotal] = useState(0);
@@ -41,7 +40,7 @@ export function useAppUpdater(options: UseAppUpdaterOptions) {
     const autoCheckDone = useRef(false);
 
     const handleCheckUpdate = useCallback(async () => {
-        if (!isBrowserTauri) {
+        if (!isBrowserTauri()) {
             setUpdateStatus(t(lang, 'general.update.desktopOnly'));
             return;
         }
@@ -85,7 +84,7 @@ export function useAppUpdater(options: UseAppUpdaterOptions) {
     }, [addLog, lang]);
 
     const autoCheckUpdate = useCallback(async () => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         if (autoCheckDone.current) return;
         autoCheckDone.current = true;
         try {
@@ -106,15 +105,8 @@ export function useAppUpdater(options: UseAppUpdaterOptions) {
         return () => clearTimeout(timer);
     }, [autoCheckUpdate]);
 
-    useEffect(() => {
-        if (autoUpdateInfo && !autoUpdateShown) {
-            setAutoUpdateShown(true);
-        }
-    }, [autoUpdateInfo, autoUpdateShown]);
-
     const dismissAutoUpdate = useCallback(() => {
         setAutoUpdateInfo(null);
-        setAutoUpdateShown(false);
         setAutoUpdateDownloading(false);
         setAutoUpdateProgress(0);
         setAutoUpdateTotal(0);
@@ -157,9 +149,8 @@ export function useAppUpdater(options: UseAppUpdaterOptions) {
             addLog('error', t(lang, 'log.autoUpdateFailed', {msg: msg.slice(0, 80)}));
             setAutoUpdateDownloading(false);
             setAutoUpdateInfo(null);
-            setAutoUpdateShown(false);
-        }
-    }, [autoUpdateInfo, addLog]);
+            }
+    }, [autoUpdateInfo, addLog, lang]);
 
     return {
         updateChecking,
@@ -168,7 +159,7 @@ export function useAppUpdater(options: UseAppUpdaterOptions) {
         updateTotal,
         handleCheckUpdate,
         autoUpdateInfo,
-        autoUpdateShown,
+        autoUpdateShown: autoUpdateInfo !== null,
         autoUpdateDownloading,
         autoUpdateProgress,
         autoUpdateTotal,

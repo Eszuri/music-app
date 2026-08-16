@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 export function useVolumeFade(
     audioRef: React.RefObject<HTMLAudioElement | null>,
@@ -10,8 +10,10 @@ export function useVolumeFade(
     const fadeAudioRef = useRef(fadeAudio);
     const fadeDurationRef = useRef(fadeDuration);
 
-    fadeAudioRef.current = fadeAudio;
-    fadeDurationRef.current = fadeDuration;
+    useEffect(() => {
+        fadeAudioRef.current = fadeAudio;
+        fadeDurationRef.current = fadeDuration;
+    }, [fadeAudio, fadeDuration]);
 
     const fadeVolumeTo = useCallback(
         (targetVol: number, durationMs?: number, onComplete?: () => void) => {
@@ -72,10 +74,11 @@ export function useVolumeFade(
         }
     }, []);
 
+    useEffect(() => cancelFade, [cancelFade]);
+
     return {
         fadeVolumeTo,
         cancelFade,
-        fadeTokenRef,
         fadeAudioRef,
         fadeDurationRef,
     };

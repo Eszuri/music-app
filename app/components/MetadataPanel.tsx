@@ -10,8 +10,7 @@ import { contentMotion } from '../lib/animations';
 import ContextMenu, { ContextMenuItem } from './ContextMenu';
 import { useHoverDescription } from '../hooks/useHoverDescription';
 import { useHoverInfo } from '../contexts/HoverInfoContext';
-import { MetadataPanelSkeleton } from './Skeleton';
-import { InfoIcon, CopyIcon, MusicNoteIcon, EditIcon, LyricsIcon, DetailsIcon } from './icons';
+import { CopyIcon, MusicNoteIcon, LyricsIcon, DetailsIcon } from './icons';
 import { useLyrics } from '../hooks/useLyrics';
 import { LyricsSearchModal } from './LyricsSearchModal';
 import { AiLyricsModal } from './AiLyricsModal';
@@ -26,7 +25,6 @@ interface MetadataPanelProps {
     currentTime?: number;
     onSeek?: (timeSec: number) => void;
     onContextMenu?: (e: React.MouseEvent) => void;
-    onOpenEditMetadata?: () => void;
     lyricsSearchOpen?: boolean;
     onOpenLyricsSearch?: () => void;
     onCloseLyricsSearch?: () => void;
@@ -96,7 +94,7 @@ function SectionTitle({ title }: { title: string }) {
     );
 }
 
-function MetaRow({ label, value, hoverProps }: { label: string; value: string; hoverProps?: Record<string, any> }) {
+function MetaRow({ label, value, hoverProps }: { label: string; value: string; hoverProps?: React.HTMLAttributes<HTMLDivElement> }) {
     return (
         <div className="flex flex-col gap-0.5 min-w-0" {...(hoverProps ?? {})}>
             <span className="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase truncate cursor-help">{label}</span>
@@ -421,7 +419,6 @@ function LyricsSection({
                 initialTitle={songTitle}
                 initialArtist={artistName}
                 accentColor={accentColor}
-                songPath={songPath}
                 searchOnlineLyrics={searchOnlineLyrics}
                 onSelectLyric={(content) => applyLyrics(content, 'lrclib')}
             />
@@ -452,7 +449,6 @@ function MetadataPanel({
     currentTime,
     onSeek,
     onContextMenu,
-    onOpenEditMetadata,
     lyricsSearchOpen,
     onOpenLyricsSearch,
     onCloseLyricsSearch,
@@ -466,19 +462,8 @@ function MetadataPanel({
         ? (metadata?.title || selectedSong.name.replace(/\.[^/.]+$/, ''))
         : null;
 
-    const [activeTab, setActiveTab] = useState<'metadata' | 'lyrics'>('metadata');
+    const [activeTab, setActiveTab] = useState<'metadata' | 'lyrics'>(() => loadSavedTab());
 
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            setActiveTab(loadSavedTab());
-        }
-    }, []);
-
-    useEffect(() => {
-        if (lyricsSearchOpen) {
-            setActiveTab('lyrics');
-        }
-    }, [lyricsSearchOpen]);
 
     const changeTab = useCallback((tab: 'metadata' | 'lyrics') => {
         setActiveTab(tab);
@@ -517,10 +502,13 @@ function MetadataPanel({
 
     useEffect(() => {
         if (resetSidebarToken === 0) return;
-        setWidth(DEFAULT_WIDTH);
-        setActiveTab('metadata');
-        setStoredValue('meta_width', DEFAULT_WIDTH);
-        setStoredValue('active_metadata_tab', 'metadata');
+        const frame = requestAnimationFrame(() => {
+            setWidth(DEFAULT_WIDTH);
+            setActiveTab('metadata');
+            setStoredValue('meta_width', DEFAULT_WIDTH);
+            setStoredValue('active_metadata_tab', 'metadata');
+        });
+        return () => cancelAnimationFrame(frame);
     }, [resetSidebarToken]);
 
     useEffect(() => {

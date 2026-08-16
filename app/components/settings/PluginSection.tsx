@@ -78,7 +78,7 @@ export default function PluginSection({
     };
 
     const handleInstallFromFile = async () => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         setInstallingFromFile(true);
         setActionError(null);
         try {
@@ -119,7 +119,7 @@ export default function PluginSection({
     };
 
     const handleAiInstallFromFile = async () => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         setInstallingFromFile(true);
         setAiActionError(null);
         try {
@@ -159,14 +159,6 @@ export default function PluginSection({
     const downloadPct = downloadProgress && downloadProgress.total > 0
         ? Math.min(100, Math.round((downloadProgress.downloaded / downloadProgress.total) * 100))
         : 0;
-
-    const aiDownloadedMB = aiDownloadProgress
-        ? (aiDownloadProgress.downloaded / (1024 * 1024)).toFixed(1)
-        : '0';
-
-    const aiTotalMB = aiDownloadProgress && aiDownloadProgress.total > 0
-        ? (aiDownloadProgress.total / (aiDownloadProgress.total)).toFixed(1)
-        : '20';
 
     const aiDownloadPct = aiDownloadProgress && aiDownloadProgress.total > 0
         ? Math.min(100, Math.round((aiDownloadProgress.downloaded / aiDownloadProgress.total) * 100))

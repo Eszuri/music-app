@@ -129,7 +129,7 @@ impl Default for SymvoniaConfig {
             output_mode: "default".to_string(),
             output_device: None,
             equalizer: EqualizerConfig::default(),
-            gain_boost: 0.0,
+            gain_boost: 1.0,
             ai_lyrics_model: "base".to_string(),
             ai_isolate_vocals: false,
             active_metadata_tab: "info".to_string(),
@@ -197,18 +197,17 @@ impl SymvoniaConfig {
             self.formats = SymvoniaConfig::default().formats;
         }
 
-        // Equalizer bands validation (must have 10 bands)
-        if self.equalizer.bands.len() != 10 {
+        // Equalizer bands validation supports the frontend's 5/10/15/31 band modes.
+        if !matches!(self.equalizer.bands.len(), 5 | 10 | 15 | 31) {
             self.equalizer.bands = vec![0.0; 10];
-        } else {
-            for band in &mut self.equalizer.bands {
-                *band = band.clamp(-12.0, 12.0);
-            }
+        }
+        for band in &mut self.equalizer.bands {
+            *band = band.clamp(-12.0, 12.0);
         }
         self.equalizer.pre_amp = self.equalizer.pre_amp.clamp(-12.0, 12.0);
 
-        // Gain boost clamping: 0.0 to 12.0 dB
-        self.gain_boost = self.gain_boost.clamp(0.0, 12.0);
+        // Gain boost is a linear ratio: 100% to 300%.
+        self.gain_boost = self.gain_boost.clamp(1.0, 3.0);
     }
 }
 
@@ -447,4 +446,45 @@ pub fn clean_all_app_data(app: AppHandle) -> Result<(), String> {
     let default_config = SymvoniaConfig::default();
     let _ = save_config(&app, &default_config);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sanitize_preserves_supported_equalizer_band_modes() {
+        for count in [5, 10, 15, 31] {
+            let mut config = SymvoniaConfig::default();
+            config.equalizer.bands = vec![20.0; count];
+            config.sanitize();
+            assert_eq!(config.equalizer.bands.len(), count);
+            assert!(config.equalizer.bands.iter().all(|band| *band == 12.0));
+        }
+    }
+
+    #[test]
+    fn sanitize_resets_invalid_equalizer_band_mode() {
+        let mut config = SymvoniaConfig::default();
+        config.equalizer.bands = vec![1.0; 7];
+        config.sanitize();
+        assert_eq!(config.equalizer.bands, vec![0.0; 10]);
+    }
+
+    #[test]
+    fn sanitize_clamps_gain_boost_ratio() {
+        let mut low_config = SymvoniaConfig {
+            gain_boost: 0.0,
+            ..Default::default()
+        };
+        low_config.sanitize();
+        assert_eq!(low_config.gain_boost, 1.0);
+
+        let mut high_config = SymvoniaConfig {
+            gain_boost: 4.0,
+            ..Default::default()
+        };
+        high_config.sanitize();
+        assert_eq!(high_config.gain_boost, 3.0);
+    }
 }

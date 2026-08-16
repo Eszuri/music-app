@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lang, t } from '../lib/translations';
 import { OnlineLyricItem } from '../hooks/useLyrics';
@@ -14,7 +14,6 @@ interface LyricsSearchModalProps {
     initialTitle?: string;
     initialArtist?: string;
     accentColor: string;
-    songPath?: string | null;
     searchOnlineLyrics: (query: string) => Promise<OnlineLyricItem[]>;
     onSelectLyric: (lrcContent: string) => void;
 }
@@ -33,7 +32,6 @@ export function LyricsSearchModal({
     initialTitle = '',
     initialArtist = '',
     accentColor,
-    songPath,
     searchOnlineLyrics,
     onSelectLyric,
 }: LyricsSearchModalProps) {
@@ -73,20 +71,7 @@ export function LyricsSearchModal({
         };
     }, [contextMenu]);
 
-    useEffect(() => {
-        if (isOpen) {
-            const initialQuery = `${initialTitle} ${initialArtist}`.trim();
-            setQuery(initialQuery);
-            setResults([]);
-            setSearched(false);
-            setPreviewItem(null);
-            if (initialQuery) {
-                handleSearch(initialQuery);
-            }
-        }
-    }, [isOpen, initialTitle, initialArtist]);
-
-    const handleSearch = async (searchQuery?: string) => {
+    const handleSearch = useCallback(async (searchQuery?: string) => {
         const q = searchQuery !== undefined ? searchQuery : query;
         if (!q.trim()) return;
 
@@ -102,7 +87,22 @@ export function LyricsSearchModal({
         } finally {
             setLoading(false);
         }
-    };
+    }, [query, searchOnlineLyrics]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const initialQuery = `${initialTitle} ${initialArtist}`.trim();
+        const frame = requestAnimationFrame(() => {
+            setQuery(initialQuery);
+            setResults([]);
+            setSearched(false);
+            setPreviewItem(null);
+            if (initialQuery) {
+                void handleSearch(initialQuery);
+            }
+        });
+        return () => cancelAnimationFrame(frame);
+    }, [isOpen, initialTitle, initialArtist, handleSearch]);
 
     const handleCopyText = (e: React.MouseEvent) => {
         e.stopPropagation();

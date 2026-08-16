@@ -1,6 +1,6 @@
 'use client';
 
-import React, {memo, useEffect, useState} from 'react';
+import React, {memo, useEffect, useRef} from 'react';
 import {getAccent} from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
 import {useHoverDescription} from '../hooks/useHoverDescription';
@@ -42,7 +42,7 @@ function VolumeControl({
     accentColor,
 }: VolumeControlProps) {
     const accent = getAccent(accentColor);
-    const [prevVolume, setPrevVolume] = useState(volume);
+    const prevVolumeRef = useRef(volume);
 
     const isSystem = volumeMode === 'system';
     const limit = volumeLimit;
@@ -50,7 +50,7 @@ function VolumeControl({
 
     useEffect(() => {
         if (volume > 0 && !(isSystem && systemMuted)) {
-            setPrevVolume(volume);
+            prevVolumeRef.current = volume;
         }
     }, [volume, isSystem, systemMuted]);
 
@@ -93,10 +93,10 @@ function VolumeControl({
         if (isSystem) {
             onToggleSystemMute();
         } else if (!muted) {
-            setPrevVolume(volume);
+            prevVolumeRef.current = volume;
             handleVolumeChange(makeChangeEvent(0));
         } else {
-            const restored = prevVolume || 0.5;
+            const restored = prevVolumeRef.current || 0.5;
             handleVolumeChange(makeChangeEvent(restored));
         }
     };

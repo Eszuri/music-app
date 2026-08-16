@@ -1,4 +1,6 @@
-export const isBrowserTauri = typeof window !== 'undefined';
+export function isBrowserTauri(): boolean {
+    return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+}
 
 export const FOLDER_STORAGE_KEY = 'music-app-folder';
 export const AUTO_WALLPAPER_KEY = 'music-app-auto-wallpaper';
@@ -19,7 +21,6 @@ export const DEFAULT_VOLUME_STEP = 2;
 export const LANGUAGE_KEY = 'music-app-language';
 export const DEFAULT_LANGUAGE = 'en';
 export const UPDATE_SKIP_KEY = 'music-app-update-skip';
-const SESSION_STATE_KEY = 'music-app-session-state';
 export const OUTPUT_MODE_KEY = 'music-app-output-mode';
 export const OUTPUT_DEVICE_KEY = 'music-app-output-device';
 export const LAYOUT_MODE_KEY = 'music-app-layout-mode';

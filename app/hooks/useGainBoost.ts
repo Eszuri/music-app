@@ -45,10 +45,12 @@ export function useGainBoost(
     const filtersRef = useRef<BiquadFilterNode[]>([]);
 
     const gainRef = useRef(gain);
-    gainRef.current = gain;
-
     const eqRef = useRef(equalizer);
-    eqRef.current = equalizer;
+
+    useEffect(() => {
+        gainRef.current = gain;
+        eqRef.current = equalizer;
+    }, [gain, equalizer]);
 
     const rebuildEqFilters = useCallback((ctx: AudioContext, freqs: number[], eq?: EqualizerAudioState): BiquadFilterNode[] => {
         const qVal = getQFactorForBands(freqs.length);
@@ -148,24 +150,13 @@ export function useGainBoost(
         }
     }, [audioRef, rebuildEqFilters, connectGraph]);
 
-    // M5: Don't use audioRef.current in deps — React won't re-trigger on ref changes
-    useEffect(() => {
-        const audio = audioRef.current;
-        if (!audio) return;
-
-        const handlePlay = () => {
-            const node = ensureGraph();
-            if (ctxRef.current?.state === "suspended") {
-                ctxRef.current.resume().catch(() => {});
-            }
-            if (node) node.gain.value = gainRef.current;
-        };
-
-        audio.addEventListener("play", handlePlay);
-        return () => {
-            audio.removeEventListener("play", handlePlay);
-        };
-    }, [audioRef, ensureGraph]);
+    const prepareAudio = useCallback(() => {
+        const node = ensureGraph();
+        if (ctxRef.current?.state === "suspended") {
+            ctxRef.current.resume().catch(() => {});
+        }
+        if (node) node.gain.value = gainRef.current;
+    }, [ensureGraph]);
 
     // Sync GainNode state
     useEffect(() => {
@@ -234,5 +225,6 @@ export function useGainBoost(
         minGain: MIN_GAIN,
         maxGain: MAX_GAIN,
         supported,
+        prepareAudio,
     };
 }

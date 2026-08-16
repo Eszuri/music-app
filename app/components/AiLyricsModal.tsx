@@ -141,7 +141,7 @@ export function AiLyricsModal({
     });
 
     useEffect(() => {
-        if (!isOpen || !isBrowserTauri) return;
+        if (!isOpen || !isBrowserTauri()) return;
         let isMounted = true;
         getTauri()
             .then((mod) => mod.invoke<{ ramGb: number; cpuCores: number }>('get_system_specs'))
@@ -171,12 +171,6 @@ export function AiLyricsModal({
     } = useAiLyricsPlugin();
 
     const isProcessing = isAiGenerating || isAiDownloading || Boolean(aiModelProgress) || isLocalGenerating;
-
-    useEffect(() => {
-        if (isProcessing && isDropdownOpen) {
-            setIsDropdownOpen(false);
-        }
-    }, [isProcessing, isDropdownOpen]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -376,7 +370,7 @@ export function AiLyricsModal({
 
                                     {/* Dropdown Options Popup */}
                                     <AnimatePresence>
-                                        {isDropdownOpen && (
+                                        {isDropdownOpen && !isProcessing && (
                                             <motion.div
                                                 initial={{ opacity: 0, y: -4, scale: 0.98 }}
                                                 animate={{ opacity: 1, y: 0, scale: 1 }}

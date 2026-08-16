@@ -3,8 +3,6 @@
 import {memo} from 'react';
 import {motion} from 'framer-motion';
 import {useCallback, useState} from 'react';
-import type {FileEntry} from '../FolderExplorer';
-import type {SongMetadata} from '../PlayerPanel';
 import {getAccent} from '../../lib/colors';
 import {t, type Lang} from '../../lib/translations';
 import {contentMotion} from '../../lib/animations';
@@ -17,8 +15,6 @@ interface HomeHeaderProps {
     lang: Lang;
     isCompact: boolean;
     musicFolder: string | null;
-    selectedSong: FileEntry | null;
-    metadata: SongMetadata | null;
     isPlaying: boolean;
     showLeftSidebar: boolean;
     showRightSidebar: boolean;
@@ -61,8 +57,6 @@ function HomeHeader({
     lang,
     isCompact,
     musicFolder,
-    selectedSong,
-    metadata,
     isPlaying,
     showLeftSidebar,
     showRightSidebar,
@@ -151,7 +145,6 @@ function HomeHeader({
     const settingsHover = useHoverDescription(t(lang, 'status.settings'));
     const leftSidebarHover = useHoverDescription(t(lang, 'status.toggleLeftSidebar'));
     const rightSidebarHover = useHoverDescription(t(lang, 'status.toggleRightSidebar'));
-    const titleHover = useHoverDescription(t(lang, 'status.headerTitle'));
     const playStatusHover = useHoverDescription(t(lang, 'status.playStatus'));
 
     return (

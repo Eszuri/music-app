@@ -125,8 +125,17 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     const bpSendCommandRef = useRef<(cmd: Record<string, unknown>) => Promise<void>>(async () => {});
     const enginePlayRef = useRef<(file: FileEntry, seekPosition?: number) => Promise<void>>(async () => {});
 
-    const { fadeVolumeTo, cancelFade, fadeTokenRef, fadeAudioRef, fadeDurationRef } = useVolumeFade(audioRef, fadeAudio, fadeDuration);
+    const { fadeVolumeTo, cancelFade, fadeAudioRef, fadeDurationRef } = useVolumeFade(audioRef, fadeAudio, fadeDuration);
     const { getAudioSrc } = useAudioSrc();
+    const equalizer = useEqualizer();
+    const {
+        gain: gainBoostValue,
+        setGain: setGainBoost,
+        supported: gainBoostSupported,
+        minGain: minGainBoost,
+        maxGain: maxGainBoost,
+        prepareAudio,
+    } = useGainBoost(audioRef, equalizer);
 
     const currentPathRef = useRef<string | null>(currentPath);
     useEffect(() => {
@@ -191,7 +200,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         setSystemMuted(false);
         lastLocalVolumeSetRef.current = Date.now();
 
-        if (!isBrowserTauri) return targetVolume;
+        if (!isBrowserTauri()) return targetVolume;
 
         try {
             const mod = await getTauri();
@@ -212,7 +221,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     /** Apply wallpaper from current metadata*/
     const applyWallpaper = useCallback(
         async (meta: SongMetadata, token?: number) => {
-            if (!isBrowserTauri || !autoWallpaperRef.current) return;
+            if (!isBrowserTauri() || !autoWallpaperRef.current) return;
             try {
                 const mod = await getTauri();
                 if (token !== undefined && token !== playTokenRef.current) return;
@@ -225,7 +234,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 showError(t(lang, 'log.wallpaperError', {msg: String(e)}));
             }
         },
-        [showError],
+        [showError, lang],
     );
 
     // ─── file listing ──────────────────────────────────────────────────────────
@@ -302,7 +311,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         try {
             let fileList = filesRef.current;
             if (currentPathRef.current !== songParent || fileList.length === 0) {
-                if (isBrowserTauri) {
+                if (isBrowserTauri()) {
                     const mod = await getTauri();
                     fileList = await mod.invoke<FileEntry[]>("list_files", {
                         path: songParent,
@@ -338,29 +347,38 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     // ─── path / folder effects ─────────────────────────────────────────────────
 
     useEffect(() => {
-        if (musicFolder) {
-            setCurrentPath((prev) => {
-                if (!prev || !prev.startsWith(musicFolder)) {
-                    return musicFolder;
-                }
-                return prev;
-            });
-        } else {
-            setCurrentPath(null);
-        }
+        const frame = requestAnimationFrame(() => {
+            if (musicFolder) {
+                setCurrentPath((prev) => {
+                    if (!prev || !prev.startsWith(musicFolder)) {
+                        return musicFolder;
+                    }
+                    return prev;
+                });
+            } else {
+                setCurrentPath(null);
+            }
+        });
+        return () => cancelAnimationFrame(frame);
     }, [musicFolder]);
 
     useEffect(() => {
-        if (currentPath) {
-            loadFiles(currentPath);
-        } else {
-            setFiles([]);
-        }
+        const timer = window.setTimeout(() => {
+            if (currentPath) {
+                void loadFiles(currentPath);
+            } else {
+                setFiles([]);
+            }
+        }, 0);
+        return () => window.clearTimeout(timer);
     }, [currentPath, loadFiles]);
 
     useEffect(() => {
-        if (currentPath) loadFiles(currentPath);
-    }, [folderSort, fileSort, sortDir, nameSource, formats]);
+        const timer = window.setTimeout(() => {
+            if (currentPath) void loadFiles(currentPath);
+        }, 0);
+        return () => window.clearTimeout(timer);
+    }, [currentPath, folderSort, fileSort, sortDir, nameSource, formats, loadFiles]);
 
     useEffect(() => {
         skipPlaylistRebuildRef.current = true;
@@ -383,7 +401,10 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     useEffect(() => {
         if (!filesLoadedOnce) return;
         if (sessionRestoreAttemptedRef.current) {
-            if (!sessionRestored) setSessionRestored(true);
+            if (!sessionRestored) {
+                const frame = requestAnimationFrame(() => setSessionRestored(true));
+                return () => cancelAnimationFrame(frame);
+            }
             return;
         }
 
@@ -499,6 +520,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             const audio = audioRef.current;
             if (!audio) return;
 
+            cancelFade();
             const fileFolder = file.path.replace(/[/\\][^/\\]+$/, "");
             if (fileFolder !== playlistFolderRef.current) {
                 playlistRef.current = filesRef.current.filter((f) => !f.is_dir);
@@ -528,10 +550,12 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
                     if (fadeAudioRef.current && fadeDurationRef.current > 0) {
                         audio.volume = 0;
+                        prepareAudio();
                         await audio.play();
                         fadeVolumeTo(targetVol, fadeDurationRef.current);
                     } else {
                         audio.volume = targetVol;
+                        prepareAudio();
                         await audio.play();
                     }
                 }
@@ -582,7 +606,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         const audio = audioRef.current;
         if (!audio || !audio.src) return;
 
-        fadeTokenRef.current++;
+        cancelFade();
 
         if (audio.paused || !isPlaying) {
             setIsPlaying(true);
@@ -594,10 +618,12 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 const targetVol = volumeModeRef.current === "app" ? (resumeVolume ?? appVolume) : 1;
                 if (fadeAudioRef.current && fadeDurationRef.current > 0) {
                     audio.volume = 0;
+                    prepareAudio();
                     await audio.play();
                     fadeVolumeTo(targetVol, fadeDurationRef.current);
                 } else {
                     audio.volume = targetVol;
+                    prepareAudio();
                     await audio.play();
                 }
                 autoPausedBySilenceRef.current = false;
@@ -625,6 +651,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     }, [pauseIfMuted, isVolumeSilent, setMinimumResumeVolume, applyWallpaper, appVolume, fadeVolumeTo, isPlaying]);
 
     const resetPlayer = useCallback(() => {
+        cancelFade();
         if (audioRef.current) {
             audioRef.current.pause();
             audioRef.current.currentTime = 0;
@@ -640,7 +667,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         autoPausedBySilenceRef.current = false;
         restoredPendingPlayRef.current = false;
         saveSessionState(null);
-        if (isBrowserTauri) {
+        if (isBrowserTauri()) {
             getTauri()
                 .then((mod) => {
                     mod.invoke("clear_wallpaper").catch(() => {});
@@ -822,14 +849,17 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         }
         if (prevBpActiveRef.current === bpActive) return;
         prevBpActiveRef.current = bpActive;
-        if (bpActive) {
-            resetPlayer();
-            addLog("info", t(lang, 'audio.bitperfect.log.enabled'));
-        } else {
-            bpSendCommandRef.current({command: "stop"}).catch(() => {});
-            resetPlayer();
-            addLog("info", t(lang, 'audio.bitperfect.log.disabled'));
-        }
+        const frame = requestAnimationFrame(() => {
+            if (bpActive) {
+                resetPlayer();
+                addLog("info", t(lang, 'audio.bitperfect.log.enabled'));
+            } else {
+                bpSendCommandRef.current({command: "stop"}).catch(() => {});
+                resetPlayer();
+                addLog("info", t(lang, 'audio.bitperfect.log.disabled'));
+            }
+        });
+        return () => cancelAnimationFrame(frame);
     }, [bpActive, addLog, lang, resetPlayer]);
 
     // Keep engine volume in sync with the app volume slider.
@@ -928,10 +958,6 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         };
     }, []);
 
-    // ─── equalizer & gain boost (Web Audio API) ────────────────────────────────
-    const equalizer = useEqualizer();
-    const gainBoost = useGainBoost(audioRef, equalizer);
-
     // ─── volume / mute sync ────────────────────────────────────────────────────
 
     useEffect(() => {
@@ -998,7 +1024,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 setSystemVolume(v);
                 setSystemMuted(targetPct === 0);
                 lastLocalVolumeSetRef.current = Date.now();
-                if (isBrowserTauri) {
+                if (isBrowserTauri()) {
                     getTauri()
                         .then(async (m) => {
                             await m.invoke("set_system_volume", {value: targetPct});
@@ -1035,7 +1061,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     }, [seekTo]);
 
     const toggleSystemMute = useCallback(() => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         const shouldMute = !systemMuted;
         setSystemMuted(shouldMute);
         lastLocalVolumeSetRef.current = Date.now();
@@ -1088,11 +1114,11 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         seekTo,
         toggleSystemMute,
         goUp,
-        gainBoost: gainBoost.gain,
-        setGainBoost: gainBoost.setGain,
-        gainBoostSupported: gainBoost.supported,
-        minGainBoost: gainBoost.minGain,
-        maxGainBoost: gainBoost.maxGain,
+        gainBoost: gainBoostValue,
+        setGainBoost,
+        gainBoostSupported,
+        minGainBoost,
+        maxGainBoost,
         equalizer,
         refreshFiles,
         bpEngineState: bp.engineState,

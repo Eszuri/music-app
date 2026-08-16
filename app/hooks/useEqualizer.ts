@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {getStoredValue, setStoredValue} from '../lib/storage';
 
 export type EQBandMode = 5 | 10 | 15 | 31;
@@ -145,8 +145,6 @@ function loadSavedEqualizer(): EqualizerState {
 
 export function useEqualizer() {
     const [state, setState] = useState<EqualizerState>(() => loadSavedEqualizer());
-    const stateRef = useRef(state);
-    stateRef.current = state;
 
     useEffect(() => {
         setStoredValue('equalizer', {
@@ -250,6 +248,5 @@ export function useEqualizer() {
         setBandGain,
         setZoomLevel,
         resetFlat,
-        stateRef,
     };
 }

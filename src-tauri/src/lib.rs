@@ -11,6 +11,31 @@ pub mod sidecar_lyrics;
 
 pub use commands::*;
 
+fn parse_byte_range(header: Option<&str>, file_size: u64) -> Option<(u64, u64)> {
+    let spec = header?.strip_prefix("bytes=")?.split(',').next()?.trim();
+    let (start_text, end_text) = spec.split_once('-')?;
+
+    if start_text.is_empty() {
+        let suffix = end_text.parse::<u64>().ok()?;
+        if suffix == 0 {
+            return None;
+        }
+        let length = suffix.min(file_size);
+        return Some((file_size - length, file_size - 1));
+    }
+
+    let start = start_text.parse::<u64>().ok()?;
+    if start >= file_size {
+        return None;
+    }
+    let end = match end_text.parse::<u64>() {
+        Ok(end) => end.min(file_size - 1),
+        Err(_) if end_text.is_empty() => file_size - 1,
+        Err(_) => return None,
+    };
+    (start <= end).then_some((start, end))
+}
+
 fn decode_percent(s: &str) -> String {
     let mut bytes = Vec::new();
     let input = s.as_bytes();
@@ -179,6 +204,27 @@ pub fn run() {
             };
 
             let range_header = request.headers().get("range").and_then(|v| v.to_str().ok());
+            if file_size == 0 {
+                return tauri::http::Response::builder()
+                    .status(416)
+                    .header("Content-Range", "bytes */0")
+                    .body(Vec::new())
+                    .unwrap();
+            }
+
+            let requested_range = range_header.is_some();
+            let (start, requested_end) = match parse_byte_range(range_header, file_size) {
+                Some(range) => range,
+                None if requested_range => {
+                    return tauri::http::Response::builder()
+                        .status(416)
+                        .header("Accept-Ranges", "bytes")
+                        .header("Content-Range", format!("bytes */{}", file_size))
+                        .body(Vec::new())
+                        .unwrap();
+                }
+                None => (0, file_size - 1),
+            };
 
             let mut file = match std::fs::File::open(&path_buf) {
                 Ok(f) => f,
@@ -189,55 +235,35 @@ pub fn run() {
                     .unwrap(),
             };
 
-            if let Some(range_str) = range_header {
-                if let Some(spec) = range_str.strip_prefix("bytes=") {
-                    let parts: Vec<&str> = spec.split('-').collect();
-                    let start: u64 = parts.first().and_then(|s| s.parse().ok()).unwrap_or(0);
-                    let mut end: u64 = parts.get(1).and_then(|s| s.parse().ok()).unwrap_or(file_size.saturating_sub(1));
-                    if end >= file_size {
-                        end = file_size.saturating_sub(1);
-                    }
-
-                    if start <= end && start < file_size {
-                        let max_chunk = 2 * 1024 * 1024;
-                        let chunk_end = std::cmp::min(end, start + max_chunk - 1);
-                        let length = (chunk_end - start + 1) as usize;
-
-                        if file.seek(std::io::SeekFrom::Start(start)).is_ok() {
-                            let mut buffer = vec![0u8; length];
-                            if file.read_exact(&mut buffer).is_ok() {
-                                return tauri::http::Response::builder()
-                                    .status(206)
-                                    .header("Access-Control-Allow-Origin", "*")
-                                    .header("Accept-Ranges", "bytes")
-                                    .header("Content-Range", format!("bytes {}-{}/{}", start, chunk_end, file_size))
-                                    .header("Content-Length", length.to_string())
-                                    .header("Content-Type", mime)
-                                    .body(buffer)
-                                    .unwrap();
-                            }
-                        }
-                    }
-                }
-            }
-
-            let mut data = Vec::new();
-            if file.read_to_end(&mut data).is_ok() {
-                tauri::http::Response::builder()
-                    .status(200)
-                    .header("Access-Control-Allow-Origin", "*")
-                    .header("Accept-Ranges", "bytes")
-                    .header("Content-Length", file_size.to_string())
-                    .header("Content-Type", mime)
-                    .body(data)
-                    .unwrap()
-            } else {
-                tauri::http::Response::builder()
+            const MAX_CHUNK: u64 = 2 * 1024 * 1024;
+            let end = std::cmp::min(requested_end, start.saturating_add(MAX_CHUNK - 1));
+            let length = (end - start + 1) as usize;
+            if file.seek(std::io::SeekFrom::Start(start)).is_err() {
+                return tauri::http::Response::builder()
                     .status(500)
                     .header("Access-Control-Allow-Origin", "*")
                     .body(Vec::new())
-                    .unwrap()
+                    .unwrap();
             }
+
+            let mut buffer = vec![0u8; length];
+            if file.read_exact(&mut buffer).is_err() {
+                return tauri::http::Response::builder()
+                    .status(500)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .body(Vec::new())
+                    .unwrap();
+            }
+
+            tauri::http::Response::builder()
+                .status(206)
+                .header("Access-Control-Allow-Origin", "*")
+                .header("Accept-Ranges", "bytes")
+                .header("Content-Range", format!("bytes {}-{}/{}", start, end, file_size))
+                .header("Content-Length", length.to_string())
+                .header("Content-Type", mime)
+                .body(buffer)
+                .unwrap()
         })
         .plugin(tauri_plugin_updater::Builder::default().build())
         .setup(|app| {
@@ -277,4 +303,24 @@ pub fn run() {
             }
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_byte_range;
+
+    #[test]
+    fn parses_explicit_and_open_ended_ranges() {
+        assert_eq!(parse_byte_range(Some("bytes=10-20"), 100), Some((10, 20)));
+        assert_eq!(parse_byte_range(Some("bytes=10-"), 100), Some((10, 99)));
+        assert_eq!(parse_byte_range(Some("bytes=-10"), 100), Some((90, 99)));
+    }
+
+    #[test]
+    fn clamps_and_rejects_invalid_ranges() {
+        assert_eq!(parse_byte_range(Some("bytes=90-200"), 100), Some((90, 99)));
+        assert_eq!(parse_byte_range(Some("bytes=100-"), 100), None);
+        assert_eq!(parse_byte_range(Some("bytes=20-10"), 100), None);
+        assert_eq!(parse_byte_range(Some("items=0-1"), 100), None);
+    }
 }

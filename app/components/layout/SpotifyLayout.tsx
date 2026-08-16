@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import type { ChangeEvent } from "react";
 import SpotifyLibrarySidebar from "./SpotifyLibrarySidebar";
 import SpotifyMainSection from "./SpotifyMainSection";
 import SpotifyNowPlayingPanel from "./SpotifyNowPlayingPanel";
 import SpotifyPlayerBar from "./SpotifyPlayerBar";
 import type { FileEntry } from "../FolderExplorer";
 import type { SongMetadata } from "../PlayerPanel";
-import { t, type Lang } from "../../lib/translations";
+import type { Lang } from "../../lib/translations";
 
 interface SpotifyLayoutProps {
     lang: Lang;
@@ -35,11 +36,11 @@ interface SpotifyLayoutProps {
     togglePlayPause: () => void;
     playNext: () => void;
     playPrev: () => void;
-    handleSeek: (e: any) => void;
+    handleSeek: (e: ChangeEvent<HTMLInputElement>) => void;
     seekTo?: (timeSec: number) => void;
     setShuffle: (v: boolean) => void;
     setRepeat: (v: "off" | "all" | "one") => void;
-    handleVolumeChange: (e: any) => void;
+    handleVolumeChange: (e: ChangeEvent<HTMLInputElement>) => void;
     toggleSystemMute: () => void;
     onOpenEditMetadata?: (file?: FileEntry) => void;
 }
@@ -103,7 +104,6 @@ export default function SpotifyLayout({
                     selectedSong={selectedSong}
                     metadata={metadata}
                     displayPath={displayPath}
-                    musicFolder={musicFolder}
                     isPlaying={isPlaying}
                     goUp={goUp}
                     setCurrentPath={setCurrentPath}

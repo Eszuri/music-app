@@ -3,7 +3,7 @@ import { isBrowserTauri } from "../../lib/homeState";
 
 export function useAudioSrc() {
     const getAudioSrc = useCallback((filePath: string): string => {
-        if (isBrowserTauri && typeof window !== "undefined") {
+        if (isBrowserTauri() && typeof window !== "undefined") {
             const internals = (window as unknown as {
                 __TAURI_INTERNALS__?: {
                     convertFileSrc: (p: string, protocol?: string) => string;

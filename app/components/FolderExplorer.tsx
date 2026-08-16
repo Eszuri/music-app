@@ -28,7 +28,6 @@ interface FolderExplorerProps {
     selectedSong: FileEntry | null;
     playingAncestorPrefix: string | null;
     displayPath: string;
-    debugError?: string;
     goUp: () => void;
     setCurrentPath: (path: string) => void;
     playSong: (file: FileEntry, skipWallpaper?: boolean) => void;
@@ -68,7 +67,6 @@ function FolderExplorer({
     selectedSong,
     playingAncestorPrefix,
     displayPath,
-    debugError,
     goUp,
     setCurrentPath,
     playSong,
@@ -81,7 +79,7 @@ function FolderExplorer({
     onGlobalContextMenu,
 }: FolderExplorerProps) {
     const accent = getAccent(accentColor);
-    const [width, setWidth] = useState<number>(DEFAULT_WIDTH);
+    const [width, setWidth] = useState<number>(() => loadSavedWidth());
     const {setHoverInfo} = useHoverInfo();
     const [contextMenu, setContextMenu] = useState<{x: number; y: number; items: ContextMenuItem[]} | null>(null);
     const isDraggingRef = useRef(false);
@@ -116,15 +114,12 @@ function FolderExplorer({
     }, [files]);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            setWidth(loadSavedWidth());
-        }
-    }, []);
-
-    useEffect(() => {
         if (resetSidebarToken === 0) return;
-        setWidth(DEFAULT_WIDTH);
-        setStoredValue('sidebar_width', DEFAULT_WIDTH);
+        const frame = requestAnimationFrame(() => {
+            setWidth(DEFAULT_WIDTH);
+            setStoredValue('sidebar_width', DEFAULT_WIDTH);
+        });
+        return () => cancelAnimationFrame(frame);
     }, [resetSidebarToken]);
 
     useEffect(() => {

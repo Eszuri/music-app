@@ -113,7 +113,7 @@ export const DEFAULT_CONFIG: SymvoniaConfig = {
         bands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         pre_amp: 0,
     },
-    gain_boost: 0,
+    gain_boost: 1,
     ai_lyrics_model: 'base',
     ai_isolate_vocals: false,
     active_metadata_tab: 'info',

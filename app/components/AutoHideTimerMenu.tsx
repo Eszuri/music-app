@@ -37,16 +37,17 @@ export default function AutoHideTimerMenu({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [open]);
 
-    useEffect(() => {
-        setCustomValue(hideDelayMs.toString());
-    }, [hideDelayMs]);
-
     const options = [0, 1000, 2000, 3000, 5000, 10000];
+
+    const applyDelay = (value: number) => {
+        setCustomValue(value.toString());
+        setHideDelayMs(value);
+    };
 
     const applyCustomValue = () => {
         const val = parseInt(customValue);
         if (!isNaN(val) && (val >= 500 || val === 0)) {
-            setHideDelayMs(val);
+            applyDelay(val);
         } else {
             setCustomValue(hideDelayMs.toString());
         }
@@ -87,7 +88,7 @@ export default function AutoHideTimerMenu({
                                 )}
                                 onMouseLeave={() => setHoverInfo(null)}
                                 onClick={() => {
-                                    setHideDelayMs(opt);
+                                    applyDelay(opt);
                                     setOpen(false);
                                 }}
                                 className={`text-xs text-left px-2.5 py-1.5 rounded-md transition-colors flex items-center gap-2 ${opt === hideDelayMs ? 'bg-white/10 text-white' : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'}`}

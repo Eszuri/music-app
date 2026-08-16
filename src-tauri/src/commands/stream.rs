@@ -63,8 +63,12 @@ pub async fn open_webview_stream(
     label: String,
     title: String,
 ) -> Result<(), String> {
+    let parsed = Url::parse(&url).map_err(|_| "Invalid stream URL".to_string())?;
+    if !matches!(parsed.scheme(), "http" | "https") || parsed.host().is_none() {
+        return Err("Only http and https stream URLs are allowed".to_string());
+    }
+
     if let Some(window) = app.get_webview_window(&label) {
-        let parsed = Url::parse(&url).map_err(|e| e.to_string())?;
         let _ = window.navigate(parsed);
         let _ = window.show();
         let _ = window.set_focus();
@@ -74,7 +78,7 @@ pub async fn open_webview_stream(
     let _window = WebviewWindowBuilder::new(
         &app,
         &label,
-        WebviewUrl::External(Url::parse(&url).map_err(|e| e.to_string())?),
+        WebviewUrl::External(parsed),
     )
     .title(&title)
     .inner_size(1200.0, 800.0)

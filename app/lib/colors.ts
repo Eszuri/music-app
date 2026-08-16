@@ -1,5 +1,3 @@
-type AccentColor = 'sky' | 'zinc' | 'green' | 'blue' | 'purple' | 'pink' | 'red' | 'orange' | 'yellow' | 'teal' | 'cyan' | 'indigo' | 'rose' | 'lime' | 'amber' | 'emerald' | 'custom';
-
 function hexToRgb(hex: string) {
   let clean = hex.replace('#', '');
   // L2: Expand 3-char hex (#abc) to 6-char (#aabbcc) to prevent NaN

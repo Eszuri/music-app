@@ -159,23 +159,17 @@ export default function LyricsSection({
     const accent = getAccent(accentColor);
 
     const {
-        pluginStatus,
         downloadedModels,
         refreshDownloadedModels,
-        downloadingModels,
         isModelDownloading,
         getModelDownloadProgress,
         cancelModelDownload,
-        isGenerating,
-        generateProgress,
         systemSpecs,
         downloadModel,
         deleteModel,
         openModelsFolder,
         importModelFromFile,
         openExternalUrl,
-        cancelGeneration,
-        downloadPlugin,
     } = useAiLyricsPlugin();
 
     const handleStartDownload = async (modelCode: string) => {
@@ -214,8 +208,6 @@ export default function LyricsSection({
         }, 3000);
         return () => clearInterval(interval);
     }, [refreshDownloadedModels]);
-
-    const isInstalled = pluginStatus?.installed === true;
 
     // Get selected manual model details
     const selectedManualModel =

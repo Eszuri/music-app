@@ -128,7 +128,7 @@ export function useAiLyricsPlugin() {
     }, []);
 
     const refreshDownloadedModels = useCallback(async () => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         try {
             const mod = await getTauri();
             const models = await mod.invoke<string[]>('get_downloaded_ai_models');
@@ -176,7 +176,7 @@ export function useAiLyricsPlugin() {
 
     // Refresh plugin status
     const refreshStatus = useCallback(async () => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         try {
             const mod = await getTauri();
             const status = await mod.invoke<AiPluginStatus>('get_ai_lyrics_plugin_status');
@@ -199,7 +199,7 @@ export function useAiLyricsPlugin() {
 
     // Sync active AI generation state across page reloads
     const syncCurrentState = useCallback(async () => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         try {
             const mod = await getTauri();
             const state = await mod.invoke<AiLyricsCurrentState>('get_ai_lyrics_current_state');
@@ -252,9 +252,12 @@ export function useAiLyricsPlugin() {
     }, [updateModelProgress]);
 
     useEffect(() => {
-        refreshStatus();
-        syncCurrentState();
-        refreshDownloadedModels();
+        const timer = window.setTimeout(() => {
+            void refreshStatus();
+            void syncCurrentState();
+            void refreshDownloadedModels();
+        }, 0);
+        return () => window.clearTimeout(timer);
     }, [refreshStatus, syncCurrentState, refreshDownloadedModels]);
 
     // Safety polling sync while active
@@ -268,7 +271,7 @@ export function useAiLyricsPlugin() {
 
     // Listen to backend events (ai-lyrics-event, ai-lyrics-download-progress, ai-lyrics-models-changed)
     useEffect(() => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
 
         let cancelled = false;
         let unlistenEvent: (() => void) | null = null;
@@ -366,7 +369,7 @@ export function useAiLyricsPlugin() {
                                 generateResolverRef.current = null;
                             }
 
-                            if (parsed.lrcContent && isBrowserTauri) {
+                            if (parsed.lrcContent && isBrowserTauri()) {
                                 getTauri().then(async (mod) => {
                                     try {
                                         const state = await mod.invoke<AiLyricsCurrentState>('get_ai_lyrics_current_state');
@@ -474,22 +477,26 @@ export function useAiLyricsPlugin() {
 
 
     const downloadPlugin = useCallback(async (url?: string) => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         setIsDownloading(true);
+        setDownloadProgress(null);
         setErrorMsg(null);
         try {
             const mod = await getTauri();
-            await mod.invoke('download_ai_lyrics_plugin', { url });
+            const status = await mod.invoke<AiPluginStatus>('download_ai_lyrics_plugin', { url });
+            setPluginStatusGlobal(status);
         } catch (err: unknown) {
-            setIsDownloading(false);
             const msg = err instanceof Error ? err.message : String(err);
             setErrorMsg(msg);
             throw err;
+        } finally {
+            setIsDownloading(false);
+            setDownloadProgress(null);
         }
-    }, []);
+    }, [setPluginStatusGlobal]);
 
     const cancelDownloadPlugin = useCallback(async () => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         try {
             const mod = await getTauri();
             await mod.invoke('cancel_ai_lyrics_plugin_download');
@@ -501,7 +508,7 @@ export function useAiLyricsPlugin() {
     }, []);
 
     const installFromFile = useCallback(async (customPath?: string) => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         setErrorMsg(null);
         try {
             const mod = await getTauri();
@@ -527,7 +534,7 @@ export function useAiLyricsPlugin() {
     }, [refreshStatus, setPluginStatusGlobal]);
 
     const uninstallPlugin = useCallback(async () => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         try {
             const mod = await getTauri();
             await mod.invoke('uninstall_ai_lyrics_plugin');
@@ -545,7 +552,7 @@ export function useAiLyricsPlugin() {
             language: string = 'auto',
             isolateVocals: boolean = false
         ): Promise<string> => {
-            if (!isBrowserTauri) {
+            if (!isBrowserTauri()) {
                 throw new Error('AI lyrics generation only available in Tauri desktop environment');
             }
 
@@ -585,7 +592,7 @@ export function useAiLyricsPlugin() {
 
     const extractVocal = useCallback(
         async (filePath: string, outputPath?: string): Promise<void> => {
-            if (!isBrowserTauri) return;
+            if (!isBrowserTauri()) return;
             setIsGenerating(true);
             setGenerateProgress({
                 percent: 0,
@@ -612,7 +619,7 @@ export function useAiLyricsPlugin() {
     );
 
     const cancelGeneration = useCallback(async () => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         try {
             globalDownloadingModels = {};
             setDownloadingModels({});
@@ -634,7 +641,7 @@ export function useAiLyricsPlugin() {
     }, []);
 
     const cancelModelDownload = useCallback(async (modelCode?: string) => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         try {
             if (modelCode) {
                 updateModelProgress(modelCode, null);
@@ -660,7 +667,7 @@ export function useAiLyricsPlugin() {
     const [systemSpecs, setSystemSpecs] = useState<SystemSpecsInfo | null>(null);
 
     const refreshSystemSpecs = useCallback(async () => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         try {
             const mod = await getTauri();
             const specs = await mod.invoke<SystemSpecsInfo>('get_system_specs');
@@ -671,11 +678,14 @@ export function useAiLyricsPlugin() {
     }, []);
 
     useEffect(() => {
-        refreshSystemSpecs();
+        const timer = window.setTimeout(() => {
+            void refreshSystemSpecs();
+        }, 0);
+        return () => window.clearTimeout(timer);
     }, [refreshSystemSpecs]);
 
     const downloadModel = useCallback(async (modelName: string) => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         updateModelProgress(modelName, { modelName, percent: 0 });
         try {
             const mod = await getTauri();
@@ -688,7 +698,7 @@ export function useAiLyricsPlugin() {
     }, [updateModelProgress]);
 
     const deleteModel = useCallback(async (modelName: string) => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         try {
             const mod = await getTauri();
             await mod.invoke('delete_ai_model', { modelName });
@@ -700,7 +710,7 @@ export function useAiLyricsPlugin() {
     }, [refreshDownloadedModels]);
 
     const openModelsFolder = useCallback(async () => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         try {
             const mod = await getTauri();
             await mod.invoke('open_ai_models_folder');
@@ -710,7 +720,7 @@ export function useAiLyricsPlugin() {
     }, []);
 
     const importModelFromFile = useCallback(async (modelCode: string) => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         try {
             const mod = await getTauri();
             const path = await mod.invoke<string | null>('pick_single_file', {
@@ -729,7 +739,15 @@ export function useAiLyricsPlugin() {
     }, [refreshDownloadedModels]);
 
     const openExternalUrl = useCallback(async (url: string) => {
-        if (isBrowserTauri) {
+        let parsed: URL;
+        try {
+            parsed = new URL(url);
+        } catch {
+            return;
+        }
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return;
+
+        if (isBrowserTauri()) {
             try {
                 const mod = await getTauri();
                 await mod.invoke('open_external_url', { url });

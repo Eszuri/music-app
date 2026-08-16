@@ -11,7 +11,6 @@ interface SpotifyMainSectionProps {
     selectedSong: FileEntry | null;
     metadata: SongMetadata | null;
     displayPath: string;
-    musicFolder: string | null;
     isPlaying: boolean;
     goUp: () => void;
     setCurrentPath: (path: string) => void;
@@ -32,7 +31,6 @@ export default function SpotifyMainSection({
     selectedSong,
     metadata,
     displayPath,
-    musicFolder,
     isPlaying,
     goUp,
     setCurrentPath,

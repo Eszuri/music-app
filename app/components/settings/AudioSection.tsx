@@ -5,7 +5,6 @@ import {SettingGroup, SettingRow, ToggleStub} from './controls';
 import {t, type Lang} from '../../lib/translations';
 import {getAccent} from '../../lib/colors';
 import {useBitPerfectEngine, type EngineDevice} from '../../hooks/useBitPerfectEngine';
-import {getTauri, isBrowserTauri} from '../../lib/homeState';
 import ConfirmDialog from '../ConfirmDialog';
 
 export default function AudioSection({

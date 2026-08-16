@@ -1,10 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {removeCustomAccentVars, setCustomAccentVars} from '../lib/colors';
 import {
-    DEFAULT_FORMATS,
-    DEFAULT_LANGUAGE,
     DEFAULT_SHORTCUTS,
-    DEFAULT_VOLUME_STEP,
     getTauri,
     isBrowserTauri,
     type ShortcutAction,
@@ -16,7 +13,7 @@ export function usePlayerSettings() {
     const init = getInitialConfig();
 
     const [musicFolder, setMusicFolderState] = useState<string | null>(init.music_folder);
-    const [initialized, setInitialized] = useState(true);
+    const initialized = true;
     const [autoWallpaper, setAutoWallpaperStateInternal] = useState(init.auto_wallpaper);
     const [resetOnClose, setResetOnCloseStateInternal] = useState(init.reset_on_close);
     const [folderSort, setFolderSortStateInternal] = useState(init.folder_sort);
@@ -93,7 +90,7 @@ export function usePlayerSettings() {
     const setResetOnCloseState = useCallback((v: boolean) => {
         setResetOnCloseStateInternal(v);
         setStoredValue('reset_on_close', v);
-        if (isBrowserTauri) {
+        if (isBrowserTauri()) {
             getTauri().then(mod => mod.invoke('set_reset_on_close', {enabled: v})).catch(() => {});
         }
     }, []);
@@ -189,7 +186,7 @@ export function usePlayerSettings() {
     const setDefaultWallpaper = useCallback((path: string | null) => {
         setDefaultWallpaperState(path);
         setStoredValue('default_wallpaper', path);
-        if (isBrowserTauri) {
+        if (isBrowserTauri()) {
             getTauri().then(mod => {
                 mod.invoke('set_default_wallpaper_path', {path});
             }).catch(() => {});
@@ -207,7 +204,7 @@ export function usePlayerSettings() {
 
     // Asynchronously fetch config from Rust backend on startup and apply any updates
     useEffect(() => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         let cancelled = false;
         getTauri().then(tauri => tauri.invoke<SymvoniaConfig>('get_app_config')).then(backendConfig => {
             if (cancelled || !backendConfig) return;
@@ -260,9 +257,9 @@ export function usePlayerSettings() {
     }, []);
 
     useEffect(() => {
-        if (!isBrowserTauri || volumeMode !== 'system') {
-            setSystemVolumeSynced(false);
-            return;
+        if (!isBrowserTauri() || volumeMode !== 'system') {
+            const frame = requestAnimationFrame(() => setSystemVolumeSynced(false));
+            return () => cancelAnimationFrame(frame);
         }
 
         let cancelled = false;
@@ -356,7 +353,7 @@ export function usePlayerSettings() {
     }, [language, volumeMode]);
 
     useEffect(() => {
-        if (!isBrowserTauri) return;
+        if (!isBrowserTauri()) return;
         let cancelled = false;
         let unlisten: (() => void) | null = null;
         import('@tauri-apps/api/event').then(({listen}) => {
@@ -406,7 +403,7 @@ export function usePlayerSettings() {
         if (v > 0 && volumeModeRef.current === 'system' && systemVolumeRef.current * 100 > v) {
             const newVol = v / 100;
             setSystemVolume(newVol);
-            if (isBrowserTauri) {
+            if (isBrowserTauri()) {
                 getTauri().then(m => m.invoke('set_system_volume', {value: v})).catch(() => {});
             }
         }

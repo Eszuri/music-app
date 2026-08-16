@@ -11,7 +11,6 @@ import {
 } from "react";
 import FolderExplorer, {FileEntry} from "../FolderExplorer";
 import PlayerPanel, {SongMetadata} from "../PlayerPanel";
-import {Skeleton} from '../Skeleton';
 import type {EngineStateEvent} from '../../hooks/useBitPerfectEngine';
 import SeekBar from "../SeekBar";
 import PlaybackControls from "../PlaybackControls";
@@ -41,7 +40,6 @@ interface HomePlayerAreaProps {
     metadata: SongMetadata | null;
     coverDataUrl: string | null;
     displayPath: string;
-    debugError: string;
     currentTime: number;
     duration: number;
     isPlaying: boolean;
@@ -137,7 +135,6 @@ function HomePlayerArea({
     metadata,
     coverDataUrl,
     displayPath,
-    debugError,
     currentTime,
     duration,
     isPlaying,
@@ -182,45 +179,6 @@ function HomePlayerArea({
     onCloseAiLyricsModal,
     layoutMode = 'default',
 }: HomePlayerAreaProps) {
-    if (layoutMode === 'spotify') {
-        return (
-            <SpotifyLayout
-                lang={lang}
-                musicFolder={musicFolder}
-                displayPath={displayPath}
-                files={files}
-                selectedSong={selectedSong}
-                metadata={metadata}
-                coverDataUrl={coverDataUrl}
-                currentTime={currentTime}
-                duration={duration}
-                isPlaying={isPlaying}
-                shuffle={shuffle}
-                repeat={repeat}
-                volume={volume}
-                volumeStep={volumeStep}
-                volumeMode={volumeMode}
-                systemMuted={systemMuted}
-                volumeLimit={volumeLimit}
-                accentColor={accentColor}
-                handlePickFolder={handlePickFolder}
-                goUp={goUp}
-                setCurrentPath={setCurrentPath}
-                playSong={playSong}
-                togglePlayPause={togglePlayPause}
-                playNext={playNext}
-                playPrev={playPrev}
-                handleSeek={handleSeek}
-                seekTo={seekTo}
-                setShuffle={setShuffle}
-                setRepeat={setRepeat}
-                handleVolumeChange={handleVolumeChange}
-                toggleSystemMute={toggleSystemMute}
-                onOpenEditMetadata={onOpenEditMetadata}
-            />
-        );
-    }
-
     const leftVisible = showLeftSidebar || !isCompact;
     const rightVisible = showRightSidebar || !isCompact;
 
@@ -261,13 +219,16 @@ function HomePlayerArea({
     }, [isFullScreenAlbum, hideDelayMs, selectedSong]);
 
     useEffect(() => {
-        if (isFullScreenAlbum) {
-            triggerControlsVisibility();
-        } else {
-            setControlsVisible(true);
-            if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-        }
+        const frame = requestAnimationFrame(() => {
+            if (isFullScreenAlbum) {
+                triggerControlsVisibility();
+            } else {
+                setControlsVisible(true);
+                if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+            }
+        });
         return () => {
+            cancelAnimationFrame(frame);
             if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
         };
     }, [isFullScreenAlbum, triggerControlsVisibility]);
@@ -346,7 +307,7 @@ function HomePlayerArea({
                 items: [...items, ...appendDevTools(items, lang)],
             });
         },
-        [lang, metadata, isFullScreenAlbum],
+        [lang, metadata, isFullScreenAlbum, onCoverSaved],
     );
 
     // Folder context menu
@@ -455,8 +416,47 @@ function HomePlayerArea({
                 items: [...items, ...appendDevTools(items, lang)],
             });
         },
-        [lang, selectedSong, isPlaying, playSong],
+        [lang, selectedSong, isPlaying, playSong, onOpenEditMetadata],
     );
+
+    if (layoutMode === 'spotify') {
+        return (
+            <SpotifyLayout
+                lang={lang}
+                musicFolder={musicFolder}
+                displayPath={displayPath}
+                files={files}
+                selectedSong={selectedSong}
+                metadata={metadata}
+                coverDataUrl={coverDataUrl}
+                currentTime={currentTime}
+                duration={duration}
+                isPlaying={isPlaying}
+                shuffle={shuffle}
+                repeat={repeat}
+                volume={volume}
+                volumeStep={volumeStep}
+                volumeMode={volumeMode}
+                systemMuted={systemMuted}
+                volumeLimit={volumeLimit}
+                accentColor={accentColor}
+                handlePickFolder={handlePickFolder}
+                goUp={goUp}
+                setCurrentPath={setCurrentPath}
+                playSong={playSong}
+                togglePlayPause={togglePlayPause}
+                playNext={playNext}
+                playPrev={playPrev}
+                handleSeek={handleSeek}
+                seekTo={seekTo}
+                setShuffle={setShuffle}
+                setRepeat={setRepeat}
+                handleVolumeChange={handleVolumeChange}
+                toggleSystemMute={toggleSystemMute}
+                onOpenEditMetadata={onOpenEditMetadata}
+            />
+        );
+    }
 
     return (
         <div className="flex flex-1 overflow-hidden">
@@ -496,7 +496,6 @@ function HomePlayerArea({
                                         selectedSong={selectedSong}
                                         playingAncestorPrefix={selectedSong?.path ?? null}
                                         displayPath={displayPath}
-                                        debugError={debugError}
                                         goUp={goUp}
                                         setCurrentPath={setCurrentPath}
                                         playSong={playSong}
@@ -677,7 +676,6 @@ function HomePlayerArea({
                                         coverDataUrl={coverDataUrl}
                                         resetSidebarToken={resetSidebarToken}
                                         onContextMenu={showAlbumMenu}
-                                        onOpenEditMetadata={onOpenEditMetadata}
                                         currentTime={currentTime}
                                         onSeek={seekTo}
                                         lyricsSearchOpen={lyricsSearchOpen}

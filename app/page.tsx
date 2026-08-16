@@ -1,11 +1,11 @@
 "use client";
 
 import {
-    type ChangeEvent,
     useCallback,
     useEffect,
     useRef,
     useState,
+    useSyncExternalStore,
 } from "react";
 import {HoverInfoProvider, useHoverInfo} from "./contexts/HoverInfoContext";
 import HomeAlerts from "./components/home/HomeAlerts";
@@ -13,9 +13,8 @@ import HomeHeader from "./components/home/HomeHeader";
 import HomeModals from "./components/home/HomeModals";
 import EqualizerModal from "./components/EqualizerModal";
 import MetadataEditModal from "./components/MetadataEditModal";
-import type {FileEntry} from "./components/FolderExplorer";
 import HomePlayerArea from "./components/home/HomePlayerArea";
-import ContextMenu, {type ContextMenuItem} from "./components/ContextMenu";
+import ContextMenu from "./components/ContextMenu";
 import {FullInitSkeleton} from "./components/Skeleton";
 import {t} from "./lib/translations";
 import {useAppLogging} from "./hooks/useAppLogging";
@@ -29,11 +28,11 @@ import {useModalRouter} from "./hooks/useModalRouter";
 import {useGlobalContextMenu} from "./hooks/useGlobalContextMenu";
 
 export default function Home() {
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
+    const mounted = useSyncExternalStore(
+        () => () => {},
+        () => true,
+        () => false,
+    );
 
     return (
         <HoverInfoProvider>
@@ -130,15 +129,10 @@ function HomeContent() {
         streamingOpen,
         setStreamingOpen,
         equalizerOpen,
-        setEqualizerOpen,
         metadataEditOpen,
-        setMetadataEditOpen,
         lyricsSearchOpen,
-        setLyricsSearchOpen,
         aiLyricsModalOpen,
-        setAiLyricsModalOpen,
         editingTargetFile,
-        setEditingTargetFile,
         openEqualizer,
         closeEqualizer,
         openSettings,
@@ -289,13 +283,16 @@ function HomeContent() {
     } = useAppUpdater({addLog, lang});
 
     useEffect(() => {
-        if (!isCompact) {
-            setShowLeftSidebar(true);
-            setShowRightSidebar(true);
-        } else {
-            setShowLeftSidebar(false);
-            setShowRightSidebar(false);
-        }
+        const frame = requestAnimationFrame(() => {
+            if (!isCompact) {
+                setShowLeftSidebar(true);
+                setShowRightSidebar(true);
+            } else {
+                setShowLeftSidebar(false);
+                setShowRightSidebar(false);
+            }
+        });
+        return () => cancelAnimationFrame(frame);
     }, [isCompact]);
 
     // H1: Store isCompact boolean instead of raw windowWidth to avoid cascading re-renders
@@ -373,7 +370,7 @@ function HomeContent() {
     }, [lang, settings.setMusicFolder, player.setCurrentPath, player.setSelectedSong, player.setMetadata, setDebugError, showError]);
 
     const handlePickFolder = useCallback(async () => {
-        if (!isBrowserTauri) {
+        if (!isBrowserTauri()) {
             setDebugError(t(lang, "alert.error"));
             showError(t(lang, "alert.error"));
             return;
@@ -394,7 +391,7 @@ function HomeContent() {
     }, []);
 
     const handlePickWallpaper = useCallback(async () => {
-        if (!isBrowserTauri) {
+        if (!isBrowserTauri()) {
             setDebugError(t(lang, "alert.error"));
             showError(t(lang, "alert.error"));
             return;
@@ -436,8 +433,6 @@ function HomeContent() {
                 lang={lang}
                 isCompact={isCompact}
                 musicFolder={settings.musicFolder}
-                selectedSong={player.selectedSong}
-                metadata={player.metadata}
                 isPlaying={player.isPlaying}
                 showLeftSidebar={showLeftSidebar}
                 showRightSidebar={showRightSidebar}
@@ -463,7 +458,6 @@ function HomeContent() {
                 metadata={player.metadata}
                 coverDataUrl={player.coverDataUrl}
                 displayPath={displayPath}
-                debugError={debugError}
                 currentTime={player.currentTime}
                 duration={player.duration}
                 isPlaying={player.isPlaying}

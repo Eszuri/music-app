@@ -5,7 +5,7 @@ import {useEffect, useCallback, useState, useRef} from 'react';
 import {t, type Lang} from '../lib/translations';
 import {modalContentMotion, backdropMotion} from '../lib/animations';
 import {useHoverDescription} from '../hooks/useHoverDescription';
-import {XIcon, PlayIcon, TrashIcon, StreamingIcon} from './icons';
+import {XIcon, PlayIcon} from './icons';
 
 interface StreamingModalProps {
     lang: Lang;
@@ -27,8 +27,6 @@ interface StreamHistoryEntry {
     timestamp: number;
     domain: string;
 }
-
-const STREAM_HISTORY_KEY = 'music-app-stream-history';
 
 function removeFromHistory(url: string, timestamp: number) {
     const entries = loadHistory().filter(e => !(e.url === url && e.timestamp === timestamp));
@@ -246,11 +244,10 @@ function addToHistory(url: string) {
 }
 
 export default function StreamingModal({lang, open, onClose}: StreamingModalProps) {
-    const [history, setHistory] = useState<StreamHistoryEntry[]>([]);
+    const [history, setHistory] = useState<StreamHistoryEntry[]>(() => loadHistory());
     const [customUrl, setCustomUrl] = useState('');
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const closeHover = useHoverDescription(t(lang, 'status.closeStreaming'));
     const streamHover = useHoverDescription(t(lang, 'status.streaming'));
     const clearUrlHover = useHoverDescription(t(lang, 'status.clearUrl'));
     const deleteAllHover = useHoverDescription(t(lang, 'status.deleteHistory'));
@@ -262,15 +259,12 @@ export default function StreamingModal({lang, open, onClose}: StreamingModalProp
     useEffect(() => {
         if (open) {
             document.addEventListener('keydown', handleEsc);
-            setHistory(loadHistory());
             return () => document.removeEventListener('keydown', handleEsc);
         }
     }, [open, handleEsc]);
 
     useEffect(() => {
-        if (!open) return;
-        setHistory(loadHistory());
-        if (!isBrowserTauri()) return;
+        if (!open || !isBrowserTauri()) return;
         let cancelled = false;
         let unlisten: (() => void) | null = null;
         import('@tauri-apps/api/event').then(({listen}) => {
@@ -288,6 +282,14 @@ export default function StreamingModal({lang, open, onClose}: StreamingModalProp
     }, [open]);
 
     const openStream = useCallback(async (url: string, label: string, title: string) => {
+        let parsed: URL;
+        try {
+            parsed = new URL(url);
+        } catch {
+            return;
+        }
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return;
+
         if (!isBrowserTauri()) {
             window.open(url, '_blank');
             return;

@@ -84,7 +84,6 @@ export default function SettingsModal({
     updateTotal,
 }: SettingsModalProps) {
     const [activeSection, setActiveSection] = useState<SectionId>('general');
-    const closeHover = useHoverDescription(t(lang, 'status.closeSettings'));
     const settingItemHover = useHoverDescription(t(lang, 'status.settingItem'));
     const mouseDownOnBackdropRef = useRef<boolean>(false);
 
@@ -102,16 +101,11 @@ export default function SettingsModal({
 
     const { pluginStatus: aiPluginStatus } = useAiLyricsPlugin();
     const isAiPluginInstalled = aiPluginStatus?.installed === true;
-
-    // Fallback if active section requires a plugin that is not installed
-    useEffect(() => {
-        if (activeSection === 'audio' && !isPluginInstalled) {
-            setActiveSection('plugin');
-        }
-        if (activeSection === 'lyrics' && !isAiPluginInstalled) {
-            setActiveSection('plugin');
-        }
-    }, [activeSection, isPluginInstalled, isAiPluginInstalled]);
+    const effectiveActiveSection =
+        (activeSection === 'audio' && !isPluginInstalled) ||
+        (activeSection === 'lyrics' && !isAiPluginInstalled)
+            ? 'plugin'
+            : activeSection;
 
     const sections = getSections(lang).filter(s =>
         (s.id !== 'audio' || isPluginInstalled) &&
@@ -147,7 +141,7 @@ export default function SettingsModal({
                             {t(lang, 'settings.title')}
                         </h3>
                         {sections.map((s) => {
-                            const isActive = s.id === activeSection;
+                            const isActive = s.id === effectiveActiveSection;
                             const a = getAccent(accentColor);
                             return (
                                 <div key={s.id}>
@@ -172,11 +166,11 @@ export default function SettingsModal({
                     <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                         <header className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-zinc-800 shrink-0">
                             <h2 className="text-lg font-semibold text-zinc-100">
-                                {sections.find((s) => s.id === activeSection)?.label}
+                                {sections.find((s) => s.id === effectiveActiveSection)?.label}
                             </h2>
                         </header>
                         <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 min-w-0">
-                            {activeSection === 'general' && (
+                            {effectiveActiveSection === 'general' && (
                                     <GeneralSection
                                         lang={lang}
                                         setLang={setLang}
@@ -212,7 +206,7 @@ export default function SettingsModal({
                                     outputMode={outputMode}
                                 />
                             )}
-                            {activeSection === 'sort' && (
+                            {effectiveActiveSection === 'sort' && (
                                 <SortSection
                                     lang={lang}
                                     folderSort={folderSort}
@@ -227,7 +221,7 @@ export default function SettingsModal({
                                     setFormats={setFormats}
                                 />
                             )}
-                            {activeSection === 'shortcut' && (
+                            {effectiveActiveSection === 'shortcut' && (
                                 <ShortcutSection
                                     lang={lang}
                                     shortcuts={shortcuts}
@@ -236,7 +230,7 @@ export default function SettingsModal({
                                     accentColor={accentColor}
                                 />
                             )}
-                            {activeSection === 'style' && (
+                            {effectiveActiveSection === 'style' && (
                                  <StyleSection
                                      lang={lang}
                                      accentColor={accentColor}
@@ -248,14 +242,14 @@ export default function SettingsModal({
                                      onResetSidebarWidth={onResetSidebarWidth}
                                  />
                              )}
-                             {activeSection === 'plugin' && (
+                             {effectiveActiveSection === 'plugin' && (
                                     <PluginSection
                                         lang={lang}
                                         accentColor={accentColor}
                                         isPlaying={isPlaying}
                                     />
                                 )}
-                                {activeSection === 'audio' && isPluginInstalled && (
+                                {effectiveActiveSection === 'audio' && isPluginInstalled && (
                                     <AudioSection
                                         lang={lang}
                                         outputDevice={outputDevice}
@@ -265,15 +259,15 @@ export default function SettingsModal({
                                         accentColor={accentColor}
                                     />
                                 )}
-                                {activeSection === 'lyrics' && isAiPluginInstalled && (
+                                {effectiveActiveSection === 'lyrics' && isAiPluginInstalled && (
                                     <LyricsSection
                                         lang={lang}
                                         accentColor={accentColor}
                                     />
                                 )}
-                            {activeSection === 'changelog' && <ChangelogSection lang={lang} />}
-                            {activeSection === 'about' && <AboutSection lang={lang} />}
-                            {activeSection === 'debug' && <DebugSection lang={lang} logs={logs} />}
+                            {effectiveActiveSection === 'changelog' && <ChangelogSection lang={lang} />}
+                            {effectiveActiveSection === 'about' && <AboutSection lang={lang} />}
+                            {effectiveActiveSection === 'debug' && <DebugSection lang={lang} logs={logs} />}
                         </div>
                     </div>
                     </motion.div>

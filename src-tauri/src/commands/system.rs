@@ -311,21 +311,57 @@ pub async fn open_devtools(app: AppHandle) -> Result<(), String> {
     }
 }
 
+fn validate_external_url(url: &str) -> Result<(), String> {
+    let parsed = tauri::Url::parse(url).map_err(|_| "Invalid external URL".to_string())?;
+    match parsed.scheme() {
+        "http" | "https" if parsed.host().is_some() => Ok(()),
+        _ => Err("Only http and https URLs are allowed".to_string()),
+    }
+}
+
 #[tauri::command]
 pub fn open_external_url(url: String) -> Result<(), String> {
+    validate_external_url(&url)?;
     #[cfg(target_os = "windows")]
     {
-        let _ = std::process::Command::new("cmd").args(["/C", "start", "", &url]).spawn();
+        std::process::Command::new("rundll32.exe")
+            .args(["url.dll,FileProtocolHandler", &url])
+            .spawn()
+            .map_err(|e| format!("Failed to open external URL: {}", e))?;
     }
     #[cfg(target_os = "macos")]
     {
-        let _ = std::process::Command::new("open").arg(&url).spawn();
+        std::process::Command::new("open")
+            .arg(&url)
+            .spawn()
+            .map_err(|e| format!("Failed to open external URL: {}", e))?;
     }
     #[cfg(target_os = "linux")]
     {
-        let _ = std::process::Command::new("xdg-open").arg(&url).spawn();
+        std::process::Command::new("xdg-open")
+            .arg(&url)
+            .spawn()
+            .map_err(|e| format!("Failed to open external URL: {}", e))?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod url_tests {
+    use super::validate_external_url;
+
+    #[test]
+    fn accepts_http_and_https_urls() {
+        assert!(validate_external_url("https://example.com/path").is_ok());
+        assert!(validate_external_url("http://localhost:3000").is_ok());
+    }
+
+    #[test]
+    fn rejects_non_http_schemes_and_invalid_urls() {
+        assert!(validate_external_url("javascript:alert(1)").is_err());
+        assert!(validate_external_url("file:///C:/secret.txt").is_err());
+        assert!(validate_external_url("not-a-url").is_err());
+    }
 }
 
 #[derive(serde::Serialize)]

@@ -1,6 +1,6 @@
 'use client';
 
-import React, {memo, useEffect, useState, useRef} from 'react';
+import React, {memo, useCallback, useEffect, useState, useRef} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
 import {getAccent} from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
@@ -52,34 +52,33 @@ function MetadataEditModal({
 
     const activeSong = customSong || selectedSong;
     const isDisabled = !activeSong || !activeSong.path;
-
-    // Reset custom song when modal opens or closes
-    useEffect(() => {
-        if (!isOpen) {
-            setCustomSong(null);
-        }
-    }, [isOpen]);
+    const handleClose = useCallback(() => {
+        setCustomSong(null);
+        onClose();
+    }, [onClose]);
 
     // Populate form fields when modal opens or selected metadata changes
     useEffect(() => {
         if (!isOpen) return;
         const targetSong = customSong || selectedSong;
         if (!targetSong) {
-            setTitle('');
-            setArtist('');
-            setAlbum('');
-            setGenre('');
-            setYear('');
-            setTrackNumber('');
-            setTotalTracks('');
-            setDiscNumber('');
-            setTotalDiscs('');
-            setComment('');
-            setCoverB64(null);
-            setCoverMime(null);
-            setCoverPreviewUrl(null);
-            setErrorMessage(null);
-            return;
+            const frame = requestAnimationFrame(() => {
+                setTitle('');
+                setArtist('');
+                setAlbum('');
+                setGenre('');
+                setYear('');
+                setTrackNumber('');
+                setTotalTracks('');
+                setDiscNumber('');
+                setTotalDiscs('');
+                setComment('');
+                setCoverB64(null);
+                setCoverMime(null);
+                setCoverPreviewUrl(null);
+                setErrorMessage(null);
+            });
+            return () => cancelAnimationFrame(frame);
         }
 
         let isCancelled = false;
@@ -135,11 +134,11 @@ function MetadataEditModal({
     useEffect(() => {
         if (!isOpen) return;
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
+            if (e.key === 'Escape') handleClose();
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isOpen, onClose]);
+    }, [isOpen, handleClose]);
 
     // Image Upload handler
     const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -223,7 +222,7 @@ function MetadataEditModal({
             if (onSaveSuccess) {
                 onSaveSuccess();
             }
-            onClose();
+            handleClose();
         } catch (err: unknown) {
             console.error('Failed to save metadata:', err);
             const errMsg = err instanceof Error ? err.message : String(err);
@@ -244,7 +243,7 @@ function MetadataEditModal({
                     }}
                     onClick={(e) => {
                         if (mouseDownOnBackdropRef.current && e.target === e.currentTarget) {
-                            onClose();
+                            handleClose();
                         }
                         mouseDownOnBackdropRef.current = false;
                     }}
@@ -510,7 +509,7 @@ function MetadataEditModal({
                             <div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-800/80">
                                 <button
                                     type="button"
-                                    onClick={onClose}
+                                    onClick={handleClose}
                                     className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-semibold border border-zinc-800 transition-colors cursor-pointer"
                                 >
                                     {t(lang, 'metadataEdit.cancel')}
