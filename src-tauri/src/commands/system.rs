@@ -324,9 +324,12 @@ pub fn open_external_url(url: String) -> Result<(), String> {
     validate_external_url(&url)?;
     #[cfg(target_os = "windows")]
     {
-        std::process::Command::new("rundll32.exe")
-            .args(["url.dll,FileProtocolHandler", &url])
-            .spawn()
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        let mut cmd = std::process::Command::new("rundll32.exe");
+        cmd.args(["url.dll,FileProtocolHandler", &url]);
+        cmd.creation_flags(CREATE_NO_WINDOW);
+        cmd.spawn()
             .map_err(|e| format!("Failed to open external URL: {}", e))?;
     }
     #[cfg(target_os = "macos")]
@@ -364,7 +367,7 @@ mod url_tests {
     }
 }
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[allow(non_snake_case)]
 pub struct SystemSpecsInfo {
@@ -375,78 +378,164 @@ pub struct SystemSpecsInfo {
     pub gpuName: String,
 }
 
+#[cfg(windows)]
+#[repr(C)]
+#[allow(non_snake_case)]
+struct MEMORYSTATUSEX {
+    dwLength: u32,
+    dwMemoryLoad: u32,
+    ullTotalPhys: u64,
+    ullAvailPhys: u64,
+    ullTotalPageFile: u64,
+    ullAvailPageFile: u64,
+    ullTotalVirtual: u64,
+    ullAvailVirtual: u64,
+    ullAvailExtendedVirtual: u64,
+}
+
+#[cfg(windows)]
+#[link(name = "kernel32")]
+extern "system" {
+    fn GlobalMemoryStatusEx(lpBuffer: *mut MEMORYSTATUSEX) -> i32;
+}
+
+#[cfg(windows)]
+#[link(name = "advapi32")]
+extern "system" {
+    fn RegGetValueW(
+        hkey: isize,
+        lpSubKey: *const u16,
+        lpValue: *const u16,
+        dwFlags: u32,
+        pdwType: *mut u32,
+        pvData: *mut u8,
+        pcbData: *mut u32,
+    ) -> i32;
+}
+
+#[cfg(windows)]
+fn read_reg_string(hkey: isize, subkey: &str, value_name: &str) -> Option<String> {
+    let subkey_utf16: Vec<u16> = subkey.encode_utf16().chain(std::iter::once(0)).collect();
+    let value_utf16: Vec<u16> = value_name.encode_utf16().chain(std::iter::once(0)).collect();
+    let mut buf = [0u16; 256];
+    let mut buf_len = (buf.len() * 2) as u32;
+    let mut val_type = 0u32;
+    // RRF_RT_REG_SZ (0x00000002) | RRF_RT_REG_EXPAND_SZ (0x00000004)
+    let status = unsafe {
+        RegGetValueW(
+            hkey,
+            subkey_utf16.as_ptr(),
+            value_utf16.as_ptr(),
+            0x00000002 | 0x00000004,
+            &mut val_type,
+            buf.as_mut_ptr() as *mut u8,
+            &mut buf_len,
+        )
+    };
+    if status == 0 {
+        let len = (buf_len / 2) as usize;
+        let slice = if len > 0 && buf[len - 1] == 0 {
+            &buf[..len - 1]
+        } else {
+            &buf[..len]
+        };
+        let s = String::from_utf16_lossy(slice).trim().to_string();
+        if !s.is_empty() {
+            return Some(s);
+        }
+    }
+    None
+}
+
+#[cfg(windows)]
+fn detect_ram_gb() -> usize {
+    let mut mem_status = MEMORYSTATUSEX {
+        dwLength: std::mem::size_of::<MEMORYSTATUSEX>() as u32,
+        dwMemoryLoad: 0,
+        ullTotalPhys: 0,
+        ullAvailPhys: 0,
+        ullTotalPageFile: 0,
+        ullAvailPageFile: 0,
+        ullTotalVirtual: 0,
+        ullAvailVirtual: 0,
+        ullAvailExtendedVirtual: 0,
+    };
+    if unsafe { GlobalMemoryStatusEx(&mut mem_status) } != 0 {
+        let gb = ((mem_status.ullTotalPhys + 536_870_912) / (1024 * 1024 * 1024)) as usize;
+        if gb > 0 {
+            return gb;
+        }
+    }
+    8
+}
+
+#[cfg(windows)]
+fn detect_cpu_name() -> Option<String> {
+    read_reg_string(
+        -2147483646, // HKEY_LOCAL_MACHINE
+        "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
+        "ProcessorNameString",
+    )
+}
+
+#[cfg(windows)]
+fn detect_gpu_name() -> Option<String> {
+    for i in 0..4 {
+        let key = format!(
+            "SYSTEM\\CurrentControlSet\\Control\\Class\\{{4d36e968-e325-11ce-bfc1-08002be10318}}\\{:04}",
+            i
+        );
+        if let Some(gpu) = read_reg_string(-2147483646, &key, "DriverDesc") {
+            let lower = gpu.to_lowercase();
+            if !lower.contains("basic display") && !lower.contains("rdp") && !gpu.is_empty() {
+                return Some(gpu);
+            }
+        }
+    }
+    read_reg_string(
+        -2147483646,
+        "SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}\\0000",
+        "DriverDesc",
+    )
+}
+
+#[cfg(not(windows))]
+fn detect_ram_gb() -> usize {
+    8
+}
+
+#[cfg(not(windows))]
+fn detect_cpu_name() -> Option<String> {
+    None
+}
+
+#[cfg(not(windows))]
+fn detect_gpu_name() -> Option<String> {
+    None
+}
+
+static CACHED_SPECS: std::sync::OnceLock<SystemSpecsInfo> = std::sync::OnceLock::new();
+
 #[tauri::command]
 pub fn get_system_specs() -> SystemSpecsInfo {
-    let mut cpu_threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
-    let mut cpu_cores = cpu_threads / 2;
-    if cpu_cores == 0 { cpu_cores = 1; }
-    let mut ram_gb = 8;
-    let mut cpu_name = String::from("Processor CPU");
-    let mut gpu_name = String::from("Graphics GPU");
-
-    #[cfg(target_os = "windows")]
-    {
-        if let Ok(output) = std::process::Command::new("wmic")
-            .args(["OS", "get", "TotalVisibleMemorySize", "/Value"])
-            .output()
-        {
-            let text = String::from_utf8_lossy(&output.stdout);
-            for line in text.lines() {
-                if let Some(val) = line.strip_prefix("TotalVisibleMemorySize=") {
-                    if let Ok(kb) = val.trim().parse::<u64>() {
-                        let gb = ((kb + 524_288) / (1024 * 1024)) as usize;
-                        if gb > 0 {
-                            ram_gb = gb;
-                        }
-                    }
-                }
+    CACHED_SPECS
+        .get_or_init(|| {
+            let cpu_threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
+            let mut cpu_cores = (cpu_threads + 1) / 2;
+            if cpu_cores == 0 {
+                cpu_cores = 1;
             }
-        }
+            let ram_gb = detect_ram_gb();
+            let cpu_name = detect_cpu_name().unwrap_or_else(|| "Processor CPU".to_string());
+            let gpu_name = detect_gpu_name().unwrap_or_else(|| "Graphics GPU".to_string());
 
-        if let Ok(output) = std::process::Command::new("wmic")
-            .args(["cpu", "get", "Name,NumberOfCores,NumberOfLogicalProcessors", "/Value"])
-            .output()
-        {
-            let text = String::from_utf8_lossy(&output.stdout);
-            for line in text.lines() {
-                if let Some(val) = line.strip_prefix("Name=") {
-                    if !val.is_empty() {
-                        cpu_name = val.to_string();
-                    }
-                } else if let Some(val) = line.strip_prefix("NumberOfCores=") {
-                    if let Ok(c) = val.parse::<usize>() {
-                        if c > 0 { cpu_cores = c; }
-                    }
-                } else if let Some(val) = line.strip_prefix("NumberOfLogicalProcessors=") {
-                    if let Ok(t) = val.parse::<usize>() {
-                        if t > 0 { cpu_threads = t; }
-                    }
-                }
+            SystemSpecsInfo {
+                cpuCores: cpu_cores,
+                cpuThreads: cpu_threads,
+                ramGb: ram_gb,
+                cpuName: cpu_name,
+                gpuName: gpu_name,
             }
-        }
-
-        if let Ok(output) = std::process::Command::new("wmic")
-            .args(["path", "Win32_VideoController", "get", "Name", "/Value"])
-            .output()
-        {
-            let text = String::from_utf8_lossy(&output.stdout);
-            for line in text.lines() {
-                if let Some(val) = line.strip_prefix("Name=") {
-                    let trimmed = val.trim();
-                    if !trimmed.is_empty() {
-                        gpu_name = trimmed.to_string();
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    SystemSpecsInfo {
-        cpuCores: cpu_cores,
-        cpuThreads: cpu_threads,
-        ramGb: ram_gb,
-        cpuName: cpu_name,
-        gpuName: gpu_name,
-    }
+        })
+        .clone()
 }

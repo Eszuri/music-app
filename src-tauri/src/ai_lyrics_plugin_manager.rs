@@ -357,11 +357,12 @@ fn kill_existing_plugin_process() {
     crate::sidecar_lyrics::stop_engine();
     #[cfg(target_os = "windows")]
     {
-        let _ = Command::new("taskkill")
-            .args(["/F", "/IM", "symvonia-ai-lyrics.exe", "/T"])
+        let mut cmd = Command::new("taskkill");
+        cmd.args(["/F", "/IM", "symvonia-ai-lyrics.exe", "/T"])
             .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status();
+            .stderr(Stdio::null());
+        cmd.creation_flags(CREATE_NO_WINDOW);
+        let _ = cmd.status();
     }
 }
 

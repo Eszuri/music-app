@@ -131,29 +131,6 @@ export function AiLyricsModal({
         return getStoredValue('ai_isolate_vocals', false);
     });
 
-    const [systemSpecs, setSystemSpecs] = useState<{ ramGb: number; cpuCores: number }>(() => {
-        if (typeof navigator !== 'undefined') {
-            const cpuCores = navigator.hardwareConcurrency || 4;
-            const ramGb = (navigator as unknown as { deviceMemory?: number }).deviceMemory || 8;
-            return { ramGb, cpuCores };
-        }
-        return { ramGb: 8, cpuCores: 4 };
-    });
-
-    useEffect(() => {
-        if (!isOpen || !isBrowserTauri()) return;
-        let isMounted = true;
-        getTauri()
-            .then((mod) => mod.invoke<{ ramGb: number; cpuCores: number }>('get_system_specs'))
-            .then((specs) => {
-                if (isMounted && specs) setSystemSpecs(specs);
-            })
-            .catch(() => {});
-        return () => {
-            isMounted = false;
-        };
-    }, [isOpen]);
-
     const [isLocalGenerating, setIsLocalGenerating] = useState(false);
 
     const {
@@ -168,7 +145,13 @@ export function AiLyricsModal({
         cancelGeneration: cancelAiGeneration,
         syncCurrentState,
         refreshDownloadedModels,
+        systemSpecs: aiSystemSpecs,
     } = useAiLyricsPlugin();
+
+    const systemSpecs = {
+        ramGb: aiSystemSpecs?.ramGb ?? (typeof navigator !== 'undefined' ? ((navigator as unknown as { deviceMemory?: number }).deviceMemory || 8) : 8),
+        cpuCores: aiSystemSpecs?.cpuCores ?? (typeof navigator !== 'undefined' ? (navigator.hardwareConcurrency || 4) : 4),
+    };
 
     const isProcessing = isAiGenerating || isAiDownloading || Boolean(aiModelProgress) || isLocalGenerating;
 

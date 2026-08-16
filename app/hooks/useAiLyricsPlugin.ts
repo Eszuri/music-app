@@ -60,6 +60,7 @@ export function normalizeAiModelCode(name: string): string {
 let globalDownloadedModels: string[] = [];
 let globalPluginStatus: AiPluginStatus = { installed: false };
 let globalDownloadingModels: Record<string, ModelDownloadProgress> = {};
+let globalSystemSpecs: SystemSpecsInfo | null = null;
 
 export function emitDownloadedModelsChanged(models: string[]) {
     globalDownloadedModels = models;
@@ -664,24 +665,33 @@ export function useAiLyricsPlugin() {
         }
     }, [updateModelProgress]);
 
-    const [systemSpecs, setSystemSpecs] = useState<SystemSpecsInfo | null>(null);
+    const [systemSpecs, setSystemSpecs] = useState<SystemSpecsInfo | null>(globalSystemSpecs);
 
     const refreshSystemSpecs = useCallback(async () => {
         if (!isBrowserTauri()) return;
+        if (globalSystemSpecs) {
+            setSystemSpecs(globalSystemSpecs);
+            return;
+        }
         try {
             const mod = await getTauri();
             const specs = await mod.invoke<SystemSpecsInfo>('get_system_specs');
-            if (specs) setSystemSpecs(specs);
+            if (specs) {
+                globalSystemSpecs = specs;
+                setSystemSpecs(specs);
+            }
         } catch (err) {
             console.error('Failed to get system specs:', err);
         }
     }, []);
 
     useEffect(() => {
-        const timer = window.setTimeout(() => {
-            void refreshSystemSpecs();
-        }, 0);
-        return () => window.clearTimeout(timer);
+        if (!globalSystemSpecs) {
+            const timer = window.setTimeout(() => {
+                void refreshSystemSpecs();
+            }, 0);
+            return () => window.clearTimeout(timer);
+        }
     }, [refreshSystemSpecs]);
 
     const downloadModel = useCallback(async (modelName: string) => {
