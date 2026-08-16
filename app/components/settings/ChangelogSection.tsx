@@ -5,6 +5,19 @@ import {type Lang} from '../../lib/translations';
 
 const changelogEn = [
     {
+        version: '1.0.3',
+        items: [
+            'Local AI Lyrics Generator: Generate synchronized LRC lyrics offline using Whisper AI models (Tiny, Base, Small, Medium, Large) with real-time progress and CPU multi-threading.',
+            'AI Vocal Separation & Extraction: Integrated AI vocal isolation (Demucs ONNX) to extract clear vocal tracks and boost transcription accuracy.',
+            'Online Lyrics Search (LRCLIB): Search, preview, and fetch synchronized or plain lyrics directly within the app with one-click file and ID3 metadata saving.',
+            'Track Metadata Editor: View and edit audio tags (Title, Artist, Album, Genre, Year) and embed cover art directly into audio files.',
+            'Spotify-Style Layout & New Accent Themes: Added Spotify-style interface layout option and new "Sky" and "Zinc" accent color themes.',
+            'Plugin Security & SHA-256 Integrity: Automated release checksums, download integrity verification, and dynamic JSON challenge-response handshake for audio and AI plugins.',
+            'Audio Engine & Equalizer Enhancements: Improved Web Audio graph initialization, seamless AudioContext resumption, and multi-band equalizer persistence (5, 10, 15, and 31 bands).',
+            'UI Performance & State Optimization and thorough cleanup on component unmount.',
+        ],
+    },
+    {
         version: '1.0.2',
         items: [
 
@@ -162,6 +175,19 @@ const changelogEn = [
 ];
 
 const changelogId = [
+    {
+        version: '1.0.3',
+        items: [
+            'Pembuat Lirik AI Lokal: Pembuatan lirik tersinkronisasi (.lrc) secara offline menggunakan model Whisper AI (Tiny, Base, Small, Medium, Large) dengan progres realtime dan optimasi multi-thread CPU.',
+            'Pemisahan & Isolasi Vokal AI: Integrasi ekstraksi vokal berbasis AI (Demucs ONNX) untuk memisahkan vokal dari instrumen dan meningkatkan akurasi transkripsi lirik.',
+            'Pencarian Lirik Online (LRCLIB): Cari, tinjau, dan unduh lirik sinkron atau teks biasa langsung dari aplikasi dengan penyimpanan otomatis ke file atau tag ID3.',
+            'Editor Metadata Audio: Tinjau dan ubah informasi trek musik (Judul, Artis, Album, Genre, Tahun) serta simpan sampul album langsung ke dalam file audio.',
+            'Tata Letak Spotify & Tema Warna Baru: Pilihan tampilan antarmuka gaya Spotify serta penambahan 2 tema warna aksen baru ("Sky" dan "Zinc").',
+            'Keamanan Plugin & Integritas SHA-256: Verifikasi checksum SHA-256 otomatis dari rilis, validasi integritas unduhan, dan handshake JSON challenge-response dinamis.',
+            'Peningkatan Mesin Audio & Equalizer: Inisialisasi audio graph yang lebih andal, pemulihan AudioContext otomatis, serta persistensi equalizer multi-band (5, 10, 15, dan 31 band).',
+            'Optimasi Performa & Render UI dan pembersihan memori leak menyeluruh.',
+        ],
+    },
     {
         version: '1.0.2',
         items: [
