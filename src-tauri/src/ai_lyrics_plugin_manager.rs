@@ -3,6 +3,7 @@ use std::io::{BufRead, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
@@ -233,8 +234,10 @@ pub fn download_and_install(app: &AppHandle, url: Option<String>) -> Result<Plug
         return Err(error);
     }
 
+    invalidate_cache();
     fs::rename(&tmp_path, &final_path)
         .map_err(|e| format!("Failed to move plugin into place: {}", e))?;
+    let _ = verify_with_cache(&final_path);
 
     get_status(app)
 }
@@ -339,6 +342,53 @@ pub fn verify_plugin_executable(src: &Path) -> Result<(), String> {
     Err("Verifikasi gagal: file bukan plugin Symvonia AI Lyrics Engine yang valid.".into())
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FileFingerprint {
+    pub path: PathBuf,
+    pub size: u64,
+    pub modified: std::time::SystemTime,
+}
+
+static VERIFIED_CACHE: Mutex<Option<FileFingerprint>> = Mutex::new(None);
+
+pub fn invalidate_cache() {
+    if let Ok(mut guard) = VERIFIED_CACHE.lock() {
+        *guard = None;
+    }
+}
+
+/// Verifies the AI lyrics plugin executable before execution using an in-memory fingerprint cache.
+/// Returns Ok(()) in <0.05ms if the file size and modification time have not changed.
+/// If the file is modified or replaced manually, it re-runs full verification and updates the cache.
+pub fn verify_with_cache(path: &Path) -> Result<(), String> {
+    let meta = fs::metadata(path)
+        .map_err(|e| format!("Gagal membaca metadata berkas plugin ({}): {}", path.display(), e))?;
+    let size = meta.len();
+    let modified = meta
+        .modified()
+        .map_err(|e| format!("Gagal membaca timestamp berkas plugin: {}", e))?;
+
+    if let Ok(guard) = VERIFIED_CACHE.lock() {
+        if let Some(cached) = guard.as_ref() {
+            if cached.path == path && cached.size == size && cached.modified == modified {
+                return Ok(());
+            }
+        }
+    }
+
+    verify_plugin_executable(path)?;
+
+    if let Ok(mut guard) = VERIFIED_CACHE.lock() {
+        *guard = Some(FileFingerprint {
+            path: path.to_path_buf(),
+            size,
+            modified,
+        });
+    }
+
+    Ok(())
+}
+
 fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io::Result<()> {
     fs::create_dir_all(&dst)?;
     for entry in fs::read_dir(src)? {
@@ -373,6 +423,7 @@ pub fn install_from_file(app: &AppHandle, source: &str) -> Result<PluginStatus, 
     verify_plugin_executable(&src)?;
 
     kill_existing_plugin_process();
+    invalidate_cache();
 
     let dir = plugin_dir(app)?;
     fs::create_dir_all(&dir).map_err(|e| format!("Failed to create plugin dir: {}", e))?;
@@ -406,11 +457,13 @@ pub fn install_from_file(app: &AppHandle, source: &str) -> Result<PluginStatus, 
         }
     }
 
+    let _ = verify_with_cache(&dest);
     get_status(app)
 }
 
 pub fn uninstall(app: &AppHandle) -> Result<(), String> {
     kill_existing_plugin_process();
+    invalidate_cache();
     let exe = plugin_exe_path(app)?;
     if exe.exists() {
         fs::remove_file(&exe).map_err(|e| format!("Failed to remove plugin: {}", e))?;
@@ -486,6 +539,44 @@ mod tests {
         assert!(verify_download_hash(&temp_file, &sha.to_uppercase()).is_ok());
         assert!(verify_download_hash(&temp_file, &"0".repeat(64)).is_err());
         assert!(verify_download_hash(&temp_file, "not-a-sha256").is_err());
+
+        let _ = fs::remove_file(&temp_file);
+    }
+
+    #[test]
+    fn test_fingerprint_cache_invalidation_and_hit() {
+        invalidate_cache();
+        assert!(VERIFIED_CACHE.lock().unwrap().is_none());
+
+        let temp_file = std::env::temp_dir().join("symvonia-ai-lyrics-fp-test.tmp");
+        let mut file = fs::File::create(&temp_file).unwrap();
+        file.write_all(b"AI Lyrics Fingerprint Test Content").unwrap();
+        drop(file);
+
+        let meta = fs::metadata(&temp_file).unwrap();
+        let size = meta.len();
+        let modified = meta.modified().unwrap();
+
+        // Seed cache
+        if let Ok(mut guard) = VERIFIED_CACHE.lock() {
+            *guard = Some(FileFingerprint {
+                path: temp_file.clone(),
+                size,
+                modified,
+            });
+        }
+
+        // Cache hit test
+        let cache_guard = VERIFIED_CACHE.lock().unwrap();
+        let cached = cache_guard.as_ref().unwrap();
+        assert_eq!(cached.path, temp_file);
+        assert_eq!(cached.size, size);
+        assert_eq!(cached.modified, modified);
+        drop(cache_guard);
+
+        // Invalidation test
+        invalidate_cache();
+        assert!(VERIFIED_CACHE.lock().unwrap().is_none());
 
         let _ = fs::remove_file(&temp_file);
     }

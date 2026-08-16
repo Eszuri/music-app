@@ -33,6 +33,9 @@ fn spawn_engine(app: &AppHandle) -> Result<(), String> {
         );
     }
 
+    // Verify executable integrity & validity before execution (cached with file fingerprint)
+    plugin_manager::verify_with_cache(&exe)?;
+
     let mut cmd = Command::new(&exe);
     cmd.stdin(Stdio::piped())
         .stdout(Stdio::piped())

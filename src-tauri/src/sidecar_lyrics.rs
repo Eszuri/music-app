@@ -55,6 +55,9 @@ fn spawn_engine(app: &AppHandle) -> Result<(), String> {
         );
     }
 
+    // Verify executable integrity & validity before execution (cached with file fingerprint)
+    ai_lyrics_plugin_manager::verify_with_cache(&exe)?;
+
     let dir = exe.parent().ok_or_else(|| "Failed to get plugin directory".to_string())?;
 
     let mut cmd = Command::new(&exe);
