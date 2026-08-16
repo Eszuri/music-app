@@ -12,10 +12,14 @@ export default function PluginSection({
     lang,
     accentColor,
     isPlaying,
+    setOutputMode,
+    setOutputDevice,
 }: {
     lang: Lang;
     accentColor: string;
     isPlaying: boolean;
+    setOutputMode?: (v: 'default' | 'bitperfect') => void;
+    setOutputDevice?: (v: string | null) => void;
 }) {
     const accent = getAccent(accentColor);
     const {
@@ -101,6 +105,8 @@ export default function PluginSection({
         setActionError(null);
         try {
             await uninstall();
+            setOutputMode?.('default');
+            setOutputDevice?.(null);
         } catch (e) {
             setActionError(String(e));
         }

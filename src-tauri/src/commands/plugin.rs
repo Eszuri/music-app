@@ -47,9 +47,17 @@ pub async fn install_bit_perfect_plugin_from_file(
 pub async fn uninstall_bit_perfect_plugin(app: AppHandle) -> Result<(), String> {
     sidecar::stop_engine()?;
     let app_clone = app.clone();
-    tauri::async_runtime::spawn_blocking(move || plugin_manager::uninstall(&app_clone))
-        .await
-        .map_err(|e| format!("Task error: {}", e))?
+    tauri::async_runtime::spawn_blocking(move || {
+        plugin_manager::uninstall(&app_clone)?;
+        let mut config = crate::commands::config::load_config(&app_clone);
+        config.output_mode = "default".to_string();
+        config.output_device = None;
+        let _ = crate::commands::config::save_config(&app_clone, &config);
+        Ok::<(), String>(())
+    })
+    .await
+    .map_err(|e| format!("Task error: {}", e))??;
+    Ok(())
 }
 
 // ─── AI Lyrics plugin (C# Whisper.net sidecar) ──────────────────────────────

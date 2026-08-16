@@ -240,6 +240,14 @@ pub fn load_config(app: &AppHandle) -> SymvoniaConfig {
         Ok(content) => match serde_json::from_str::<SymvoniaConfig>(&content) {
             Ok(mut config) => {
                 config.sanitize();
+                if config.output_mode == "bitperfect" {
+                    if let Ok(status) = crate::plugin_manager::get_status(app) {
+                        if !status.installed {
+                            config.output_mode = "default".to_string();
+                            config.output_device = None;
+                        }
+                    }
+                }
                 config
             }
             Err(err) => {
@@ -277,6 +285,15 @@ pub fn save_config(app: &AppHandle, config: &SymvoniaConfig) -> Result<(), Strin
 
     let mut sanitized = config.clone();
     sanitized.sanitize();
+
+    if sanitized.output_mode == "bitperfect" {
+        if let Ok(status) = crate::plugin_manager::get_status(app) {
+            if !status.installed {
+                sanitized.output_mode = "default".to_string();
+                sanitized.output_device = None;
+            }
+        }
+    }
 
     let json_bytes = serde_json::to_vec_pretty(&sanitized)
         .map_err(|e| format!("Failed to serialize config: {}", e))?;

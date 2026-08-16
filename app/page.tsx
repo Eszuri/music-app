@@ -26,6 +26,7 @@ import {getTauri, isBrowserTauri} from "./lib/homeState";
 import {resetAppConfig} from "./lib/storage";
 import {useModalRouter} from "./hooks/useModalRouter";
 import {useGlobalContextMenu} from "./hooks/useGlobalContextMenu";
+import {useBitPerfectEngine} from "./hooks/useBitPerfectEngine";
 
 export default function Home() {
     const mounted = useSyncExternalStore(
@@ -217,6 +218,17 @@ function HomeContent() {
         prevVolumeLimitExceeded.current = exceeded;
     }, [settings.volumeLimitExceeded, settings.volumeLimit, showStatusNotif]);
 
+    const { status: bpStatus } = useBitPerfectEngine();
+    const isPluginInstalled = bpStatus?.installed === true;
+    const effectiveOutputMode = isPluginInstalled ? settings.outputMode : 'default';
+
+    useEffect(() => {
+        if (bpStatus !== null && !bpStatus.installed && settings.outputMode === 'bitperfect') {
+            settings.setOutputMode('default');
+            settings.setOutputDeviceState(null);
+        }
+    }, [bpStatus, settings]);
+
     const player = useAudioPlayer({
         lang,
         musicFolder: settings.musicFolder,
@@ -242,7 +254,7 @@ function HomeContent() {
         systemMuted: settings.systemMuted,
         fadeAudio: settings.fadeAudio,
         fadeDuration: settings.fadeDuration,
-        outputMode: settings.outputMode,
+        outputMode: effectiveOutputMode,
         outputDevice: settings.outputDevice,
     });
 
@@ -492,7 +504,7 @@ function HomeContent() {
                 onGlobalContextMenu={showGlobalContextMenu}
                 onCoverSaved={() => showStatusNotif('cover-saved')}
                 onOpenEditMetadata={openMetadataEdit}
-                outputMode={settings.outputMode}
+                outputMode={effectiveOutputMode}
                 bpEngineState={player.bpEngineState ?? undefined}
                 layoutMode={settings.layoutMode}
                 lyricsSearchOpen={lyricsSearchOpen}
@@ -578,7 +590,7 @@ function HomeContent() {
                 equalizer={player.equalizer}
                 accentColor={settings.accentColor}
                 lang={lang}
-                disabled={settings.outputMode === 'bitperfect'}
+                disabled={effectiveOutputMode === 'bitperfect'}
             />
 
             <MetadataEditModal

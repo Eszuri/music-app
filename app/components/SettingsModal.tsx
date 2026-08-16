@@ -99,6 +99,14 @@ export default function SettingsModal({
     const { status } = useBitPerfectEngine();
     const isPluginInstalled = status?.installed === true;
 
+    // Automatically reset outputMode to 'default' when plugin is not installed
+    useEffect(() => {
+        if (!isPluginInstalled && outputMode === 'bitperfect') {
+            setOutputMode('default');
+            setOutputDevice(null);
+        }
+    }, [isPluginInstalled, outputMode, setOutputMode, setOutputDevice]);
+
     const { pluginStatus: aiPluginStatus } = useAiLyricsPlugin();
     const isAiPluginInstalled = aiPluginStatus?.installed === true;
     const effectiveActiveSection =
@@ -243,12 +251,14 @@ export default function SettingsModal({
                                  />
                              )}
                              {effectiveActiveSection === 'plugin' && (
-                                    <PluginSection
-                                        lang={lang}
-                                        accentColor={accentColor}
-                                        isPlaying={isPlaying}
-                                    />
-                                )}
+                                     <PluginSection
+                                         lang={lang}
+                                         accentColor={accentColor}
+                                         isPlaying={isPlaying}
+                                         setOutputMode={setOutputMode}
+                                         setOutputDevice={setOutputDevice}
+                                     />
+                                 )}
                                 {effectiveActiveSection === 'audio' && isPluginInstalled && (
                                     <AudioSection
                                         lang={lang}

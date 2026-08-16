@@ -256,6 +256,22 @@ export function usePlayerSettings() {
         };
     }, []);
 
+    // Automatically reset outputMode to 'default' if bitperfect engine plugin is not installed
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const customEvent = e as CustomEvent<{ installed: boolean } | null>;
+            const s = customEvent.detail;
+            if (s && !s.installed) {
+                setOutputModeStateInternal('default');
+                setOutputDeviceStateInternal(null);
+                setStoredValue('output_mode', 'default');
+                setStoredValue('output_device', null);
+            }
+        };
+        window.addEventListener('bitperfect-status-changed', handler);
+        return () => window.removeEventListener('bitperfect-status-changed', handler);
+    }, []);
+
     useEffect(() => {
         if (!isBrowserTauri() || volumeMode !== 'system') {
             const frame = requestAnimationFrame(() => setSystemVolumeSynced(false));
