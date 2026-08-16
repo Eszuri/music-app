@@ -121,12 +121,18 @@ function loadSavedEqualizer(): EqualizerState {
         const enabled = typeof eq.enabled === 'boolean' ? eq.enabled : false;
         const preset = typeof eq.preset === 'string' ? (eq.preset as EQPresetKey) : 'flat';
         const preampDb = Math.max(-12, Math.min(12, Number(eq.pre_amp) || 0));
-        const gains = Array.isArray(eq.bands) && eq.bands.length === 10
+        // H2: Infer bandMode from saved bands length, fallback to 10
+        const savedBandCount = Array.isArray(eq.bands) ? eq.bands.length : 0;
+        const validBandModes: EQBandMode[] = [5, 10, 15, 31];
+        const bandMode: EQBandMode = validBandModes.includes(savedBandCount as EQBandMode)
+            ? (savedBandCount as EQBandMode)
+            : 10;
+        const gains = Array.isArray(eq.bands) && eq.bands.length === bandMode
             ? eq.bands.map((v: number) => Math.max(-12, Math.min(12, Number(v) || 0)))
-            : getPresetGains(10, preset);
+            : getPresetGains(bandMode, preset);
         return {
             enabled,
-            bandMode: 10,
+            bandMode,
             preampDb,
             autoPreamp: true,
             preset,

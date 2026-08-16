@@ -113,7 +113,7 @@ function FolderExplorer({
             if (scrollRef.current) scrollRef.current.scrollTop = 0;
             setScrollTop(0);
         }
-    });
+    }, [files]);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {

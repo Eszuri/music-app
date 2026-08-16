@@ -148,7 +148,7 @@ export function useGainBoost(
         }
     }, [audioRef, rebuildEqFilters, connectGraph]);
 
-    // Connect graph on audio playback
+    // M5: Don't use audioRef.current in deps — React won't re-trigger on ref changes
     useEffect(() => {
         const audio = audioRef.current;
         if (!audio) return;
@@ -165,7 +165,7 @@ export function useGainBoost(
         return () => {
             audio.removeEventListener("play", handlePlay);
         };
-    }, [audioRef.current, ensureGraph]);
+    }, [audioRef, ensureGraph]);
 
     // Sync GainNode state
     useEffect(() => {

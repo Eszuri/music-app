@@ -5,7 +5,7 @@ export function useVolumeFade(
     fadeAudio: boolean,
     fadeDuration: number,
 ) {
-    const fadeAnimationRef = useRef<number | null>(null);
+    const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const fadeTokenRef = useRef(0);
     const fadeAudioRef = useRef(fadeAudio);
     const fadeDurationRef = useRef(fadeDuration);
@@ -19,9 +19,9 @@ export function useVolumeFade(
             const currentToken = ++fadeTokenRef.current;
             const dur = durationMs !== undefined ? durationMs : fadeDurationRef.current;
 
-            if (fadeAnimationRef.current) {
-                cancelAnimationFrame(fadeAnimationRef.current);
-                fadeAnimationRef.current = null;
+            if (fadeTimerRef.current) {
+                clearTimeout(fadeTimerRef.current);
+                fadeTimerRef.current = null;
             }
 
             const clampedTarget = Math.max(0, Math.min(1, targetVol));
@@ -36,19 +36,22 @@ export function useVolumeFade(
 
             const startVol = audio.volume;
             const startTime = performance.now();
+            // H3: Use setTimeout instead of requestAnimationFrame to ensure
+            // fade works reliably in background tabs
+            const TICK_MS = 16;
 
-            const step = (now: number) => {
+            const step = () => {
                 if (currentToken !== fadeTokenRef.current) return;
 
-                const elapsed = now - startTime;
+                const elapsed = performance.now() - startTime;
                 const progress = Math.min(1, elapsed / dur);
                 const current = startVol + (clampedTarget - startVol) * progress;
                 if (audio) audio.volume = Math.max(0, Math.min(1, current));
 
                 if (progress < 1) {
-                    fadeAnimationRef.current = requestAnimationFrame(step);
+                    fadeTimerRef.current = setTimeout(step, TICK_MS);
                 } else {
-                    fadeAnimationRef.current = null;
+                    fadeTimerRef.current = null;
                     if (audio) audio.volume = clampedTarget;
                     if (currentToken === fadeTokenRef.current) {
                         onComplete?.();
@@ -56,16 +59,16 @@ export function useVolumeFade(
                 }
             };
 
-            fadeAnimationRef.current = requestAnimationFrame(step);
+            fadeTimerRef.current = setTimeout(step, TICK_MS);
         },
         [audioRef],
     );
 
     const cancelFade = useCallback(() => {
         fadeTokenRef.current++;
-        if (fadeAnimationRef.current) {
-            cancelAnimationFrame(fadeAnimationRef.current);
-            fadeAnimationRef.current = null;
+        if (fadeTimerRef.current) {
+            clearTimeout(fadeTimerRef.current);
+            fadeTimerRef.current = null;
         }
     }, []);
 

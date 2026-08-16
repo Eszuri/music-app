@@ -168,7 +168,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         shuffleRef.current = shuffle;
         repeatRef.current = repeat;
         outputDeviceRef.current = outputDevice;
-    });
+    }, [files, selectedSong, metadata, autoWallpaper, formats, volumeMode, volumeLimit, folderSort, fileSort, sortDir, nameSource, shuffle, repeat, outputDevice]);
 
     const activeVolume = volumeMode === "system" ? systemVolume : appVolume;
 
@@ -442,8 +442,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         ) {
             const savedFile = fileList.find(
                 (f) => !f.is_dir && f.path === sess.filePath,
-            );
-            if (!savedFile) return;
+            ) || makeTempFileEntry(sess.filePath);
 
             const audio = audioRef.current;
             if (!audio) return;
@@ -543,6 +542,8 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 if (token !== playTokenRef.current || !isMountedRef.current) return;
 
                 setSelectedSong(file);
+                selectedSongRef.current = file;
+                saveSessionState({ filePath: file.path, currentTime: 0, timestamp: Date.now() }, true);
                 loadMetadata(file.path, false);
                 addLog("info", t(lang, 'log.playing', {name: file.name}));
             } catch (e) {
@@ -850,7 +851,17 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         audio.volume = volumeModeRef.current === "app" ? appVolume : 1;
 
         const handlePlay = () => setIsPlaying(true);
-        const handlePause = () => setIsPlaying(false);
+        const handlePause = () => {
+            setIsPlaying(false);
+            const song = selectedSongRef.current;
+            if (song && audio.currentTime > 0) {
+                saveSessionState({
+                    filePath: song.path,
+                    currentTime: audio.currentTime,
+                    timestamp: Date.now(),
+                }, true);
+            }
+        };
 
         const handleTimeUpdate = () => {
             const t = audio.currentTime;
@@ -873,7 +884,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         const handleDurationChange = () => setDuration(audio.duration || 0);
 
         const handleEnded = () => {
-            saveSessionState(null);
+            saveSessionState(null, true);
             playNextRef.current();
         };
 
@@ -905,7 +916,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                     filePath: song.path,
                     currentTime: curTime,
                     timestamp: Date.now(),
-                });
+                }, true);
             }
         };
         window.addEventListener("beforeunload", flush);

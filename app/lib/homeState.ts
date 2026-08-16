@@ -36,25 +36,15 @@ export const DEFAULT_SHORTCUTS: Record<ShortcutAction, string> = {
 
 export const DEFAULT_FORMATS = ['mp3', 'flac', 'ogg', 'wav', 'm4a', 'wma'];
 
-export interface TauriCore {
-    invoke: <T>(cmd: string, args?: Record<string, unknown>) => Promise<T>;
-    convertFileSrc: (path: string, protocol?: string) => string;
-}
+// M2: Import from dedicated module to break circular dependency with storage.ts
+import { getTauri } from './tauri';
+export { getTauri };
+export type { TauriCore } from './tauri';
 
 export interface SessionState {
     filePath: string;
     currentTime: number;
     timestamp: number;
-}
-
-let tauriMod: TauriCore | null = null;
-
-export async function getTauri(): Promise<TauriCore> {
-    if (tauriMod) return Promise.resolve(tauriMod);
-    return import('@tauri-apps/api/core').then((mod) => {
-        tauriMod = mod as unknown as TauriCore;
-        return tauriMod;
-    });
 }
 
 import { getStoredValue, setStoredValue } from './storage';
@@ -75,7 +65,7 @@ export function loadSessionState(): SessionState | null {
     };
 }
 
-export function saveSessionState(state: SessionState | null): void {
+export function saveSessionState(state: SessionState | null, immediate?: boolean): void {
     if (!state) {
         setStoredValue('last_session', null);
     } else {
@@ -84,6 +74,6 @@ export function saveSessionState(state: SessionState | null): void {
             current_time: state.currentTime,
             timestamp: state.timestamp || Date.now(),
         };
-        setStoredValue('last_session', payload, { debounceMs: 1000 });
+        setStoredValue('last_session', payload, immediate ? undefined : { debounceMs: 1000 });
     }
 }

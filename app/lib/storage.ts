@@ -1,6 +1,7 @@
 'use client';
 
-import { getTauri } from './homeState';
+// M2: Import from dedicated tauri module to break circular dependency with homeState.ts
+import { getTauri } from './tauri';
 
 export interface EqualizerConfig {
     enabled: boolean;
@@ -132,6 +133,9 @@ const saveTimers: Record<string, ReturnType<typeof setTimeout>> = {};
  * Get synchronous initial configuration from native pre-runtime injection or memory cache
  */
 export function getInitialConfig(): SymvoniaConfig {
+    // H4: Early-return cached config to avoid rebuilding on every read
+    if (inMemoryConfig) return inMemoryConfig;
+
     if (typeof window !== 'undefined') {
         const injected = (window as unknown as { __SYMVONIA_INITIAL_CONFIG__?: SymvoniaConfig }).__SYMVONIA_INITIAL_CONFIG__;
         if (injected && typeof injected === 'object' && injected.language) {
@@ -141,9 +145,7 @@ export function getInitialConfig(): SymvoniaConfig {
         }
     }
 
-    if (!inMemoryConfig) {
-        inMemoryConfig = { ...DEFAULT_CONFIG };
-    }
+    inMemoryConfig = { ...DEFAULT_CONFIG };
     return inMemoryConfig;
 }
 

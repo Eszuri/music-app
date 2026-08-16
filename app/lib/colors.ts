@@ -1,7 +1,11 @@
 type AccentColor = 'sky' | 'zinc' | 'green' | 'blue' | 'purple' | 'pink' | 'red' | 'orange' | 'yellow' | 'teal' | 'cyan' | 'indigo' | 'rose' | 'lime' | 'amber' | 'emerald' | 'custom';
 
 function hexToRgb(hex: string) {
-  const clean = hex.replace('#', '');
+  let clean = hex.replace('#', '');
+  // L2: Expand 3-char hex (#abc) to 6-char (#aabbcc) to prevent NaN
+  if (clean.length === 3) {
+    clean = clean[0] + clean[0] + clean[1] + clean[1] + clean[2] + clean[2];
+  }
   const r = parseInt(clean.slice(0, 2), 16);
   const g = parseInt(clean.slice(2, 4), 16);
   const b = parseInt(clean.slice(4, 6), 16);

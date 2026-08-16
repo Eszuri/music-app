@@ -28,10 +28,13 @@ function appendDevTools(items: ContextMenuItem[], lang: string): ContextMenuItem
     ];
 }
 
+import type { useAudioPlayer } from './useAudioPlayer';
+import type { usePlayerSettings } from './usePlayerSettings';
+
 interface UseGlobalContextMenuProps {
     lang: 'en' | 'id';
-    player: any; // We can use ReturnType<typeof useAudioPlayer> but any is easier if there's no type exported or we can just pass specific actions
-    settings: any;
+    player: ReturnType<typeof useAudioPlayer>;
+    settings: ReturnType<typeof usePlayerSettings>;
     setSettingsOpen: (open: boolean) => void;
     setStreamingOpen: (open: boolean) => void;
     settingsOpenRef: React.MutableRefObject<boolean>;

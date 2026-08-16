@@ -114,8 +114,9 @@ function HomeContent() {
         showError,
     } = useAppLogging();
 
-    const [windowWidth, setWindowWidth] = useState<number>(
-        typeof window !== "undefined" ? window.innerWidth : 1200,
+    const SIDEBAR_BREAKPOINT = 900;
+    const [isCompact, setIsCompact] = useState<boolean>(
+        typeof window !== "undefined" ? window.innerWidth < SIDEBAR_BREAKPOINT : false,
     );
     const [showLeftSidebar, setShowLeftSidebar] = useState(true);
     const [showRightSidebar, setShowRightSidebar] = useState(true);
@@ -169,11 +170,6 @@ function HomeContent() {
         lyricsSearchOpenRef.current = lyricsSearchOpen;
     }, [settingsOpen, streamingOpen, pendingFolderChange, equalizerOpen, metadataEditOpen, lyricsSearchOpen]);
 
-
-
-    const SIDEBAR_BREAKPOINT = 900;
-    const isCompact = windowWidth < SIDEBAR_BREAKPOINT;
-
     const settings = usePlayerSettings();
     const lang = settings.language;
 
@@ -184,6 +180,13 @@ function HomeContent() {
         vars?: Record<string, string | number>;
     } | null>(null);
     const notifTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // C2: Cleanup notification timer on unmount to prevent memory leak
+    useEffect(() => {
+        return () => {
+            if (notifTimerRef.current) clearTimeout(notifTimerRef.current);
+        };
+    }, []);
 
     const showStatusNotif = useCallback(
         (type: 'cover-saved' | 'metadata-saved' | 'volume-limit', vars?: Record<string, string | number>) => {
@@ -295,14 +298,21 @@ function HomeContent() {
         }
     }, [isCompact]);
 
+    // H1: Store isCompact boolean instead of raw windowWidth to avoid cascading re-renders
+    // C1: Cancel animation frame on unmount to prevent memory leak
     useEffect(() => {
         let raf = 0;
         const handleResize = () => {
             cancelAnimationFrame(raf);
-            raf = requestAnimationFrame(() => setWindowWidth(window.innerWidth));
+            raf = requestAnimationFrame(() => {
+                setIsCompact(window.innerWidth < SIDEBAR_BREAKPOINT);
+            });
         };
         window.addEventListener("resize", handleResize);
-        return () => window.removeEventListener("resize", handleResize);
+        return () => {
+            window.removeEventListener("resize", handleResize);
+            cancelAnimationFrame(raf);
+        };
     }, []);
 
     useEffect(() => {
@@ -344,6 +354,7 @@ function HomeContent() {
         }
     }, [settingsOpen, streamingOpen, equalizerOpen, metadataEditOpen, lyricsSearchOpen, hideGlobalContextMenu]);
 
+    // M1: Destructure specific stable functions to avoid regenerating callback on every currentTime update
     const doPickFolder = useCallback(async () => {
         try {
             const mod = await getTauri();
@@ -359,7 +370,7 @@ function HomeContent() {
             setDebugError(`${t(lang, "alert.error")}: ${msg}`);
             showError(`${t(lang, "alert.error")}: ${msg}`);
         }
-    }, [lang, settings, player, setDebugError, showError]);
+    }, [lang, settings.setMusicFolder, player.setCurrentPath, player.setSelectedSong, player.setMetadata, setDebugError, showError]);
 
     const handlePickFolder = useCallback(async () => {
         if (!isBrowserTauri) {
@@ -399,13 +410,13 @@ function HomeContent() {
             setDebugError(`${t(lang, "alert.error")}: ${msg}`);
             showError(`${t(lang, "alert.error")}: ${msg}`);
         }
-    }, [lang, settings, setDebugError, showError]);
+    }, [lang, settings.setDefaultWallpaper, setDebugError, showError]);
 
     const confirmFolderChange = useCallback(() => {
         setPendingFolderChange(false);
         player.resetPlayer();
         doPickFolder();
-    }, [doPickFolder, player]);
+    }, [doPickFolder, player.resetPlayer]);
 
     const displayPath = player.currentPath || "";
 
