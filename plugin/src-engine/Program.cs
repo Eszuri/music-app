@@ -47,7 +47,25 @@ using var player = new AudioPlayer();
 
 player.PlaybackEnded += () =>
 {
-    Protocol.EmitState("ended", player.CurrentPath, player.IsExclusive, null, null, player.DeviceName);
+    Protocol.EmitState("ended", player.CurrentPath, player.CurrentMode, null, null, player.DeviceName, player.RequestId);
+};
+
+static string? ResolveMode(Protocol.Command command)
+{
+    if (!string.IsNullOrWhiteSpace(command.Mode))
+        return command.Mode;
+    if (command.Exclusive.HasValue)
+        return command.Exclusive.Value ? "exclusive" : "shared";
+    return null;
+}
+
+static string ErrorCode(Exception ex) => ex switch
+{
+    FileNotFoundException => "AUDIO_FILE_NOT_FOUND",
+    ArgumentException => "INVALID_MODE",
+    InvalidOperationException when ex.Message.StartsWith("Audio device not found:", StringComparison.Ordinal) => "DEVICE_NOT_FOUND",
+    InvalidOperationException when ex.Message.Contains("WASAPI Exclusive mode", StringComparison.Ordinal) => "EXCLUSIVE_NOT_SUPPORTED",
+    _ => "ENGINE_ERROR",
 };
 
 Protocol.Emit(new { @event = "ready", version = "2.0.0" });
@@ -74,12 +92,18 @@ while ((line = Console.In.ReadLine()) != null)
             {
                 if (string.IsNullOrEmpty(cmd.Path))
                 {
-                    Protocol.EmitError("Missing 'path' for play command", "play");
+                    Protocol.EmitError("AUDIO_FILE_NOT_FOUND", "Missing 'path' for play command", "play", null, null, cmd.RequestId);
                     break;
                 }
-                player.Play(cmd.Path, cmd.Exclusive, cmd.DeviceId);
+                var mode = ResolveMode(cmd);
+                if (mode == null)
+                {
+                    Protocol.EmitError("INVALID_MODE", "Missing 'mode' for play command", "play", null, cmd.Path, cmd.RequestId);
+                    break;
+                }
+                player.Play(cmd.Path, mode, cmd.DeviceId, cmd.RequestId);
                 var (rate, bits) = player.CurrentFormat;
-                Protocol.EmitState("playing", player.CurrentPath, player.IsExclusive, rate, bits, player.DeviceName);
+                Protocol.EmitState("playing", player.CurrentPath, player.CurrentMode, rate, bits, player.DeviceName, player.RequestId);
                 break;
             }
 
@@ -87,7 +111,7 @@ while ((line = Console.In.ReadLine()) != null)
             {
                 player.Pause();
                 var (rate, bits) = player.CurrentFormat;
-                Protocol.EmitState("paused", player.CurrentPath, player.IsExclusive, rate, bits, player.DeviceName);
+                Protocol.EmitState("paused", player.CurrentPath, player.CurrentMode, rate, bits, player.DeviceName, player.RequestId);
                 break;
             }
 
@@ -95,14 +119,19 @@ while ((line = Console.In.ReadLine()) != null)
             {
                 player.Resume();
                 var (rate, bits) = player.CurrentFormat;
-                Protocol.EmitState("playing", player.CurrentPath, player.IsExclusive, rate, bits, player.DeviceName);
+                Protocol.EmitState("playing", player.CurrentPath, player.CurrentMode, rate, bits, player.DeviceName, player.RequestId);
                 break;
             }
 
             case "stop":
+            {
+                var mode = player.CurrentMode;
+                var deviceName = player.DeviceName;
+                var requestId = player.RequestId;
                 player.Stop();
-                Protocol.EmitState("stopped", null, player.IsExclusive, null, null, player.DeviceName);
+                Protocol.EmitState("stopped", null, mode, null, null, deviceName, requestId);
                 break;
+            }
 
             case "seek":
                 if (cmd.Position.HasValue)
@@ -132,7 +161,7 @@ while ((line = Console.In.ReadLine()) != null)
             {
                 var (rate, bits) = player.CurrentFormat;
                 string state = player.IsPlaying ? "playing" : player.IsPaused ? "paused" : "stopped";
-                Protocol.EmitState(state, player.CurrentPath, player.IsExclusive, rate, bits, player.DeviceName);
+                Protocol.EmitState(state, player.CurrentPath, player.CurrentMode, rate, bits, player.DeviceName, player.RequestId);
                 break;
             }
 
@@ -212,7 +241,13 @@ while ((line = Console.In.ReadLine()) != null)
     }
     catch (Exception ex)
     {
-        Protocol.EmitError(ex.Message, cmd.Name);
+        Protocol.EmitError(
+            ErrorCode(ex),
+            ex.Message,
+            cmd.Name,
+            ResolveMode(cmd),
+            cmd.Path,
+            cmd.RequestId);
     }
 }
 

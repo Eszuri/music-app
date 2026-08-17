@@ -32,7 +32,9 @@ export function useEqualizerPlugin() {
     }, [setStatusGlobal]);
 
     useEffect(() => {
-        refreshStatus();
+        const timer = window.setTimeout(() => {
+            void refreshStatus();
+        }, 0);
 
         if (typeof window !== 'undefined') {
             const onStatusChanged = (e: Event) => {
@@ -44,6 +46,7 @@ export function useEqualizerPlugin() {
             window.addEventListener('equalizer-status-changed', onStatusChanged);
             window.addEventListener('bitperfect-status-changed', onStatusChanged);
             return () => {
+                window.clearTimeout(timer);
                 window.removeEventListener('equalizer-status-changed', onStatusChanged);
                 window.removeEventListener('bitperfect-status-changed', onStatusChanged);
             };

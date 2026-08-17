@@ -126,7 +126,7 @@ impl Default for SymvoniaConfig {
             sidebar_width: 360,
             meta_width: 360,
             autohide_delay_ms: 3000,
-            output_mode: "default".to_string(),
+            output_mode: "html_audio".to_string(),
             output_device: None,
             equalizer: EqualizerConfig::default(),
             gain_boost: 1.0,
@@ -167,6 +167,14 @@ impl SymvoniaConfig {
         if self.volume_mode != "app" && self.volume_mode != "system" {
             self.volume_mode = "app".to_string();
         }
+
+        // Output mode migration and validation
+        self.output_mode = match self.output_mode.as_str() {
+            "default" => "html_audio".to_string(),
+            "bitperfect" => "wasapi_exclusive".to_string(),
+            "html_audio" | "wasapi_shared" | "wasapi_exclusive" => self.output_mode.clone(),
+            _ => "html_audio".to_string(),
+        };
 
         // Custom accent hex validation
         if !self.custom_accent_hex.starts_with('#') || self.custom_accent_hex.len() != 7 {
@@ -240,10 +248,10 @@ pub fn load_config(app: &AppHandle) -> SymvoniaConfig {
         Ok(content) => match serde_json::from_str::<SymvoniaConfig>(&content) {
             Ok(mut config) => {
                 config.sanitize();
-                if config.output_mode == "bitperfect" {
+                if config.output_mode == "wasapi_shared" || config.output_mode == "wasapi_exclusive" {
                     if let Ok(status) = crate::unified_engine_manager::get_status(app) {
                         if !status.installed {
-                            config.output_mode = "default".to_string();
+                            config.output_mode = "html_audio".to_string();
                             config.output_device = None;
                         }
                     }
@@ -286,10 +294,10 @@ pub fn save_config(app: &AppHandle, config: &SymvoniaConfig) -> Result<(), Strin
     let mut sanitized = config.clone();
     sanitized.sanitize();
 
-    if sanitized.output_mode == "bitperfect" {
+    if sanitized.output_mode == "wasapi_shared" || sanitized.output_mode == "wasapi_exclusive" {
         if let Ok(status) = crate::unified_engine_manager::get_status(app) {
             if !status.installed {
-                sanitized.output_mode = "default".to_string();
+                sanitized.output_mode = "html_audio".to_string();
                 sanitized.output_device = None;
             }
         }

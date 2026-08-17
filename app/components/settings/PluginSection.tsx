@@ -7,6 +7,7 @@ import { getAccent } from '../../lib/colors';
 import { useBitPerfectEngine } from '../../hooks/useBitPerfectEngine';
 import { useAiLyricsPlugin } from '../../hooks/useAiLyricsPlugin';
 import { getTauri, isBrowserTauri } from '../../lib/homeState';
+import type {OutputMode} from '../../lib/storage';
 
 export default function PluginSection({
     lang,
@@ -18,7 +19,7 @@ export default function PluginSection({
     lang: Lang;
     accentColor: string;
     isPlaying: boolean;
-    setOutputMode?: (v: 'default' | 'bitperfect') => void;
+    setOutputMode?: (v: OutputMode) => void;
     setOutputDevice?: (v: string | null) => void;
 }) {
     const accent = getAccent(accentColor);
@@ -103,13 +104,13 @@ export default function PluginSection({
         setBitActionError(null);
         try {
             await bitUninstall();
-            if (setOutputMode) setOutputMode('default');
+            if (setOutputMode) setOutputMode('html_audio');
             if (setOutputDevice) setOutputDevice(null);
             if (isBrowserTauri()) {
                 const mod = await getTauri();
                 await mod.invoke('set_app_config_key', {
                     key: 'output_mode',
-                    value: 'default',
+                    value: 'html_audio',
                 });
                 await mod.invoke('set_app_config_key', {
                     key: 'output_device',

@@ -32,6 +32,14 @@ export interface StorageUsage {
     app_data_dir: string;
 }
 
+export type OutputMode = 'html_audio' | 'wasapi_shared' | 'wasapi_exclusive';
+
+export function normalizeOutputMode(value: unknown): OutputMode {
+    if (value === 'wasapi_shared') return 'wasapi_shared';
+    if (value === 'wasapi_exclusive' || value === 'bitperfect') return 'wasapi_exclusive';
+    return 'html_audio';
+}
+
 export interface SymvoniaConfig {
     music_folder: string | null;
     language: 'id' | 'en';
@@ -59,7 +67,7 @@ export interface SymvoniaConfig {
     sidebar_width: number;
     meta_width: number;
     autohide_delay_ms: number;
-    output_mode: 'default' | 'bitperfect';
+    output_mode: OutputMode;
     output_device: string | null;
     equalizer: EqualizerConfig;
     gain_boost: number;
@@ -105,7 +113,7 @@ export const DEFAULT_CONFIG: SymvoniaConfig = {
     sidebar_width: 360,
     meta_width: 360,
     autohide_delay_ms: 3000,
-    output_mode: 'default',
+    output_mode: 'html_audio',
     output_device: null,
     equalizer: {
         enabled: false,
@@ -143,7 +151,11 @@ export function getInitialConfig(): SymvoniaConfig {
 
         const injected = (window as unknown as { __SYMVONIA_INITIAL_CONFIG__?: SymvoniaConfig }).__SYMVONIA_INITIAL_CONFIG__;
         if (injected && typeof injected === 'object' && injected.language) {
-            const conf: SymvoniaConfig = { ...DEFAULT_CONFIG, ...injected };
+            const conf: SymvoniaConfig = {
+                ...DEFAULT_CONFIG,
+                ...injected,
+                output_mode: normalizeOutputMode(injected.output_mode),
+            };
             inMemoryConfig = conf;
             return conf;
         }
@@ -161,6 +173,7 @@ export function syncConfigFromBackend(backendConfig: Partial<SymvoniaConfig>): S
     const updated: SymvoniaConfig = {
         ...current,
         ...backendConfig,
+        output_mode: normalizeOutputMode(backendConfig.output_mode ?? current.output_mode),
     };
     inMemoryConfig = updated;
 

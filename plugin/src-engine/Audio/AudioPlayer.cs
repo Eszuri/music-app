@@ -20,7 +20,8 @@ public sealed class AudioPlayer : IDisposable
     private Timer? _progressTimer;
 
     private string? _currentPath;
-    private bool _exclusive;
+    private string? _currentMode;
+    private string? _requestId;
     private float _volume = 1.0f;
     private bool _disposed;
 
@@ -34,7 +35,17 @@ public sealed class AudioPlayer : IDisposable
 
     public bool IsExclusive
     {
-        get { lock (_gate) return _exclusive; }
+        get { lock (_gate) return _currentMode == "exclusive"; }
+    }
+
+    public string? CurrentMode
+    {
+        get { lock (_gate) return _currentMode; }
+    }
+
+    public string? RequestId
+    {
+        get { lock (_gate) return _requestId; }
     }
 
     public bool IsPlaying
@@ -74,14 +85,16 @@ public sealed class AudioPlayer : IDisposable
     }
 
     /// <summary>
-    /// Loads a file and starts playback. When exclusive=true, tries WASAPI
-    /// Exclusive with the source's native sample rate at float32 → PCM24 → PCM16.
-    /// Throws on failure; caller converts exceptions into error events.
+    /// Loads a file and starts playback in the requested WASAPI mode.
+    /// Exclusive tries the source's native sample rate at float32 → PCM24 → PCM16.
     /// </summary>
-    public void Play(string path, bool exclusive, string? deviceId)
+    public void Play(string path, string mode, string? deviceId, string? requestId)
     {
         if (!File.Exists(path))
             throw new FileNotFoundException("Audio file not found", path);
+
+        if (mode != "shared" && mode != "exclusive")
+            throw new ArgumentException($"Unsupported audio mode: {mode}", nameof(mode));
 
         lock (_gate)
         {
@@ -91,7 +104,7 @@ public sealed class AudioPlayer : IDisposable
             _device = ResolveDevice(deviceId);
             _pausable = new PausableSampleProvider(_reader);
 
-            if (exclusive)
+            if (mode == "exclusive")
             {
                 _output = CreateExclusiveOutput(_device, _pausable);
             }
@@ -103,7 +116,8 @@ public sealed class AudioPlayer : IDisposable
 
             _output.PlaybackStopped += OnPlaybackStopped;
             _currentPath = path;
-            _exclusive = exclusive;
+            _currentMode = mode;
+            _requestId = requestId;
             _output.Play();
             StartProgressTimerLocked();
         }
@@ -190,6 +204,8 @@ public sealed class AudioPlayer : IDisposable
             _reader = null;
         }
         _currentPath = null;
+        _currentMode = null;
+        _requestId = null;
     }
 
     public void Seek(double seconds)
@@ -312,7 +328,13 @@ public sealed class AudioPlayer : IDisposable
 
         if (e.Exception != null)
         {
-            Protocol.EmitError(e.Exception.Message, "playback");
+            Protocol.EmitError(
+                "PLAYBACK_FAILED",
+                e.Exception.Message,
+                "playback",
+                CurrentMode,
+                CurrentPath,
+                RequestId);
             return;
         }
 

@@ -224,12 +224,14 @@ function HomeContent() {
     const isPluginInstalled = bpStatus?.installed === true;
     const isEqualizerInstalled = isPluginInstalled;
     const isTagEditorInstalled = isPluginInstalled;
-    const effectiveOutputMode = isPluginInstalled ? settings.outputMode : 'default';
+    const effectiveOutputMode = isPluginInstalled || settings.outputMode === 'html_audio'
+        ? settings.outputMode
+        : 'html_audio';
 
     const { setOutputMode: setSettingsOutputMode, setOutputDeviceState: setSettingsOutputDeviceState } = settings;
     useEffect(() => {
-        if (bpStatus !== null && bpStatus.installed === false && settings.outputMode === 'bitperfect') {
-            setSettingsOutputMode('default');
+        if (bpStatus !== null && bpStatus.installed === false && settings.outputMode !== 'html_audio') {
+            setSettingsOutputMode('html_audio');
             setSettingsOutputDeviceState(null);
         }
     }, [bpStatus, settings.outputMode, setSettingsOutputMode, setSettingsOutputDeviceState]);
@@ -595,7 +597,7 @@ function HomeContent() {
                 equalizer={player.equalizer}
                 accentColor={settings.accentColor}
                 lang={lang}
-                disabled={effectiveOutputMode === 'bitperfect'}
+                disabled={effectiveOutputMode !== 'html_audio'}
             />
 
             <MetadataEditModal

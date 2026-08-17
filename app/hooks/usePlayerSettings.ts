@@ -6,7 +6,14 @@ import {
     isBrowserTauri,
     type ShortcutAction,
 } from '../lib/homeState';
-import {getInitialConfig, setStoredValue, syncConfigFromBackend, type SymvoniaConfig} from '../lib/storage';
+import {
+    getInitialConfig,
+    normalizeOutputMode,
+    setStoredValue,
+    syncConfigFromBackend,
+    type OutputMode,
+    type SymvoniaConfig,
+} from '../lib/storage';
 import type {Lang} from '../lib/translations';
 
 export function usePlayerSettings() {
@@ -36,7 +43,7 @@ export function usePlayerSettings() {
     const [customAccentHex, setCustomAccentHexStateInternal] = useState(init.custom_accent_hex);
     const [defaultWallpaper, setDefaultWallpaperState] = useState<string | null>(init.default_wallpaper);
     const [outputDevice, setOutputDeviceStateInternal] = useState<string | null>(init.output_device);
-    const [outputMode, setOutputModeStateInternal] = useState<'default' | 'bitperfect'>(init.output_mode as 'default' | 'bitperfect');
+    const [outputMode, setOutputModeStateInternal] = useState<OutputMode>(() => normalizeOutputMode(init.output_mode));
     const [layoutMode, setLayoutModeStateInternal] = useState<'default' | 'spotify'>(init.layout_mode as 'default' | 'spotify');
     const [shortcuts, setShortcutsState] = useState<Record<ShortcutAction, string>>({
         ...DEFAULT_SHORTCUTS,
@@ -238,7 +245,7 @@ export function usePlayerSettings() {
             if (backendConfig.repeat) setRepeatStateInternal(backendConfig.repeat as 'off' | 'all' | 'one');
             if (backendConfig.default_wallpaper !== undefined) setDefaultWallpaperState(backendConfig.default_wallpaper);
             if (backendConfig.output_device !== undefined) setOutputDeviceStateInternal(backendConfig.output_device);
-            if (backendConfig.output_mode) setOutputModeStateInternal(backendConfig.output_mode as 'default' | 'bitperfect');
+            if (backendConfig.output_mode) setOutputModeStateInternal(normalizeOutputMode(backendConfig.output_mode));
             if (backendConfig.shortcuts) {
                 const sc = { ...DEFAULT_SHORTCUTS, ...backendConfig.shortcuts };
                 setShortcutsState(sc as Record<ShortcutAction, string>);
@@ -256,21 +263,21 @@ export function usePlayerSettings() {
         };
     }, []);
 
-    // Automatically reset outputMode to 'default' if bitperfect engine plugin is confirmed not installed
+    // Native output modes require the audio engine plugin.
     useEffect(() => {
         const handler = (e: Event) => {
             const customEvent = e as CustomEvent<{ installed: boolean } | null>;
             const s = customEvent.detail;
-            if (s !== null && s !== undefined && s.installed === false) {
-                setOutputModeStateInternal('default');
+            if (s !== null && s !== undefined && s.installed === false && outputMode !== 'html_audio') {
+                setOutputModeStateInternal('html_audio');
                 setOutputDeviceStateInternal(null);
-                setStoredValue('output_mode', 'default');
+                setStoredValue('output_mode', 'html_audio');
                 setStoredValue('output_device', null);
             }
         };
         window.addEventListener('bitperfect-status-changed', handler);
         return () => window.removeEventListener('bitperfect-status-changed', handler);
-    }, []);
+    }, [outputMode]);
 
     useEffect(() => {
         if (!isBrowserTauri() || volumeMode !== 'system') {
@@ -430,7 +437,7 @@ export function usePlayerSettings() {
         setStoredValue('output_device', name);
     }, []);
 
-    const setOutputMode = useCallback((mode: 'default' | 'bitperfect') => {
+    const setOutputMode = useCallback((mode: OutputMode) => {
         setOutputModeStateInternal(mode);
         setStoredValue('output_mode', mode);
     }, []);

@@ -5,6 +5,7 @@ import SettingsModal from '../SettingsModal';
 import StreamingModal from '../StreamingModal';
 import type {LogEntry} from '../../types/log';
 import {t, type Lang} from '../../lib/translations';
+import type {OutputMode} from '../../lib/storage';
 
 interface HomeModalsProps {
     lang: Lang;
@@ -41,8 +42,8 @@ interface HomeModalsProps {
     setLayoutMode?: (v: 'default' | 'spotify') => void;
     outputDevice: string | null;
     setOutputDevice: (v: string | null) => void;
-    outputMode: 'default' | 'bitperfect';
-    setOutputMode: (v: 'default' | 'bitperfect') => void;
+    outputMode: OutputMode;
+    setOutputMode: (v: OutputMode) => void;
     folderSort: string;
     setFolderSort: (v: string) => void;
     fileSort: string;

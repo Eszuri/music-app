@@ -8,6 +8,7 @@ import {getAccent} from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
 import {contentMotion} from '../lib/animations';
 import {useHoverDescription} from '../hooks/useHoverDescription';
+import type {OutputMode} from '../lib/storage';
 
 export interface SongMetadata {
     title: string | null;
@@ -37,12 +38,14 @@ interface PlayerPanelProps {
     coverDataUrl: string | null;
     onContextMenu?: (e: React.MouseEvent) => void;
     hideCover?: boolean;
-    outputMode?: 'default' | 'bitperfect';
+    outputMode?: OutputMode;
     bpEngineState?: EngineStateEvent;
 }
 
 function PlayerPanel({lang, metadata, selectedSong, accentColor, coverDataUrl, onContextMenu, hideCover, outputMode, bpEngineState}: PlayerPanelProps) {
     const accent = getAccent(accentColor);
+    const activeNativeMode = bpEngineState?.mode
+        ?? (bpEngineState?.exclusive || outputMode === 'wasapi_exclusive' ? 'exclusive' : 'shared');
     const songTitle = selectedSong
         ? (metadata?.title || selectedSong.name.replace(/\.[^/.]+$/, ''))
         : t(lang, 'player.noSongSelected');
@@ -104,11 +107,11 @@ function PlayerPanel({lang, metadata, selectedSong, accentColor, coverDataUrl, o
                         {songAlbum && (
                             <p {...albumHover} className="text-xs text-white/70 mt-0.5 truncate">{songAlbum}</p>
                         )}
-                        {outputMode === 'bitperfect' && bpEngineState?.state === 'playing' && (
+                        {outputMode !== 'html_audio' && bpEngineState?.state === 'playing' && (
                             <div className="mt-2 flex justify-center">
                                 <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest bg-zinc-900 border ${accent.border500_30} ${accent.text400} shadow-[0_0_10px_rgba(0,0,0,0.5)]`}>
                                     <span className={`w-1.5 h-1.5 rounded-full ${accent.bg500} animate-pulse shadow-[0_0_5px_currentColor]`}></span>
-                                    Bit Perfect {bpEngineState.sampleRate ? `| ${bpEngineState.sampleRate / 1000}kHz` : ''} {bpEngineState.bitDepth ? ` ${bpEngineState.bitDepth}bit` : ''}
+                                    {activeNativeMode === 'exclusive' ? 'WASAPI Exclusive' : 'WASAPI Shared'} {bpEngineState.sampleRate ? `| ${bpEngineState.sampleRate / 1000}kHz` : ''} {bpEngineState.bitDepth ? ` ${bpEngineState.bitDepth}bit` : ''}
                                 </span>
                             </div>
                         )}

@@ -46,8 +46,10 @@ public static class Protocol
 
         // Audio Player parameters
         [JsonPropertyName("path")] public string? Path { get; set; }
-        [JsonPropertyName("exclusive")] public bool Exclusive { get; set; }
+        [JsonPropertyName("mode")] public string? Mode { get; set; }
+        [JsonPropertyName("exclusive")] public bool? Exclusive { get; set; }
         [JsonPropertyName("deviceId")] public string? DeviceId { get; set; }
+        [JsonPropertyName("requestId")] public string? RequestId { get; set; }
         [JsonPropertyName("position")] public double? Position { get; set; }
         [JsonPropertyName("volume")] public float? Volume { get; set; }
 
@@ -97,21 +99,41 @@ public static class Protocol
     public static void EmitState(
         string state,
         string? path,
-        bool exclusive,
+        string? mode,
         int? sampleRate,
         int? bitDepth,
-        string? deviceName)
+        string? deviceName,
+        string? requestId = null)
     {
         Emit(new
         {
             @event = "state",
             state,
             path,
-            exclusive,
+            mode,
+            exclusive = mode == "exclusive",
             sampleRate,
             bitDepth,
-            deviceName
+            deviceName,
+            requestId
         });
+    }
+
+    public static void EmitError(
+        string code,
+        string message,
+        string? context = null,
+        string? mode = null,
+        string? path = null,
+        string? requestId = null,
+        bool recoverable = false)
+    {
+        Emit(new { @event = "error", code, message, context, mode, path, requestId, recoverable });
+    }
+
+    public static void EmitError(string message, string? context = null)
+    {
+        EmitError("ENGINE_ERROR", message, context);
     }
 
     public static void EmitProgress(double position, double duration)
@@ -122,11 +144,6 @@ public static class Protocol
             position = Math.Round(position, 2),
             duration = Math.Round(duration, 2)
         });
-    }
-
-    public static void EmitError(string message, string? context = null)
-    {
-        Emit(new { @event = "error", message, context });
     }
 
     public static void EmitCurveResult(int bandMode, double[] curve, double suggestedAutoPreamp)

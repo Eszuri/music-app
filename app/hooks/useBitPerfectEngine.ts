@@ -1,6 +1,8 @@
 import {useCallback, useEffect, useRef, useState} from "react";
 import {getTauri, isBrowserTauri} from "../lib/homeState";
 
+export type NativeOutputMode = "shared" | "exclusive";
+
 export interface BitPerfectPluginStatus {
     installed: boolean;
     path: string | null;
@@ -11,10 +13,22 @@ export interface BitPerfectPluginStatus {
 export interface EngineStateEvent {
     state: "playing" | "paused" | "stopped" | "ended";
     path: string | null;
+    mode?: NativeOutputMode | null;
     exclusive: boolean;
     sampleRate?: number | null;
     bitDepth?: number | null;
     deviceName?: string | null;
+    requestId?: string | null;
+}
+
+export interface EngineErrorEvent {
+    code?: string;
+    message: string;
+    context?: string;
+    mode?: NativeOutputMode | null;
+    path?: string | null;
+    requestId?: string | null;
+    recoverable?: boolean;
 }
 
 interface EngineProgressEvent {
@@ -31,7 +45,7 @@ export interface EngineDevice {
 interface EngineEventHandlers {
     onState?: (e: EngineStateEvent) => void;
     onProgress?: (e: EngineProgressEvent) => void;
-    onError?: (message: string, context?: string) => void;
+    onError?: (e: EngineErrorEvent) => void;
 }
 
 /**
@@ -111,10 +125,15 @@ export function useBitPerfectEngine(handlers: EngineEventHandlers = {}) {
                         handlersRef.current.onProgress?.(parsed as unknown as EngineProgressEvent);
                         break;
                     case "error":
-                        handlersRef.current.onError?.(
-                            String(parsed.message ?? "Unknown engine error"),
-                            parsed.context ? String(parsed.context) : undefined,
-                        );
+                        handlersRef.current.onError?.({
+                            code: parsed.code ? String(parsed.code) : undefined,
+                            message: String(parsed.message ?? "Unknown engine error"),
+                            context: parsed.context ? String(parsed.context) : undefined,
+                            mode: parsed.mode === "shared" || parsed.mode === "exclusive" ? parsed.mode : null,
+                            path: parsed.path ? String(parsed.path) : null,
+                            requestId: parsed.requestId ? String(parsed.requestId) : null,
+                            recoverable: parsed.recoverable === true,
+                        });
                         break;
                     case "bye":
                         setEngineRunning(false);

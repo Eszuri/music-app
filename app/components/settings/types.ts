@@ -1,6 +1,7 @@
 import type {LogEntry} from '../../types/log';
 
 import type {Lang} from '../../lib/translations';
+import type {OutputMode} from '../../lib/storage';
 
 export type SectionId = 'general' | 'sort' | 'shortcut' | 'style' | 'plugin' | 'audio' | 'lyrics' | 'changelog' | 'about' | 'debug';
 
@@ -54,8 +55,8 @@ export interface SettingsModalProps {
     setLayoutMode?: (v: 'default' | 'spotify') => void;
     outputDevice: string | null;
     setOutputDevice: (v: string | null) => void;
-    outputMode: 'default' | 'bitperfect';
-    setOutputMode: (v: 'default' | 'bitperfect') => void;
+    outputMode: OutputMode;
+    setOutputMode: (v: OutputMode) => void;
     onResetSidebarWidth: () => void;
     onResetAllSettings: () => void;
     logs: LogEntry[];

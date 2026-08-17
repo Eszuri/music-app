@@ -97,12 +97,11 @@ export default function SettingsModal({
     }, [open, onClose]);
 
     const { status } = useBitPerfectEngine();
-    const isPluginInstalled = status?.installed === true;
 
-    // Automatically reset outputMode to 'default' when plugin is confirmed not installed
+    // Native output modes require the audio engine plugin
     useEffect(() => {
-        if (status !== null && status.installed === false && outputMode === 'bitperfect') {
-            setOutputMode('default');
+        if (status !== null && status.installed === false && outputMode !== 'html_audio') {
+            setOutputMode('html_audio');
             setOutputDevice(null);
         }
     }, [status, outputMode, setOutputMode, setOutputDevice]);
@@ -110,14 +109,12 @@ export default function SettingsModal({
     const { pluginStatus: aiPluginStatus } = useAiLyricsPlugin();
     const isAiPluginInstalled = aiPluginStatus?.installed === true;
     const effectiveActiveSection =
-        (activeSection === 'audio' && !isPluginInstalled) ||
         (activeSection === 'lyrics' && !isAiPluginInstalled)
             ? 'plugin'
             : activeSection;
 
     const sections = getSections(lang).filter(s =>
-        (s.id !== 'audio' || isPluginInstalled) &&
-        (s.id !== 'lyrics' || isAiPluginInstalled)
+        s.id !== 'lyrics' || isAiPluginInstalled
     );
 
     return (
@@ -259,7 +256,7 @@ export default function SettingsModal({
                                          setOutputDevice={setOutputDevice}
                                      />
                                  )}
-                                {effectiveActiveSection === 'audio' && isPluginInstalled && (
+                                {effectiveActiveSection === 'audio' && (
                                     <AudioSection
                                         lang={lang}
                                         outputDevice={outputDevice}

@@ -11,7 +11,8 @@ import {
 import {t, type Lang} from "../lib/translations";
 import {useGainBoost} from "./useGainBoost";
 import {useEqualizer} from "./useEqualizer";
-import {useBitPerfectEngine} from "./useBitPerfectEngine";
+import {useBitPerfectEngine, type EngineErrorEvent, type NativeOutputMode} from "./useBitPerfectEngine";
+import type {OutputMode} from "../lib/storage";
 import {useVolumeFade} from "./audio/useVolumeFade";
 import {useAudioSrc} from "./audio/useAudioSrc";
 
@@ -40,7 +41,7 @@ interface UseAudioPlayerOptions {
     systemMuted: boolean;
     fadeAudio?: boolean;
     fadeDuration?: number;
-    outputMode?: "default" | "bitperfect";
+    outputMode?: OutputMode;
     outputDevice?: string | null;
 }
 
@@ -72,7 +73,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         systemMuted,
         fadeAudio = true,
         fadeDuration = 500,
-        outputMode = "default",
+        outputMode = "html_audio",
         outputDevice = null,
     } = options;
 
@@ -120,8 +121,9 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     const playlistFolderRef = useRef<string | null>(null);
     const skipPlaylistRebuildRef = useRef(false);
     const outputDeviceRef = useRef<string | null>(outputDevice);
-    const bpActiveRef = useRef(false);
-    const prevBpActiveRef = useRef<boolean | null>(null);
+    const nativeEngineActiveRef = useRef(false);
+    const nativeEngineModeRef = useRef<NativeOutputMode | null>(null);
+    const prevNativeEngineModeRef = useRef<NativeOutputMode | null>(null);
     const bpSendCommandRef = useRef<(cmd: Record<string, unknown>) => Promise<void>>(async () => {});
     const enginePlayRef = useRef<(file: FileEntry, seekPosition?: number) => Promise<void>>(async () => {});
 
@@ -469,7 +471,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             if (!audio) return;
 
             try {
-                if (bpActiveRef.current) {
+                if (nativeEngineActiveRef.current) {
                     audio.pause();
                     audio.removeAttribute("src");
                     audio.load();
@@ -538,7 +540,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
                 const targetVol = volumeModeRef.current === "app" ? (resumeVolume ?? appVolume) : 1;
 
-                if (bpActiveRef.current) {
+                if (nativeEngineActiveRef.current) {
                     audio.pause();
                     audio.removeAttribute("src");
                     audio.load();
@@ -589,7 +591,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     );
 
     const togglePlayPause = useCallback(() => {
-        if (bpActiveRef.current) {
+        if (nativeEngineActiveRef.current) {
             if (isPlaying) {
                 bpSendCommandRef.current({command: "pause"}).catch(() => {});
             } else {
@@ -743,14 +745,22 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         togglePlayPauseRef.current = togglePlayPause;
     }, [togglePlayPause]);
 
-    // ─── bit-perfect engine (optional WASAPI Exclusive plugin) ────────────────
+    // ─── native WASAPI engine ───────────────────────────────────────────────────
+
+    const nativeOutputMode: NativeOutputMode | null = outputMode === "wasapi_shared"
+        ? "shared"
+        : outputMode === "wasapi_exclusive"
+            ? "exclusive"
+            : null;
 
     const enginePlay = useCallback(
         async (file: FileEntry, seekPosition?: number) => {
+            if (!nativeOutputMode) throw new Error("Native audio mode is not active");
             const cmd: Record<string, unknown> = {
                 command: "play",
                 path: file.path,
-                exclusive: true,
+                mode: nativeOutputMode,
+                exclusive: nativeOutputMode === "exclusive",
                 volume: volumeModeRef.current === "app" ? appVolume : 1,
             };
             if (outputDeviceRef.current) cmd.deviceId = outputDeviceRef.current;
@@ -759,7 +769,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 await bpSendCommandRef.current({command: "seek", position: seekPosition});
             }
         },
-        [appVolume],
+        [appVolume, nativeOutputMode],
     );
 
     useEffect(() => {
@@ -768,7 +778,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
     const bp = useBitPerfectEngine({
         onProgress: (e) => {
-            if (!bpActiveRef.current) return;
+            if (!nativeEngineActiveRef.current) return;
             setCurrentTime(e.position);
             if (e.duration > 0) setDuration(e.duration);
             const song = selectedSongRef.current;
@@ -785,7 +795,8 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             }
         },
         onState: (e) => {
-            if (!bpActiveRef.current) return;
+            if (!nativeEngineActiveRef.current) return;
+            if (e.mode && nativeEngineModeRef.current && e.mode !== nativeEngineModeRef.current) return;
             switch (e.state) {
                 case "playing":
                     setIsPlaying(true);
@@ -822,10 +833,11 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 }
             }
         },
-        onError: (message) => {
-            if (!bpActiveRef.current) return;
+        onError: (error: EngineErrorEvent) => {
+            if (!nativeEngineActiveRef.current) return;
+            if (error.mode && nativeEngineModeRef.current && error.mode !== nativeEngineModeRef.current) return;
             setIsPlaying(false);
-            showError(t(lang, 'log.playbackFailed', {msg: message}));
+            showError(t(lang, 'log.playbackFailed', {msg: error.message}));
         },
     });
 
@@ -833,38 +845,32 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         bpSendCommandRef.current = bp.sendCommand;
     }, [bp.sendCommand]);
 
-    const bpActive = outputMode === "bitperfect" && bp.status?.installed === true;
+    const nativeEngineActive = nativeOutputMode !== null && bp.status?.installed === true;
     useEffect(() => {
-        bpActiveRef.current = bpActive;
-        if (bpActive) {
-            bp.sendCommand({command: "get_state"}).catch(() => {});
-        }
-    }, [bpActive, bp.sendCommand]);
+        const previousMode = prevNativeEngineModeRef.current;
+        const nextMode = nativeEngineActive ? nativeOutputMode : null;
+        nativeEngineActiveRef.current = nativeEngineActive;
+        nativeEngineModeRef.current = nextMode;
 
-    // Switching playback engine: silence whichever side is being left behind.
-    useEffect(() => {
-        if (prevBpActiveRef.current === null) {
-            prevBpActiveRef.current = bpActive;
+        if (previousMode === nextMode) {
+            if (nextMode) bpSendCommandRef.current({command: "get_state"}).catch(() => {});
             return;
         }
-        if (prevBpActiveRef.current === bpActive) return;
-        prevBpActiveRef.current = bpActive;
+
+        prevNativeEngineModeRef.current = nextMode;
         const frame = requestAnimationFrame(() => {
-            if (bpActive) {
-                resetPlayer();
-                addLog("info", t(lang, 'audio.bitperfect.log.enabled'));
-            } else {
-                bpSendCommandRef.current({command: "stop"}).catch(() => {});
-                resetPlayer();
-                addLog("info", t(lang, 'audio.bitperfect.log.disabled'));
-            }
+            if (previousMode) bpSendCommandRef.current({command: "stop"}).catch(() => {});
+            resetPlayer();
+            addLog("info", nextMode
+                ? t(lang, 'audio.outputMode.log.enabled', {mode: nextMode === "exclusive" ? "WASAPI Exclusive" : "WASAPI Shared"})
+                : t(lang, 'audio.outputMode.log.disabled'));
         });
         return () => cancelAnimationFrame(frame);
-    }, [bpActive, addLog, lang, resetPlayer]);
+    }, [nativeEngineActive, nativeOutputMode, bp.sendCommand, addLog, lang, resetPlayer]);
 
-    // Keep engine volume in sync with the app volume slider.
+    // Keep native engine volume in sync with the app volume slider.
     useEffect(() => {
-        if (!bpActiveRef.current) return;
+        if (!nativeEngineActiveRef.current) return;
         bpSendCommandRef.current({
             command: "set_volume",
             volume: volumeMode === "app" ? appVolume : 1,
@@ -940,7 +946,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         const flush = () => {
             if ((window as unknown as { __symvoniaResetInProgress?: boolean }).__symvoniaResetInProgress) return;
             const song = selectedSongRef.current;
-            const curTime = bpActiveRef.current ? currentTimeRef.current : audioRef.current?.currentTime;
+            const curTime = nativeEngineActiveRef.current ? currentTimeRef.current : audioRef.current?.currentTime;
             if (song && curTime && curTime > 0) {
                 saveSessionState({
                     filePath: song.path,
@@ -1048,7 +1054,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
     const seekTo = useCallback((t: number) => {
         setCurrentTime(t);
-        if (bpActiveRef.current) {
+        if (nativeEngineActiveRef.current) {
             bpSendCommandRef.current({command: "seek", position: t}).catch(() => {});
         } else if (audioRef.current) {
             audioRef.current.currentTime = t;
@@ -1122,6 +1128,6 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         equalizer,
         refreshFiles,
         bpEngineState: bp.engineState,
-        bpActive,
+        nativeEngineActive,
     };
 }

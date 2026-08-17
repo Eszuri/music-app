@@ -1,10 +1,11 @@
 'use client';
 
 import {useCallback, useEffect, useState} from 'react';
-import {SettingGroup, SettingRow, ToggleStub} from './controls';
+import {SelectStub, SettingGroup, SettingRow} from './controls';
 import {t, type Lang} from '../../lib/translations';
 import {getAccent} from '../../lib/colors';
 import {useBitPerfectEngine, type EngineDevice} from '../../hooks/useBitPerfectEngine';
+import type {OutputMode} from '../../lib/storage';
 import ConfirmDialog from '../ConfirmDialog';
 
 export default function AudioSection({
@@ -18,21 +19,16 @@ export default function AudioSection({
     lang: Lang;
     outputDevice: string | null;
     setOutputDevice: (v: string | null) => void;
-    outputMode: 'default' | 'bitperfect';
-    setOutputMode: (v: 'default' | 'bitperfect') => void;
+    outputMode: OutputMode;
+    setOutputMode: (v: OutputMode) => void;
     accentColor: string;
 }) {
     const accent = getAccent(accentColor);
-    const {
-        status,
-        engineState,
-        getDevices,
-    } = useBitPerfectEngine();
-
+    const {status, engineState, getDevices} = useBitPerfectEngine();
     const [devices, setDevices] = useState<EngineDevice[]>([]);
-    const [confirmBpOpen, setConfirmBpOpen] = useState(false);
-
+    const [confirmExclusiveOpen, setConfirmExclusiveOpen] = useState(false);
     const installed = status?.installed === true;
+    const nativeMode = outputMode === 'wasapi_shared' || outputMode === 'wasapi_exclusive';
 
     const refreshDevices = useCallback(() => {
         getDevices().then((list) => {
@@ -44,64 +40,74 @@ export default function AudioSection({
         if (installed) refreshDevices();
     }, [installed, refreshDevices]);
 
+    const selectMode = (value: string) => {
+        if ((value === 'wasapi_shared' || value === 'wasapi_exclusive') && !installed) {
+            setOutputMode('html_audio');
+            return;
+        }
+        if (value === 'wasapi_exclusive') {
+            setConfirmExclusiveOpen(true);
+            return;
+        }
+        if (value === 'html_audio' || value === 'wasapi_shared') {
+            setOutputMode(value);
+        }
+    };
 
+    const activeMode = engineState?.mode
+        ?? (engineState?.exclusive ? 'exclusive' : null)
+        ?? (outputMode === 'wasapi_exclusive' ? 'exclusive' : outputMode === 'wasapi_shared' ? 'shared' : null);
+    const activeLabel = activeMode === 'exclusive'
+        ? t(lang, 'audio.outputMode.wasapiExclusive')
+        : activeMode === 'shared'
+            ? t(lang, 'audio.outputMode.wasapiShared')
+            : t(lang, 'audio.outputMode.htmlAudio');
 
     return (
         <div className="space-y-6">
             <ConfirmDialog
                 lang={lang}
-                open={confirmBpOpen}
+                open={confirmExclusiveOpen}
                 title={t(lang, 'audio.bitperfect.confirmTitle')}
                 message={t(lang, 'audio.bitperfect.confirmMessage')}
                 confirmLabel={t(lang, 'audio.bitperfect.confirmBtn')}
                 cancelLabel={t(lang, 'confirm.defaultCancel')}
                 accentColor={accentColor}
                 onConfirm={() => {
-                    setOutputMode('bitperfect');
-                    setConfirmBpOpen(false);
+                    setOutputMode('wasapi_exclusive');
+                    setConfirmExclusiveOpen(false);
                 }}
-                onCancel={() => setConfirmBpOpen(false)}
+                onCancel={() => setConfirmExclusiveOpen(false)}
             />
-
 
             <SettingGroup title={t(lang, 'audio.group.mode')}>
                 <SettingRow
-                    title={
-                        <div className="flex items-center gap-2">
-                            {t(lang, 'audio.bitperfect.enable.title')}
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold tracking-widest uppercase bg-amber-500/20 text-amber-500 border border-amber-500/30">
-                                Beta
-                            </span>
-                        </div>
-                    }
-                    description={
-                        installed
-                            ? t(lang, 'audio.bitperfect.enable.desc')
-                            : t(lang, 'audio.bitperfect.enable.needsPlugin')
-                    }
+                    title={t(lang, 'audio.outputMode.title')}
+                    description={installed
+                        ? t(lang, 'audio.outputMode.desc')
+                        : t(lang, 'audio.outputMode.needsPlugin')}
                 >
-                    <ToggleStub
-                        checked={outputMode === 'bitperfect'}
-                        disabled={!installed}
-                        accent={accent}
-                        onChange={(v) => {
-                            if (v) {
-                                setConfirmBpOpen(true);
-                            } else {
-                                setOutputMode('default');
-                            }
-                        }}
+                    <SelectStub
+                        options={[
+                            ['html_audio', t(lang, 'audio.outputMode.htmlAudio')],
+                            ['wasapi_shared', t(lang, 'audio.outputMode.wasapiShared')],
+                            ['wasapi_exclusive', t(lang, 'audio.outputMode.wasapiExclusive')],
+                        ]}
+                        value={outputMode}
+                        onChange={selectMode}
                     />
                 </SettingRow>
                 <SettingRow
                     title={t(lang, 'audio.bitperfect.device.title')}
-                    description={t(lang, 'audio.bitperfect.device.desc')}
+                    description={nativeMode
+                        ? t(lang, 'audio.bitperfect.device.desc')
+                        : t(lang, 'audio.outputMode.deviceIgnored')}
                 >
                     <div className="flex items-center gap-2">
                         <select
                             value={outputDevice || ''}
                             onChange={(e) => setOutputDevice(e.target.value ? e.target.value : null)}
-                            disabled={!installed}
+                            disabled={!installed || !nativeMode}
                             className="px-3 py-1.5 rounded-lg bg-zinc-800/60 border border-zinc-700/50 text-xs text-zinc-300 cursor-pointer min-w-35 max-w-55 outline-none hover:bg-zinc-700/70 focus:bg-zinc-700/70 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             <option value="" className="bg-zinc-900 text-zinc-200">
@@ -116,16 +122,16 @@ export default function AudioSection({
                         <button
                             type="button"
                             onClick={refreshDevices}
-                            disabled={!installed}
+                            disabled={!installed || !nativeMode}
                             className="px-2.5 py-1.5 rounded-lg bg-zinc-800/60 border border-zinc-700/50 text-xs text-zinc-400 cursor-pointer hover:bg-zinc-700/70 hover:text-zinc-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             {t(lang, 'audio.bitperfect.device.refresh')}
                         </button>
                     </div>
                 </SettingRow>
-                {outputMode === 'bitperfect' && engineState?.state === 'playing' && engineState.sampleRate && (
+                {nativeMode && engineState?.state === 'playing' && engineState.sampleRate && (
                     <SettingRow
-                        title={t(lang, 'audio.bitperfect.enable.title')}
+                        title={t(lang, 'audio.outputMode.activeTitle')}
                         description={t(lang, 'audio.bitperfect.nowPlaying', {
                             rate: engineState.sampleRate,
                             bits: engineState.bitDepth ?? 0,
@@ -133,12 +139,11 @@ export default function AudioSection({
                         })}
                     >
                         <span className={`text-[10px] font-semibold uppercase tracking-wider ${accent.text400}`}>
-                            ● EXCLUSIVE
+                            ● {activeLabel}
                         </span>
                     </SettingRow>
                 )}
             </SettingGroup>
-
         </div>
     );
 }

@@ -12,6 +12,7 @@ import {
 import FolderExplorer, {FileEntry} from "../FolderExplorer";
 import PlayerPanel, {SongMetadata} from "../PlayerPanel";
 import type {EngineStateEvent} from '../../hooks/useBitPerfectEngine';
+import type {OutputMode} from '../../lib/storage';
 import SeekBar from "../SeekBar";
 import PlaybackControls from "../PlaybackControls";
 import VolumeControl from "../VolumeControl";
@@ -74,7 +75,7 @@ interface HomePlayerAreaProps {
     onGlobalContextMenu: (e: React.MouseEvent) => void;
     onCoverSaved: () => void;
     onOpenEditMetadata?: (file?: FileEntry) => void;
-    outputMode?: 'default' | 'bitperfect';
+    outputMode?: OutputMode;
     bpEngineState?: EngineStateEvent;
     lyricsSearchOpen?: boolean;
     onOpenLyricsSearch?: () => void;
@@ -648,7 +649,7 @@ function HomePlayerArea({
                                                     supported={gainBoostSupported}
                                                     accentColor={accentColor}
                                                     lang={lang}
-                                                    disabled={outputMode === 'bitperfect'}
+                                                    disabled={outputMode !== 'html_audio'}
                                                 />
                                             </div>
                                         </motion.div>
