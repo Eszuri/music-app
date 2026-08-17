@@ -2,6 +2,7 @@ import {useCallback, useEffect, useRef, useState} from "react";
 import type {FileEntry} from "../components/FolderExplorer";
 import type {SongMetadata} from "../components/PlayerPanel";
 import {
+    fetchSessionState,
     getTauri,
     isBrowserTauri,
     loadSessionState,
@@ -385,6 +386,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 void loadFiles(currentPath);
             } else {
                 setFiles([]);
+                setFilesLoadedOnce(true);
             }
         }, 0);
         return () => window.clearTimeout(timer);
@@ -430,18 +432,19 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             if (isMountedRef.current) setSessionRestored(true);
         };
 
-        const session = loadSessionState();
-        if (!session) {
-            sessionRestoreAttemptedRef.current = true;
-            done();
-            return;
-        }
+        const executeRestore = async () => {
+            const session = await fetchSessionState();
+            if (!isMountedRef.current) return;
+            if (!session) {
+                sessionRestoreAttemptedRef.current = true;
+                done();
+                return;
+            }
 
-        const savedParent = session.filePath.replace(/[/\\][^/\\]+$/, "");
+            const savedParent = session.filePath.replace(/[/\\][^/\\]+$/, "");
 
-        if (savedParent !== currentPath) {
-            sessionRestoreAttemptedRef.current = true;
-            const doNavAndRestore = async () => {
+            if (savedParent !== currentPath) {
+                sessionRestoreAttemptedRef.current = true;
                 try {
                     const token = ++loadFilesTokenRef.current;
                     const mod = await getTauri();
@@ -463,17 +466,18 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 } finally {
                     done();
                 }
-            };
-            doNavAndRestore();
-            return;
-        }
+                return;
+            }
 
-        if (!files.length && loadingFiles) {
-            return;
-        }
+            if (!files.length && loadingFiles) {
+                return;
+            }
 
-        sessionRestoreAttemptedRef.current = true;
-        restoreFromFileList(files, session).finally(done);
+            sessionRestoreAttemptedRef.current = true;
+            restoreFromFileList(files, session).finally(done);
+        };
+
+        void executeRestore();
 
         async function restoreFromFileList(
             fileList: FileEntry[],

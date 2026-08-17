@@ -48,7 +48,7 @@ export interface SessionState {
     timestamp: number;
 }
 
-import { getStoredValue, setStoredValue } from './storage';
+import { getStoredValue, setStoredValue, syncConfigFromBackend, type SymvoniaConfig } from './storage';
 
 export function loadSavedFolder(): string | null {
     return getStoredValue('music_folder', null);
@@ -64,6 +64,30 @@ export function loadSessionState(): SessionState | null {
         currentTime: raw.current_time,
         timestamp: raw.timestamp,
     };
+}
+
+export async function fetchSessionState(): Promise<SessionState | null> {
+    const fromMemory = loadSessionState();
+    if (fromMemory) return fromMemory;
+    if (isBrowserTauri()) {
+        try {
+            const mod = await getTauri();
+            const cfg = await mod.invoke<SymvoniaConfig>('get_app_config');
+            if (cfg) {
+                syncConfigFromBackend(cfg);
+                if (cfg.last_session && cfg.last_session.file_path && typeof cfg.last_session.current_time === 'number') {
+                    return {
+                        filePath: cfg.last_session.file_path,
+                        currentTime: cfg.last_session.current_time,
+                        timestamp: cfg.last_session.timestamp,
+                    };
+                }
+            }
+        } catch {
+            // ignore
+        }
+    }
+    return null;
 }
 
 export function saveSessionState(state: SessionState | null, immediate?: boolean): void {
