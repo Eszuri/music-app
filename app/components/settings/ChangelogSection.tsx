@@ -5,6 +5,12 @@ import {type Lang} from '../../lib/translations';
 
 const changelogEn = [
     {
+        version: '1.0.4',
+        items: [
+            'Bug fixes and stability improvements.',
+        ],
+    },
+    {
         version: '1.0.3',
         items: [
             'Local AI Lyrics Generator: Generate synchronized LRC lyrics offline using Whisper AI models (Tiny, Base, Small, Medium, Large) with real-time progress and CPU multi-threading.',
@@ -175,6 +181,12 @@ const changelogEn = [
 ];
 
 const changelogId = [
+    {
+        version: '1.0.4',
+        items: [
+            'Perbaikan bug dan peningkatan stabilitas.',
+        ],
+    },
     {
         version: '1.0.3',
         items: [
