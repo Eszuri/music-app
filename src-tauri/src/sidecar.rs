@@ -4,7 +4,7 @@ use std::sync::Mutex;
 
 use tauri::{AppHandle, Emitter};
 
-use crate::plugin_manager;
+use crate::unified_engine_manager;
 
 /// Running instance of the C# audio engine process.
 pub struct AudioEngineProcess {
@@ -26,7 +26,7 @@ impl AudioEngineProcess {
 static ENGINE: Mutex<Option<AudioEngineProcess>> = Mutex::new(None);
 
 fn spawn_engine(app: &AppHandle) -> Result<(), String> {
-    let exe = plugin_manager::plugin_exe_path(app)?;
+    let exe = unified_engine_manager::plugin_exe_path(app)?;
     if !exe.exists() {
         return Err(
             "Bit-perfect audio engine is not installed. Install the plugin first.".to_string(),
@@ -34,7 +34,7 @@ fn spawn_engine(app: &AppHandle) -> Result<(), String> {
     }
 
     // Verify executable integrity & validity before execution (cached with file fingerprint)
-    plugin_manager::verify_with_cache(&exe)?;
+    unified_engine_manager::verify_with_cache(&exe)?;
 
     let mut cmd = Command::new(&exe);
     cmd.stdin(Stdio::piped())

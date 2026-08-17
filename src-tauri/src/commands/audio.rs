@@ -317,7 +317,7 @@ pub fn save_metadata(
     cover_b64: Option<String>,
     cover_mime: Option<String>,
 ) -> Result<(), String> {
-    crate::tag_editor_plugin_manager::write_tags_via_plugin(
+    crate::unified_engine_manager::write_tags_via_plugin(
         &app,
         &file_path,
         title,

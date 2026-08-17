@@ -1,10 +1,8 @@
-using Symvonia.AudioEngine;
-
-// Symvonia Bit-Perfect Audio Engine — headless console process.
-// Speaks JSON lines on stdin/stdout (see Protocol.cs). Nothing else may ever
-// be written to stdout, or the host's JSON parser will break.
-
 using System.Runtime.InteropServices;
+using Symvonia.Engine;
+
+// Symvonia Unified Audio Engine — WASAPI Exclusive Playback, Equalizer DSP, & TagLib# Metadata.
+// Speaks JSON lines on stdin/stdout (see Protocol.cs).
 
 [DllImport("kernel32.dll", SetLastError = true)]
 static extern IntPtr GetStdHandle(int nStdHandle);
@@ -37,9 +35,10 @@ if (args.Length >= 2 && args[0] == "--verify")
     Protocol.Emit(new
     {
         @event = "verify_response",
-        token = token,
+        token,
         engine = "Symvonia Audio Engine",
-        version = "1.0.0"
+        version = "2.0.0",
+        capabilities = new[] { "audio", "equalizer", "tags" }
     });
     return;
 }
@@ -51,7 +50,7 @@ player.PlaybackEnded += () =>
     Protocol.EmitState("ended", player.CurrentPath, player.IsExclusive, null, null, player.DeviceName);
 };
 
-Protocol.Emit(new { @event = "ready", version = "1.0.0" });
+Protocol.Emit(new { @event = "ready", version = "2.0.0" });
 
 string? line;
 while ((line = Console.In.ReadLine()) != null)
@@ -70,6 +69,7 @@ while ((line = Console.In.ReadLine()) != null)
     {
         switch (cmd.Name)
         {
+            // === Audio Player Commands ===
             case "play":
             {
                 if (string.IsNullOrEmpty(cmd.Path))
@@ -136,6 +136,70 @@ while ((line = Console.In.ReadLine()) != null)
                 break;
             }
 
+            // === DSP / Equalizer Commands ===
+            case "ping":
+                Protocol.Emit(new { @event = "pong" });
+                break;
+
+            case "get_curve":
+            {
+                int bandMode = cmd.BandMode ?? 10;
+                double[] bands = cmd.Bands ?? [];
+                double preamp = cmd.Preamp ?? 0.0;
+                double[] curve = DspEngine.CalculateResponseCurve(bandMode, bands, preamp);
+                double autoPreamp = DspEngine.CalculateAutoPreamp(bands);
+                Protocol.EmitCurveResult(bandMode, curve, autoPreamp);
+                break;
+            }
+
+            case "calculate_coefficients":
+            {
+                int bandMode = cmd.BandMode ?? 10;
+                double[] bands = cmd.Bands ?? [];
+                double sampleRate = cmd.SampleRate ?? 44100.0;
+                var freqs = DspEngine.GetFrequenciesForBandMode(bandMode);
+                double q = (bandMode == 31) ? 4.3 : (bandMode == 15 ? 2.0 : 1.4);
+
+                var filters = new List<object>();
+                for (int i = 0; i < freqs.Length && i < bands.Length; i++)
+                {
+                    var coef = DspEngine.ComputePeakingEq(freqs[i], bands[i], q, sampleRate);
+                    filters.Add(new
+                    {
+                        freq = freqs[i],
+                        gain = bands[i],
+                        b0 = coef.B0,
+                        b1 = coef.B1,
+                        b2 = coef.B2,
+                        a1 = coef.A1,
+                        a2 = coef.A2
+                    });
+                }
+
+                Protocol.Emit(new
+                {
+                    @event = "coefficients_result",
+                    bandMode,
+                    sampleRate,
+                    filters
+                });
+                break;
+            }
+
+            // === Metadata Tag Editor Commands ===
+            case "write_tags":
+            {
+                if (string.IsNullOrEmpty(cmd.FilePath))
+                {
+                    Protocol.EmitWriteResult("", false, "Missing 'filePath' parameter");
+                    break;
+                }
+                var (success, error) = TagEngine.WriteTags(cmd.FilePath, cmd.Tags, cmd.Artwork);
+                Protocol.EmitWriteResult(cmd.FilePath, success, error);
+                break;
+            }
+
+            // === System Commands ===
             case "shutdown":
                 Protocol.Emit(new { @event = "bye" });
                 player.Stop();
@@ -152,5 +216,4 @@ while ((line = Console.In.ReadLine()) != null)
     }
 }
 
-// stdin closed by host → exit cleanly.
 player.Stop();

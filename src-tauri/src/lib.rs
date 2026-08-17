@@ -5,11 +5,10 @@ use tauri::Manager;
 pub mod ai_lyrics_plugin_manager;
 pub mod audio;
 pub mod commands;
-pub mod equalizer_plugin_manager;
-pub mod plugin_manager;
+pub mod migration;
 pub mod sidecar;
 pub mod sidecar_lyrics;
-pub mod tag_editor_plugin_manager;
+pub mod unified_engine_manager;
 
 pub use commands::*;
 
@@ -76,6 +75,7 @@ pub fn run() {
         }))
         .setup(|app| {
             let handle = app.handle();
+            let _ = migration::migrate_legacy_plugins(handle);
             let initial_config = commands::config::load_config(handle);
             let json_str = serde_json::to_string(&initial_config).unwrap_or_else(|_| "{}".to_string());
             if let Some(window) = app.get_webview_window("main") {
@@ -146,6 +146,7 @@ pub fn run() {
             get_app_config,
             save_app_config,
             set_app_config_key,
+            save_config_value,
             reset_app_config,
             open_config_folder,
             get_storage_usage,
@@ -308,7 +309,7 @@ pub fn run() {
             // Kill all sidecar engines and downloads so they never outlive the host app.
             let _ = sidecar::stop_engine();
             sidecar_lyrics::stop_engine();
-            plugin_manager::cancel_download();
+            unified_engine_manager::cancel_download();
             ai_lyrics_plugin_manager::cancel_download();
             if commands::wallpaper::RESET_ON_CLOSE.load(Ordering::SeqCst) {
                 let has_default = commands::wallpaper::DEFAULT_WALLPAPER_PATH.lock()

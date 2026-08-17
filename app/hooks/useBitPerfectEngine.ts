@@ -46,6 +46,8 @@ export function useBitPerfectEngine(handlers: EngineEventHandlers = {}) {
         setStatus(newStatus);
         if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('bitperfect-status-changed', { detail: newStatus }));
+            window.dispatchEvent(new CustomEvent('equalizer-status-changed', { detail: newStatus }));
+            window.dispatchEvent(new CustomEvent('tageditor-status-changed', { detail: newStatus }));
         }
     }, []);
     const [downloading, setDownloading] = useState(false);

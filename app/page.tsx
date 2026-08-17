@@ -221,9 +221,9 @@ function HomeContent() {
     }, [settings.volumeLimitExceeded, settings.volumeLimit, showStatusNotif]);
 
     const { status: bpStatus } = useBitPerfectEngine();
-    const { installed: isEqualizerInstalled } = useEqualizerPlugin();
-    const { installed: isTagEditorInstalled } = useTagEditorPlugin();
     const isPluginInstalled = bpStatus?.installed === true;
+    const isEqualizerInstalled = isPluginInstalled;
+    const isTagEditorInstalled = isPluginInstalled;
     const effectiveOutputMode = isPluginInstalled ? settings.outputMode : 'default';
 
     const { setOutputMode: setSettingsOutputMode, setOutputDeviceState: setSettingsOutputDeviceState } = settings;

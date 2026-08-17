@@ -10,8 +10,6 @@
     "tauri": "tauri",
     "build:plugin-audio": "build-plugin-audio.bat",
     "build:plugin-lyrics": "build-plugin-lyrics.bat",
-    "build:plugin-equalizer": "build-plugin-equalizer.bat",
-    "build:plugin-tag-editor": "build-plugin-tag-editor.bat",
     "build:plugins": "build-all-plugins.bat"
   },
   "dependencies": {

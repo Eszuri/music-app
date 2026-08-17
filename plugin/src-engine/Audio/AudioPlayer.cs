@@ -2,7 +2,7 @@ using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 
-namespace Symvonia.AudioEngine;
+namespace Symvonia.Engine;
 
 /// <summary>
 /// NAudio playback pipeline: AudioFileReader → WasapiOut.
@@ -93,10 +93,6 @@ public sealed class AudioPlayer : IDisposable
 
             if (exclusive)
             {
-                // CreateExclusiveOutput returns an already-initialized WasapiOut.
-                // Do NOT call Init again — a second Init would try to re-acquire
-                // the device we just grabbed exclusively (AUDCLNT_E_DEVICE_IN_USE)
-                // and would discard the PCM-conversion wrapper.
                 _output = CreateExclusiveOutput(_device, _pausable);
             }
             else
@@ -118,9 +114,6 @@ public sealed class AudioPlayer : IDisposable
         int sourceRate = reader.WaveFormat.SampleRate;
         int channels = reader.WaveFormat.Channels;
 
-        // Candidate formats, most bit-transparent first. float32 is the native
-        // output of AudioFileReader (no conversion at all); PCM24/16 require an
-        // in-memory bit-depth conversion but keep the source sample rate.
         var attempts = new List<(Func<ISampleProvider, IWaveProvider> wrap, string label)>
         {
             ((Func<ISampleProvider, IWaveProvider>)(r => r.ToWaveProvider()), $"float32 {sourceRate}Hz"),
@@ -292,7 +285,7 @@ public sealed class AudioPlayer : IDisposable
                 if (playing)
                     Protocol.EmitProgress(progress.pos, progress.dur);
             }
-            catch { /* never let the timer thread die on transient errors */ }
+            catch { /* ignore */ }
         }, null, TimeSpan.FromMilliseconds(250), TimeSpan.FromMilliseconds(250));
     }
 
@@ -313,7 +306,6 @@ public sealed class AudioPlayer : IDisposable
         bool endedNaturally;
         lock (_gate)
         {
-            // Natural end: output stopped on its own while reader reached the end.
             endedNaturally = _reader != null
                 && _reader.CurrentTime >= _reader.TotalTime - TimeSpan.FromMilliseconds(150);
         }
@@ -370,5 +362,3 @@ internal class PausableSampleProvider : ISampleProvider
         return _source.Read(buffer, offset, count);
     }
 }
-
-

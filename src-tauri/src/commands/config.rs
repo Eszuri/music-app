@@ -241,7 +241,7 @@ pub fn load_config(app: &AppHandle) -> SymvoniaConfig {
             Ok(mut config) => {
                 config.sanitize();
                 if config.output_mode == "bitperfect" {
-                    if let Ok(status) = crate::plugin_manager::get_status(app) {
+                    if let Ok(status) = crate::unified_engine_manager::get_status(app) {
                         if !status.installed {
                             config.output_mode = "default".to_string();
                             config.output_device = None;
@@ -287,7 +287,7 @@ pub fn save_config(app: &AppHandle, config: &SymvoniaConfig) -> Result<(), Strin
     sanitized.sanitize();
 
     if sanitized.output_mode == "bitperfect" {
-        if let Ok(status) = crate::plugin_manager::get_status(app) {
+        if let Ok(status) = crate::unified_engine_manager::get_status(app) {
             if !status.installed {
                 sanitized.output_mode = "default".to_string();
                 sanitized.output_device = None;
@@ -370,6 +370,15 @@ pub fn set_app_config_key(
     }
 
     save_config(&app, &config)
+}
+
+#[tauri::command]
+pub fn save_config_value(
+    app: AppHandle,
+    key: String,
+    value: serde_json::Value,
+) -> Result<(), String> {
+    set_app_config_key(app, key, value)
 }
 
 #[tauri::command]

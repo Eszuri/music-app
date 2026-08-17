@@ -1,4 +1,4 @@
-namespace Symvonia.Equalizer;
+namespace Symvonia.Engine;
 
 /// <summary>
 /// High-precision 64-bit floating-point audio DSP and Filter Coefficient Engine.

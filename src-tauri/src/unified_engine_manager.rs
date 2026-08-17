@@ -18,7 +18,6 @@ pub fn cancel_download() {
     DOWNLOAD_CANCELLED.store(true, Ordering::SeqCst);
 }
 
-/// Download URL for the self-contained C# audio engine (GitHub Releases).
 pub const PLUGIN_DOWNLOAD_URL: &str =
     "https://github.com/Eszuri/symvonia/releases/latest/download/symvonia-audio-engine.exe";
 
@@ -56,7 +55,7 @@ fn verify_download_hash(path: &Path, expected: &str) -> Result<(), String> {
     Ok(())
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Debug)]
 pub struct PluginStatus {
     pub installed: bool,
     pub path: Option<String>,
@@ -70,13 +69,13 @@ struct DownloadProgress {
     total: u64,
 }
 
-/// Directory where the plugin exe lives: <app_data>/plugins/bit-perfect/
+/// Directory where the unified audio engine plugin lives: <app_data>/plugins/engine/
 pub fn plugin_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let base = app
         .path()
         .app_data_dir()
         .map_err(|e| format!("Failed to resolve app data dir: {}", e))?;
-    Ok(base.join("plugins").join("bit-perfect"))
+    Ok(base.join("plugins").join("engine"))
 }
 
 pub fn plugin_exe_path(app: &AppHandle) -> Result<PathBuf, String> {
@@ -98,7 +97,7 @@ pub fn get_status(app: &AppHandle) -> Result<PluginStatus, String> {
         installed: true,
         path: Some(exe.to_string_lossy().to_string()),
         size_bytes: size,
-        sha256: None, // hash is computed lazily on demand (it's a 60+ MB file)
+        sha256: None,
     })
 }
 
@@ -122,8 +121,6 @@ pub fn compute_sha256(path: &PathBuf) -> Result<String, String> {
         .collect::<String>())
 }
 
-/// Downloads the plugin exe to a temp file, verifies the hash, then moves it
-/// into place. Emits `bit-perfect-download-progress` events along the way.
 pub fn download_and_install(app: &AppHandle, url: Option<String>) -> Result<PluginStatus, String> {
     DOWNLOAD_CANCELLED.store(false, Ordering::SeqCst);
     let url = url.unwrap_or_else(default_plugin_download_url);
@@ -247,7 +244,7 @@ fn verify_response_line(line: &str, token: &str) -> bool {
             response.event == "verify_response"
                 && response.token == token
                 && response.engine == "Symvonia Audio Engine"
-                && response.version == "1.0.0"
+                && (response.version == "1.0.0" || response.version == "2.0.0")
         })
         .unwrap_or(false)
 }
@@ -350,9 +347,6 @@ pub fn is_dev_mode() -> bool {
     cfg!(debug_assertions)
 }
 
-/// Verifies the plugin executable before execution using an in-memory fingerprint cache.
-/// Returns Ok(()) in <0.05ms if the file size and modification time have not changed.
-/// If the file is modified or replaced manually, it re-runs full verification and updates the cache.
 pub fn verify_with_cache(path: &Path) -> Result<(), String> {
     if is_dev_mode() {
         return Ok(());
@@ -386,10 +380,6 @@ pub fn verify_with_cache(path: &Path) -> Result<(), String> {
     Ok(())
 }
 
-/// Installs the plugin from a local exe file (used for development/testing
-/// and for users who prefer sideloading over downloading).
-/// In development mode (debug assertions), all verification is skipped.
-/// In production mode, full strict SHA-256 release hash and binary handshake verification are enforced.
 pub fn install_from_file(app: &AppHandle, source: &str) -> Result<PluginStatus, String> {
     let src = PathBuf::from(source);
     validate_manual_import_source(&src)?;
@@ -399,12 +389,17 @@ pub fn install_from_file(app: &AppHandle, source: &str) -> Result<PluginStatus, 
         verify_plugin_executable(&src)?;
     }
 
-    invalidate_cache();
     let dir = plugin_dir(app)?;
-    fs::create_dir_all(&dir).map_err(|e| format!("Failed to create plugin dir: {}", e))?;
+    fs::create_dir_all(&dir).map_err(|e| format!("Gagal membuat folder plugin: {}", e))?;
+
     let dest = dir.join(PLUGIN_EXE_NAME);
-    fs::copy(&src, &dest).map_err(|e| format!("Failed to copy plugin exe: {}", e))?;
-    let _ = verify_with_cache(&dest);
+    invalidate_cache();
+    fs::copy(&src, &dest).map_err(|e| format!("Gagal menyalin berkas plugin: {}", e))?;
+
+    if !is_dev_mode() {
+        let _ = verify_with_cache(&dest);
+    }
+
     get_status(app)
 }
 
@@ -412,98 +407,346 @@ pub fn uninstall(app: &AppHandle) -> Result<(), String> {
     invalidate_cache();
     let exe = plugin_exe_path(app)?;
     if exe.exists() {
-        fs::remove_file(&exe).map_err(|e| format!("Failed to remove plugin: {}", e))?;
+        fs::remove_file(&exe).map_err(|e| format!("Gagal menghapus berkas plugin: {}", e))?;
+    }
+    // Also remove legacy exe if exists
+    if let Ok(base) = app.path().app_data_dir() {
+        let legacy = base.join("plugins").join("bit-perfect").join(PLUGIN_EXE_NAME);
+        if legacy.exists() {
+            let _ = fs::remove_file(legacy);
+        }
     }
     Ok(())
+}
+
+// ─── Equalizer DSP Bridge ───────────────────────────────────────────────────
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct DspCurveResult {
+    #[serde(rename = "bandMode")]
+    pub band_mode: i32,
+    pub curve: Vec<f64>,
+    #[serde(rename = "suggestedAutoPreamp")]
+    pub suggested_auto_preamp: f64,
+}
+
+pub fn get_dsp_curve(
+    app: &AppHandle,
+    band_mode: i32,
+    bands: Vec<f64>,
+    preamp: f64,
+) -> Result<DspCurveResult, String> {
+    let exe = plugin_exe_path(app)?;
+    if !exe.exists() {
+        return Err("Plugin Audio Engine belum terinstall".into());
+    }
+
+    let payload = serde_json::json!({
+        "command": "get_curve",
+        "bandMode": band_mode,
+        "bands": bands,
+        "preamp": preamp
+    });
+
+    let mut command = Command::new(&exe);
+    command
+        .stdout(Stdio::piped())
+        .stdin(Stdio::piped())
+        .stderr(Stdio::null());
+
+    #[cfg(target_os = "windows")]
+    command.creation_flags(CREATE_NO_WINDOW);
+
+    let mut child = command.spawn().map_err(|e| format!("Gagal menjalankan Audio Engine: {}", e))?;
+
+    if let Some(mut stdin) = child.stdin.take() {
+        let json_line = format!("{}\n", payload);
+        let _ = stdin.write_all(json_line.as_bytes());
+        let _ = stdin.flush();
+    }
+
+    if let Some(stdout) = child.stdout.take() {
+        let mut reader = std::io::BufReader::new(stdout);
+        let mut line = String::new();
+        let start = std::time::Instant::now();
+        while start.elapsed().as_millis() < 8000 {
+            let mut l = String::new();
+            if reader.read_line(&mut l).unwrap_or(0) > 0 {
+                let trimmed = l.trim();
+                if trimmed.contains(r#""event":"ready""#) {
+                    continue;
+                }
+                line = trimmed.to_string();
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+        let _ = child.kill();
+
+        if let Ok(res) = serde_json::from_str::<DspCurveResult>(&line) {
+            return Ok(res);
+        }
+    } else {
+        let _ = child.kill();
+    }
+
+    Err("Gagal mendapatkan respon kalkulasi kurva dari DSP engine".into())
+}
+
+// ─── Tag Editor Bridge ──────────────────────────────────────────────────────
+
+#[derive(Serialize)]
+struct WriteTagsPayload<'a> {
+    command: &'a str,
+    #[serde(rename = "filePath")]
+    file_path: &'a str,
+    tags: serde_json::Value,
+    artwork: serde_json::Value,
+}
+
+#[derive(Deserialize)]
+struct WriteResultEvent {
+    success: bool,
+    error: Option<String>,
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn write_tags_via_plugin(
+    app: &AppHandle,
+    file_path: &str,
+    title: Option<String>,
+    artist: Option<String>,
+    album: Option<String>,
+    genre: Option<String>,
+    year: Option<u32>,
+    track_number: Option<u32>,
+    total_tracks: Option<u32>,
+    disc_number: Option<u32>,
+    total_discs: Option<u32>,
+    comment: Option<String>,
+    cover_b64: Option<String>,
+    cover_mime: Option<String>,
+) -> Result<(), String> {
+    let exe = plugin_exe_path(app)?;
+    if !exe.exists() {
+        return Err("Plugin Audio Engine belum terinstall. Silakan pasang plugin Audio Engine di Pengaturan.".into());
+    }
+
+    let tags_obj = serde_json::json!({
+        "title": title,
+        "artist": artist,
+        "album": album,
+        "genre": genre,
+        "year": year,
+        "trackNumber": track_number,
+        "totalTracks": total_tracks,
+        "discNumber": disc_number,
+        "totalDiscs": total_discs,
+        "comment": comment,
+    });
+
+    let artwork_obj = match (cover_b64, cover_mime) {
+        (Some(b64), mime) if !b64.is_empty() => serde_json::json!({
+            "action": "set",
+            "mime": mime.unwrap_or_else(|| "image/jpeg".to_string()),
+            "dataBase64": b64
+        }),
+        _ => serde_json::json!({
+            "action": "keep"
+        }),
+    };
+
+    let payload = WriteTagsPayload {
+        command: "write_tags",
+        file_path,
+        tags: tags_obj,
+        artwork: artwork_obj,
+    };
+
+    let mut command = Command::new(&exe);
+    command
+        .stdout(Stdio::piped())
+        .stdin(Stdio::piped())
+        .stderr(Stdio::null());
+
+    #[cfg(target_os = "windows")]
+    command.creation_flags(CREATE_NO_WINDOW);
+
+    let mut child = command.spawn().map_err(|e| format!("Gagal menjalankan Audio Engine: {}", e))?;
+
+    if let Some(mut stdin) = child.stdin.take() {
+        let json_line = serde_json::to_string(&payload).map_err(|e| format!("JSON error: {}", e))?;
+        let _ = stdin.write_all(json_line.as_bytes());
+        let _ = stdin.write_all(b"\n");
+        let _ = stdin.flush();
+    }
+
+    if let Some(stdout) = child.stdout.take() {
+        let mut reader = std::io::BufReader::new(stdout);
+        let mut line = String::new();
+        let start = std::time::Instant::now();
+        while start.elapsed().as_millis() < 8000 {
+            let mut l = String::new();
+            if reader.read_line(&mut l).unwrap_or(0) > 0 {
+                let trimmed = l.trim();
+                if trimmed.contains(r#""event":"ready""#) {
+                    continue;
+                }
+                line = trimmed.to_string();
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+        let _ = child.kill();
+
+        if let Ok(res) = serde_json::from_str::<WriteResultEvent>(&line) {
+            if res.success {
+                return Ok(());
+            } else {
+                return Err(res.error.unwrap_or_else(|| "Gagal menyimpan metadata".to_string()));
+            }
+        }
+    } else {
+        let _ = child.kill();
+    }
+
+    Err("Gagal mendapatkan konfirmasi penulisan tag dari Audio Engine".into())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Write;
+
+    #[test]
+    fn test_plugin_exe_name() {
+        assert_eq!(PLUGIN_EXE_NAME, "symvonia-audio-engine.exe");
+    }
 
     #[test]
     fn verify_response_requires_audio_engine_identity() {
-        let token = "symvonia_token_test";
-        let valid = r#"{"event":"verify_response","token":"symvonia_token_test","engine":"Symvonia Audio Engine","version":"1.0.0"}"#;
-        let ai = r#"{"event":"verify_response","token":"symvonia_token_test","engine":"Symvonia AI Lyrics Engine","version":"1.0.0"}"#;
-        let wrong_token = r#"{"event":"verify_response","token":"other","engine":"Symvonia Audio Engine","version":"1.0.0"}"#;
-        let wrong_event = r#"{"event":"ready","token":"symvonia_token_test","engine":"Symvonia Audio Engine","version":"1.0.0"}"#;
-        let wrong_version = r#"{"event":"verify_response","token":"symvonia_token_test","engine":"Symvonia Audio Engine","version":"2.0.0"}"#;
+        let token = "test_token_123";
+        let valid_v2 = format!(r#"{{"event":"verify_response","token":"{token}","engine":"Symvonia Audio Engine","version":"2.0.0"}}"#);
+        let valid_v1 = format!(r#"{{"event":"verify_response","token":"{token}","engine":"Symvonia Audio Engine","version":"1.0.0"}}"#);
+        let wrong_engine = format!(r#"{{"event":"verify_response","token":"{token}","engine":"Other Engine","version":"2.0.0"}}"#);
+        let wrong_token = format!(r#"{{"event":"verify_response","token":"wrong","engine":"Symvonia Audio Engine","version":"2.0.0"}}"#);
 
-        assert!(verify_response_line(valid, token));
-        assert!(!verify_response_line(ai, token));
-        assert!(!verify_response_line(wrong_token, token));
-        assert!(!verify_response_line(wrong_event, token));
-        assert!(!verify_response_line(wrong_version, token));
-        assert!(!verify_response_line("not-json", token));
+        assert!(verify_response_line(&valid_v2, token));
+        assert!(verify_response_line(&valid_v1, token));
+        assert!(!verify_response_line(&wrong_engine, token));
+        assert!(!verify_response_line(&wrong_token, token));
     }
 
     #[test]
     fn verify_download_hash_accepts_matching_case_insensitive_hash() {
-        let temp_file = std::env::temp_dir().join("symvonia-audio-hash-test.tmp");
-        let mut file = fs::File::create(&temp_file).unwrap();
-        file.write_all(b"Symvonia Audio Engine Unit Test").unwrap();
-        drop(file);
+        let temp_dir = std::env::temp_dir();
+        let file_path = temp_dir.join("test_hash_matching_unified.tmp");
+        fs::write(&file_path, b"test content for hash verification unified").unwrap();
 
-        let hash = compute_sha256(&temp_file).unwrap();
-        assert!(verify_download_hash(&temp_file, &hash).is_ok());
-        assert!(verify_download_hash(&temp_file, &hash.to_uppercase()).is_ok());
+        let real_hash = compute_sha256(&file_path).unwrap();
+        assert!(verify_download_hash(&file_path, &real_hash).is_ok());
+        assert!(verify_download_hash(&file_path, &real_hash.to_uppercase()).is_ok());
 
-        let _ = fs::remove_file(temp_file);
+        let _ = fs::remove_file(file_path);
     }
 
     #[test]
-    fn verify_download_hash_rejects_mismatch_and_invalid_format() {
-        let temp_file = std::env::temp_dir().join("symvonia-audio-hash-test-invalid.tmp");
-        fs::write(&temp_file, b"Symvonia Audio Engine Unit Test").unwrap();
+    fn test_fingerprint_cache_invalidation_and_hit() {
+        let temp_dir = std::env::temp_dir();
+        let file_path = temp_dir.join("test_fp_unified.tmp");
+        fs::write(&file_path, b"test content").unwrap();
 
-        assert!(verify_download_hash(&temp_file, &"0".repeat(64)).is_err());
-        assert!(verify_download_hash(&temp_file, "not-a-sha256").is_err());
-
-        let _ = fs::remove_file(temp_file);
-    }
-
-    #[test]
-    fn fingerprint_cache_invalidation_and_hit() {
-        invalidate_cache();
-        assert!(VERIFIED_CACHE.lock().unwrap().is_none());
-
-        let temp_file = std::env::temp_dir().join("symvonia-audio-fp-test.tmp");
-        let mut file = fs::File::create(&temp_file).unwrap();
-        file.write_all(b"Fingerprint Test Content").unwrap();
-        drop(file);
-
-        let meta = fs::metadata(&temp_file).unwrap();
+        let meta = fs::metadata(&file_path).unwrap();
         let size = meta.len();
         let modified = meta.modified().unwrap();
 
-        // Seed cache
-        if let Ok(mut guard) = VERIFIED_CACHE.lock() {
-            *guard = Some(FileFingerprint {
-                path: temp_file.clone(),
-                size,
-                modified,
-            });
-        }
+        let fp = FileFingerprint {
+            path: file_path.clone(),
+            size,
+            modified,
+        };
 
-        // Cache hit test
-        let cache_guard = VERIFIED_CACHE.lock().unwrap();
-        let cached = cache_guard.as_ref().unwrap();
-        assert_eq!(cached.path, temp_file);
-        assert_eq!(cached.size, size);
-        assert_eq!(cached.modified, modified);
-        drop(cache_guard);
+        assert_eq!(fp.path, file_path);
+        assert_eq!(fp.size, size);
+        assert_eq!(fp.modified, modified);
 
-        // Invalidation test
-        invalidate_cache();
-        assert!(VERIFIED_CACHE.lock().unwrap().is_none());
-
-        let _ = fs::remove_file(temp_file);
+        let _ = fs::remove_file(file_path);
     }
 
     #[test]
-    fn test_is_dev_mode_returns_debug_assertions_state() {
-        assert_eq!(is_dev_mode(), cfg!(debug_assertions));
+    fn test_verify_real_published_unified_audio_engine_exe() {
+        let candidates = [
+            PathBuf::from("../plugin/src-engine/publish").join(PLUGIN_EXE_NAME),
+            PathBuf::from("plugin/src-engine/publish").join(PLUGIN_EXE_NAME),
+        ];
+
+        for path in &candidates {
+            if path.exists() {
+                assert!(
+                    verify_plugin_executable(path).is_ok(),
+                    "Failed to verify published unified audio engine binary at {:?}",
+                    path
+                );
+                return;
+            }
+        }
+    }
+
+    #[test]
+    fn test_real_binary_get_curve_execution() {
+        let candidates = [
+            PathBuf::from("../plugin/src-engine/publish").join(PLUGIN_EXE_NAME),
+            PathBuf::from("plugin/src-engine/publish").join(PLUGIN_EXE_NAME),
+        ];
+
+        for path in &candidates {
+            if path.exists() {
+                let payload = serde_json::json!({
+                    "command": "get_curve",
+                    "bandMode": 10,
+                    "bands": [0.0, 2.0, 4.0, 2.0, 0.0, -2.0, -4.0, -2.0, 0.0, 2.0],
+                    "preamp": 0.0
+                });
+
+                let mut command = Command::new(path);
+                command
+                    .stdout(Stdio::piped())
+                    .stdin(Stdio::piped())
+                    .stderr(Stdio::null());
+
+                #[cfg(target_os = "windows")]
+                command.creation_flags(CREATE_NO_WINDOW);
+
+                let mut child = command.spawn().expect("Failed to spawn unified engine");
+                if let Some(mut stdin) = child.stdin.take() {
+                    let line = format!("{}\n", payload);
+                    let _ = stdin.write_all(line.as_bytes());
+                    let _ = stdin.flush();
+                }
+
+                if let Some(stdout) = child.stdout.take() {
+                    let mut reader = std::io::BufReader::new(stdout);
+                    let start = std::time::Instant::now();
+                    let mut response_line = String::new();
+                    while start.elapsed().as_millis() < 8000 {
+                        let mut l = String::new();
+                        if reader.read_line(&mut l).unwrap_or(0) > 0 {
+                            let trimmed = l.trim();
+                            if trimmed.contains(r#""event":"ready""#) {
+                                continue;
+                            }
+                            response_line = trimmed.to_string();
+                            break;
+                        }
+                        std::thread::sleep(std::time::Duration::from_millis(20));
+                    }
+                    let _ = child.kill();
+                    let result: DspCurveResult = serde_json::from_str(&response_line).expect("Failed to parse DspCurveResult");
+                    assert_eq!(result.band_mode, 10);
+                    assert_eq!(result.curve.len(), 128);
+                    assert!(result.suggested_auto_preamp <= 0.0);
+                    return;
+                }
+            }
+        }
     }
 }

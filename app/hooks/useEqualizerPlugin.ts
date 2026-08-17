@@ -42,8 +42,10 @@ export function useEqualizerPlugin() {
                 }
             };
             window.addEventListener('equalizer-status-changed', onStatusChanged);
+            window.addEventListener('bitperfect-status-changed', onStatusChanged);
             return () => {
                 window.removeEventListener('equalizer-status-changed', onStatusChanged);
+                window.removeEventListener('bitperfect-status-changed', onStatusChanged);
             };
         }
     }, [refreshStatus]);

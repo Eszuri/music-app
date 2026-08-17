@@ -42,8 +42,10 @@ export function useTagEditorPlugin() {
                 }
             };
             window.addEventListener('tageditor-status-changed', onStatusChanged);
+            window.addEventListener('bitperfect-status-changed', onStatusChanged);
             return () => {
                 window.removeEventListener('tageditor-status-changed', onStatusChanged);
+                window.removeEventListener('bitperfect-status-changed', onStatusChanged);
             };
         }
     }, [refreshStatus]);

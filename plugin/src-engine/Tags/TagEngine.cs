@@ -1,4 +1,4 @@
-namespace Symvonia.TagEditor;
+namespace Symvonia.Engine;
 
 public static class TagEngine
 {
