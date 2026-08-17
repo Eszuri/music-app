@@ -137,6 +137,7 @@ export function AiLyricsModal({
         pluginStatus: aiStatus,
         isDownloading: isAiDownloading,
         isGenerating: isAiGenerating,
+        generatingFilePath,
         modelDownloadProgress: aiModelProgress,
         generateProgress: aiGenerateProgress,
         downloadedModels,
@@ -147,6 +148,13 @@ export function AiLyricsModal({
         refreshDownloadedModels,
         systemSpecs: aiSystemSpecs,
     } = useAiLyricsPlugin();
+
+    const rawPath = generatingFilePath || songPath;
+    const displayTargetFileName = rawPath
+        ? rawPath.split(/[/\\]/).pop()
+        : initialTitle
+        ? (initialArtist ? `${initialArtist} - ${initialTitle}` : initialTitle)
+        : '';
 
     const systemSpecs = {
         ramGb: aiSystemSpecs?.ramGb ?? (typeof navigator !== 'undefined' ? ((navigator as unknown as { deviceMemory?: number }).deviceMemory || 8) : 8),
@@ -513,6 +521,23 @@ export function AiLyricsModal({
                             <div className="pt-2 relative z-10">
                                 {aiModelProgress ? (
                                     <div className="space-y-2.5 bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
+                                        {displayTargetFileName && (
+                                            <div className="flex items-center gap-2 text-xs text-zinc-300 pb-2 border-b border-zinc-800/80 min-w-0">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-zinc-400">
+                                                    <path d="M9 18V5l12-2v13" />
+                                                    <circle cx="6" cy="18" r="3" />
+                                                    <circle cx="18" cy="16" r="3" />
+                                                </svg>
+                                                <div className="flex items-center gap-1.5 min-w-0 truncate">
+                                                    <span className="font-semibold truncate">{displayTargetFileName}</span>
+                                                    {initialTitle && initialTitle.trim() && (
+                                                        <span className="text-zinc-400 font-normal truncate">
+                                                            ({initialTitle})
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="flex items-center justify-between gap-3">
                                             <div className="flex items-center gap-2 min-w-0">
                                                 <div className="w-4 h-4 rounded-full border-2 border-zinc-400 border-t-transparent animate-spin shrink-0" />
@@ -550,6 +575,23 @@ export function AiLyricsModal({
                                     </div>
                                 ) : isAiGenerating ? (
                                     <div className="space-y-2.5 bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
+                                        {displayTargetFileName && (
+                                            <div className="flex items-center gap-2 text-xs text-zinc-300 pb-2 border-b border-zinc-800/80 min-w-0">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-zinc-400">
+                                                    <path d="M9 18V5l12-2v13" />
+                                                    <circle cx="6" cy="18" r="3" />
+                                                    <circle cx="18" cy="16" r="3" />
+                                                </svg>
+                                                <div className="flex items-center gap-1.5 min-w-0 truncate">
+                                                    <span className="font-semibold truncate">{displayTargetFileName}</span>
+                                                    {initialTitle && initialTitle.trim() && (
+                                                        <span className="text-zinc-400 font-normal truncate">
+                                                            ({initialTitle})
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="flex items-center justify-between gap-2">
                                             <div className="flex items-center gap-2 min-w-0">
                                                 <div className="w-4 h-4 rounded-full border-2 border-zinc-400 border-t-transparent animate-spin shrink-0" />

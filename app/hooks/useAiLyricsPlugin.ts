@@ -74,6 +74,7 @@ export function useAiLyricsPlugin() {
     const [isDownloading, setIsDownloading] = useState(false);
     const [downloadProgress, setDownloadProgress] = useState<AiDownloadProgress | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [generatingFilePath, setGeneratingFilePath] = useState<string | null>(null);
     const [generateProgress, setGenerateProgress] = useState<AiGenerateProgress | null>(null);
     const [modelDownloadProgress, setModelDownloadProgress] = useState<ModelDownloadProgress | null>(null);
     const [downloadingModels, setDownloadingModels] = useState<Record<string, ModelDownloadProgress>>(globalDownloadingModels);
@@ -206,6 +207,9 @@ export function useAiLyricsPlugin() {
             const state = await mod.invoke<AiLyricsCurrentState>('get_ai_lyrics_current_state');
             if (state?.is_generating) {
                 setIsGenerating(true);
+                if (state.file_path) {
+                    setGeneratingFilePath(state.file_path);
+                }
                 if (state.last_event) {
                     try {
                         const parsed = typeof state.last_event === 'string' ? JSON.parse(state.last_event) : state.last_event;
@@ -242,6 +246,7 @@ export function useAiLyricsPlugin() {
                 }
             } else {
                 setIsGenerating(false);
+                setGeneratingFilePath(null);
                 setGenerateProgress(null);
                 if (Object.keys(globalDownloadingModels).length === 0) {
                     setModelDownloadProgress(null);
@@ -362,6 +367,7 @@ export function useAiLyricsPlugin() {
                             break;
                         case 'transcription_result':
                             setIsGenerating(false);
+                            setGeneratingFilePath(null);
                             setGenerateProgress(null);
                             setModelDownloadProgress(null);
                             refreshDownloadedModels();
@@ -389,8 +395,14 @@ export function useAiLyricsPlugin() {
                                 });
                             }
                             break;
+                        case 'transcribe_cancelled':
+                            setIsGenerating(false);
+                            setGeneratingFilePath(null);
+                            setGenerateProgress(null);
+                            break;
                         case 'error':
                             setIsGenerating(false);
+                            setGeneratingFilePath(null);
                             setGenerateProgress(null);
                             setModelDownloadProgress(null);
                             if (parsed.modelName) {
@@ -558,6 +570,7 @@ export function useAiLyricsPlugin() {
             }
 
             setIsGenerating(true);
+            setGeneratingFilePath(filePath);
             setGenerateProgress({
                 percent: 0,
                 segmentText: 'Inisialisasi...',
@@ -579,6 +592,7 @@ export function useAiLyricsPlugin() {
                 });
             } catch (err: unknown) {
                 setIsGenerating(false);
+                setGeneratingFilePath(null);
                 setGenerateProgress(null);
                 generateResolverRef.current = null;
                 const msg = err instanceof Error ? err.message : String(err);
@@ -595,6 +609,7 @@ export function useAiLyricsPlugin() {
         async (filePath: string, outputPath?: string): Promise<void> => {
             if (!isBrowserTauri()) return;
             setIsGenerating(true);
+            setGeneratingFilePath(filePath);
             setGenerateProgress({
                 percent: 0,
                 segmentText: 'Inisialisasi Pemisahan Vokal...',
@@ -610,6 +625,7 @@ export function useAiLyricsPlugin() {
                 });
             } catch (err: unknown) {
                 setIsGenerating(false);
+                setGeneratingFilePath(null);
                 setGenerateProgress(null);
                 const msg = err instanceof Error ? err.message : String(err);
                 setErrorMsg(msg);
@@ -628,6 +644,7 @@ export function useAiLyricsPlugin() {
                 window.dispatchEvent(new CustomEvent('ai-lyrics-downloading-models-changed', { detail: {} }));
             }
             setIsGenerating(false);
+            setGeneratingFilePath(null);
             setGenerateProgress(null);
             setModelDownloadProgress(null);
             if (generateResolverRef.current) {
@@ -776,6 +793,7 @@ export function useAiLyricsPlugin() {
         isDownloading,
         downloadProgress,
         isGenerating,
+        generatingFilePath,
         generateProgress,
         modelDownloadProgress,
         downloadingModels,
