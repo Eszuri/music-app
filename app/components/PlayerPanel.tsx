@@ -113,7 +113,11 @@ function PlayerPanel({lang, metadata, selectedSong, accentColor, coverDataUrl, o
                                             ? t(lang, 'audio.outputMode.wasapiShared')
                                             : runtime.status === 'fallback'
                                                 ? t(lang, 'audio.runtime.htmlFallback')
-                                                : t(lang, 'audio.outputMode.htmlAudio')}
+                                                : runtime.requestedMode === 'wasapi_exclusive'
+                                                    ? t(lang, 'audio.outputMode.wasapiExclusive')
+                                                    : runtime.requestedMode === 'wasapi_shared'
+                                                        ? t(lang, 'audio.outputMode.wasapiShared')
+                                                        : t(lang, 'audio.outputMode.htmlAudio')}
                                     {runtime.sampleRate ? ` · ${(runtime.sampleRate / 1000).toFixed(1)} kHz` : ''}
                                     {runtime.bitDepth ? ` · ${runtime.bitDepth}-bit` : ''}
                                 </span>

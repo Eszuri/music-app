@@ -21,7 +21,8 @@ function formatTime(seconds: number): string {
 
 function SeekBar({ lang, currentTime, duration, handleSeek, accentColor }: SeekBarProps) {
     const accent = getAccent(accentColor);
-    const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0;
+    const safeDisplayTime = duration > 0 ? Math.min(duration, Math.max(0, currentTime)) : 0;
+    const progressPct = duration > 0 ? Math.min(100, Math.max(0, (safeDisplayTime / duration) * 100)) : 0;
     const [hovering, setHovering] = useState(false);
     const hoverProps = useHoverDescription(t(lang, 'status.seekBar'));
 
@@ -45,7 +46,8 @@ function SeekBar({ lang, currentTime, duration, handleSeek, accentColor }: SeekB
                     type="range"
                     min="0"
                     max={duration || 0}
-                    value={currentTime}
+                    step="0.1"
+                    value={safeDisplayTime}
                     onChange={handleSeek}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                 />
@@ -59,7 +61,7 @@ function SeekBar({ lang, currentTime, duration, handleSeek, accentColor }: SeekB
                 />
             </div>
             <div className="flex justify-between text-[11px] text-white/80 mt-1.5 tabular-nums font-medium">
-                <span>{formatTime(currentTime)}</span>
+                <span>{formatTime(safeDisplayTime)}</span>
                 <span className="text-white/60">{duration > 0 ? formatTime(duration) : t(lang, 'seekBar.fallback')}</span>
             </div>
         </div>

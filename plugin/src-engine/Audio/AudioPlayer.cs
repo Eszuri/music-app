@@ -312,7 +312,7 @@ public sealed class AudioPlayer : IDisposable
                     Protocol.EmitProgress(progress.pos, progress.dur, CurrentPath, CurrentMode, RequestId, Generation);
             }
             catch { /* ignore */ }
-        }, null, TimeSpan.FromMilliseconds(250), TimeSpan.FromMilliseconds(250));
+        }, null, TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(100));
     }
 
     private (double pos, double dur) GetProgressNoLock()

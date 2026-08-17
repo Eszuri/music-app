@@ -111,7 +111,9 @@ while ((line = Console.In.ReadLine()) != null)
             {
                 player.Pause();
                 var (rate, bits) = player.CurrentFormat;
+                var (pos, dur) = player.GetProgress();
                 Protocol.EmitState("paused", player.CurrentPath, player.CurrentMode, rate, bits, player.DeviceName, player.RequestId, player.Generation);
+                Protocol.EmitProgress(pos, dur, player.CurrentPath, player.CurrentMode, player.RequestId, player.Generation);
                 break;
             }
 
@@ -119,7 +121,9 @@ while ((line = Console.In.ReadLine()) != null)
             {
                 player.Resume();
                 var (rate, bits) = player.CurrentFormat;
+                var (pos, dur) = player.GetProgress();
                 Protocol.EmitState("playing", player.CurrentPath, player.CurrentMode, rate, bits, player.DeviceName, player.RequestId, player.Generation);
+                Protocol.EmitProgress(pos, dur, player.CurrentPath, player.CurrentMode, player.RequestId, player.Generation);
                 break;
             }
 

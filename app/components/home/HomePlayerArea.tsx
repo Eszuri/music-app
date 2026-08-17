@@ -601,8 +601,8 @@ function HomePlayerArea({
                                             <div className="w-full px-2">
                                                 <SeekBar
                                                     lang={lang}
-                                                    currentTime={currentTime}
-                                                    duration={duration}
+                                                    currentTime={selectedSong ? currentTime : 0}
+                                                    duration={selectedSong ? duration : 0}
                                                     handleSeek={handleSeek}
                                                     accentColor={accentColor}
                                                 />
@@ -611,7 +611,7 @@ function HomePlayerArea({
                                                 <PlaybackControls
                                                     lang={lang}
                                                     selectedSong={selectedSong}
-                                                    isPlaying={isPlaying}
+                                                    isPlaying={selectedSong ? isPlaying : false}
                                                     shuffle={shuffle}
                                                     repeat={repeat}
                                                     playPrev={playPrev}

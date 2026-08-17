@@ -72,7 +72,8 @@ export default function SpotifyPlayerBar({
     const title = metadata?.title || selectedSong?.name.replace(/\.[^/.]+$/, "") || t(lang, "player.noTrackSelected");
     const artist = metadata?.artist || (selectedSong ? t(lang, "player.unknownArtist") : "Symvonia");
 
-    const seekPct = duration > 0 ? (currentTime / duration) * 100 : 0;
+    const safeTime = duration > 0 ? Math.min(duration, Math.max(0, currentTime)) : Math.max(0, currentTime);
+    const seekPct = duration > 0 ? Math.min(100, Math.max(0, (safeTime / duration) * 100)) : 0;
     const volPct = Math.round(volume * 100);
 
     return (
@@ -233,7 +234,7 @@ export default function SpotifyPlayerBar({
                 {/* Timeline Seekbar (Horizontal 3-part layout: Left Time + Bar + Right Time) */}
                 <div className="w-full flex items-center gap-2.5 text-xs text-zinc-400 font-mono select-none">
                     <span className="w-10 text-right text-[11px] font-medium text-zinc-400">
-                        {formatTime(currentTime)}
+                        {formatTime(safeTime)}
                     </span>
 
                     <div

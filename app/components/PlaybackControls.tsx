@@ -107,7 +107,7 @@ function PlaybackControls({
                     ${hasSong ? `${accent.bg500} shadow-lg text-white ${accent.shadow25}` : 'bg-white/10 text-white/50'}`}
                 style={hasSong ? {boxShadow: `0 4px 20px ${accent.hex500}30`} : {}}
             >
-                {isPlaying ? <PauseIcon size={24} /> : <PlayIcon size={24} />}
+                {hasSong && isPlaying ? <PauseIcon size={24} /> : <PlayIcon size={24} />}
             </button>
 
             {/* ── Next ────────────────────────────────────────────── */}

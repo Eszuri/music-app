@@ -48,6 +48,8 @@ interface UseAudioPlayerOptions {
 }
 
 const MIN_RESUME_VOLUME = 0.01;
+const normalizePath = (p?: string | null): string =>
+    p ? p.replace(/\\/g, '/').toLowerCase() : '';
 
 export function useAudioPlayer(options: UseAudioPlayerOptions) {
     const {
@@ -599,11 +601,26 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
             const generation = ++playbackGenerationRef.current;
             const token = generation;
-            setRuntimeError(null);
-            setRuntimeStatus(nativeEngineActiveRef.current ? 'starting' : 'loading');
-            setEffectiveOutputMode(nativeEngineActiveRef.current ? null : 'html_audio');
             setSelectedSong(file);
             selectedSongRef.current = file;
+            setMetadata(null);
+            metadataRef.current = null;
+            setCurrentTime(startAt);
+            currentTimeRef.current = startAt;
+            setDuration(0);
+            setIsPlaying(true);
+            nativePlayingRef.current = nativeEngineActiveRef.current;
+            setRuntimeError(null);
+            setNativeSuppressed(false);
+            nativeSuppressedRef.current = false;
+            setRuntimeStatus(nativeEngineActiveRef.current ? 'starting' : 'loading');
+            setEffectiveOutputMode(
+                nativeEngineActiveRef.current
+                    ? (nativeEngineModeRef.current === 'exclusive' ? 'wasapi_exclusive' : 'wasapi_shared')
+                    : 'html_audio'
+            );
+            saveSessionState({ filePath: file.path, currentTime: Math.max(0, startAt), timestamp: Date.now() }, true);
+            loadMetadata(file.path, false);
             activeNativeRequestRef.current = null;
             nativeRestoreStartedRef.current = false;
             audio.pause();
@@ -620,11 +637,18 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                     audio.pause();
                     audio.removeAttribute("src");
                     audio.load();
+                    setIsPlaying(true);
+                    nativePlayingRef.current = true;
+                    setRuntimeStatus('playing');
+                    setEffectiveOutputMode(nativeEngineModeRef.current === 'exclusive' ? 'wasapi_exclusive' : 'wasapi_shared');
                     await enginePlayRef.current(file, startAt > 0 ? startAt : undefined, generation);
                 } else {
                     const src = getAudioSrc(file.path);
                     audio.src = src;
                     audio.loop = repeatRef.current === "one";
+                    setIsPlaying(true);
+                    setRuntimeStatus('playing');
+                    setEffectiveOutputMode('html_audio');
 
                     if (fadeAudioRef.current && fadeDurationRef.current > 0) {
                         audio.volume = 0;
@@ -642,9 +666,6 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 restoredPendingPlayRef.current = false;
 
                 if (token !== playbackGenerationRef.current || !isMountedRef.current) return;
-
-                saveSessionState({ filePath: file.path, currentTime: Math.max(0, startAt), timestamp: Date.now() }, true);
-                loadMetadata(file.path, false);
                 addLog("info", t(lang, 'log.playing', {name: file.name}));
             } catch (e) {
                 if (e instanceof DOMException && e.name === "AbortError") return;
@@ -684,12 +705,22 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             const nativePlaying = nativePlayingRef.current || isPlaying;
             if (nativePlaying) {
                 bpSendCommandRef.current({command: "pause"}).catch(() => {});
-            } else {
-                if (restoredPendingPlayRef.current && selectedSongRef.current) {
-                    restoredPendingPlayRef.current = false;
-                    enginePlayRef.current(selectedSongRef.current, currentTimeRef.current).catch(() => {});
-                } else {
+                setIsPlaying(false);
+                nativePlayingRef.current = false;
+                setRuntimeStatus('paused');
+            } else if (selectedSongRef.current) {
+                const song = selectedSongRef.current;
+                if (
+                    bp.engineState?.state === 'paused' &&
+                    bp.engineState?.path &&
+                    normalizePath(bp.engineState.path) === normalizePath(song.path)
+                ) {
                     bpSendCommandRef.current({command: "resume"}).catch(() => {});
+                    setIsPlaying(true);
+                    nativePlayingRef.current = true;
+                    setRuntimeStatus('playing');
+                } else {
+                    playSong(song, currentTimeRef.current > 0 ? currentTimeRef.current : 0);
                 }
             }
             return;
@@ -751,8 +782,9 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         nativeRestoreStartedRef.current = false;
         nativeEngineActiveRef.current = false;
         nativeEngineModeRef.current = null;
-        if (nativeWasActive) {
-            bpSendCommandRef.current({command: "stop"}).catch(() => {});
+        bpSendCommandRef.current({command: "stop"}).catch(() => {});
+        if (isBrowserTauri()) {
+            getTauri().then((m) => m.invoke("stop_audio_engine")).catch(() => {});
         }
         if (audioRef.current) {
             audioRef.current.pause();
@@ -888,10 +920,12 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         path?: string | null;
     }) => {
         if (!nativeEngineActiveRef.current) return false;
-        if (event.mode && nativeEngineModeRef.current && event.mode !== nativeEngineModeRef.current) return false;
-        if (event.requestId && activeNativeRequestRef.current && event.requestId !== activeNativeRequestRef.current) return false;
-        if (event.generation !== undefined && event.generation !== null && event.generation !== playbackGenerationRef.current) return false;
-        if (event.path && selectedSongRef.current && event.path !== selectedSongRef.current.path) return false;
+        if (!selectedSongRef.current) return false;
+        if (event.path) {
+            if (normalizePath(event.path) !== normalizePath(selectedSongRef.current.path)) {
+                return false;
+            }
+        }
         return true;
     }, []);
 
@@ -901,10 +935,15 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             if (!Number.isFinite(e.position) || !Number.isFinite(e.duration)) return;
             setCurrentTime(Math.max(0, e.position));
             if (e.duration > 0) setDuration(e.duration);
+            if (!nativePlayingRef.current) {
+                nativePlayingRef.current = true;
+                setIsPlaying(true);
+                setRuntimeStatus('playing');
+            }
             const song = selectedSongRef.current;
             if (song && e.position > 0) {
                 const now = Date.now();
-                if (now - lastSessionSaveRef.current >= 3000) {
+                if (now - lastSessionSaveRef.current >= 2000) {
                     lastSessionSaveRef.current = now;
                     saveSessionState({
                         filePath: song.path,
@@ -926,7 +965,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                     if (e.path) {
                         restoredPendingPlayRef.current = false;
                         const currentSong = selectedSongRef.current;
-                        if (!currentSong || currentSong.path !== e.path || playlistRef.current.length === 0) {
+                        if (!currentSong || normalizePath(currentSong.path) !== normalizePath(e.path) || playlistRef.current.length === 0) {
                             syncSongPlaylist(e.path);
                         }
                     }
@@ -941,10 +980,8 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                             currentTime: currentTimeRef.current,
                             timestamp: Date.now(),
                         }, true);
-                    }
-                    if (e.path) {
                         const currentSong = selectedSongRef.current;
-                        if (!currentSong || currentSong.path !== e.path || playlistRef.current.length === 0) {
+                        if (!currentSong || normalizePath(currentSong.path) !== normalizePath(e.path) || playlistRef.current.length === 0) {
                             syncSongPlaylist(e.path);
                         }
                     }
@@ -997,18 +1034,24 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         return () => window.clearTimeout(timer);
     }, [bp.status?.installed, nativeOutputMode, nativeSuppressed]);
     useEffect(() => {
+        nativeEngineActiveRef.current = nativeEngineActive;
+        nativeEngineModeRef.current = nativeOutputMode;
+    }, [nativeEngineActive, nativeOutputMode]);
+
+    useEffect(() => {
         if (previousRequestedModeRef.current === outputMode) return;
-
+        const prevMode = previousRequestedModeRef.current;
         previousRequestedModeRef.current = outputMode;
-        nativePlayingRef.current = false;
-        nativeRestoreStartedRef.current = false;
-        restoredPendingPlayRef.current = false;
-        activeNativeRequestRef.current = null;
-        playbackGenerationRef.current += 1;
-        metadataRequestRef.current += 1;
 
-        if (nativeEngineActiveRef.current) {
-            bpSendCommandRef.current({command: "stop"}).catch(() => {});
+        // If this is the initial config load before session restore, just sync the ref
+        if (!sessionRestoreAttemptedRef.current) {
+            return;
+        }
+
+        // When switching output mode: ALWAYS stop playback completely in native engine & HTML audio
+        bpSendCommandRef.current({command: "stop"}).catch(() => {});
+        if (isBrowserTauri()) {
+            getTauri().then((m) => m.invoke("stop_audio_engine")).catch(() => {});
         }
         if (audioRef.current) {
             audioRef.current.pause();
@@ -1016,34 +1059,27 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             audioRef.current.load();
         }
 
+        setNativeSuppressed(false);
+        nativeSuppressedRef.current = false;
         selectedSongRef.current = null;
         setSelectedSong(null);
+        metadataRef.current = null;
         setMetadata(null);
+        currentTimeRef.current = 0;
         setCurrentTime(0);
         setDuration(0);
         setIsPlaying(false);
+        nativePlayingRef.current = false;
+        activeNativeRequestRef.current = null;
+        playbackGenerationRef.current += 1;
+        metadataRequestRef.current += 1;
         setRuntimeStatus('idle');
         setRuntimeError(null);
-        setEffectiveOutputMode(null);
+        setEffectiveOutputMode(outputMode === 'html_audio' ? 'html_audio' : null);
         playlistRef.current = [];
         playlistFolderRef.current = null;
+        saveSessionState(null, true);
     }, [outputMode, setCurrentTime]);
-
-    useEffect(() => {
-        nativeEngineActiveRef.current = nativeEngineActive;
-        nativeEngineModeRef.current = nativeOutputMode;
-    }, [nativeEngineActive, nativeOutputMode]);
-
-    useEffect(() => {
-        if (!nativeEngineActive || !restoredPendingPlayRef.current || !selectedSongRef.current || nativeRestoreStartedRef.current) return;
-        const song = selectedSongRef.current;
-        const generation = playbackGenerationRef.current;
-        nativeRestoreStartedRef.current = true;
-        setRuntimeStatus('starting');
-        enginePlayRef.current(song, currentTimeRef.current, generation).catch(() => {
-            nativeRestoreStartedRef.current = false;
-        });
-    }, [nativeEngineActive, nativeOutputMode]);
 
     // Keep native engine volume in sync with the app volume slider.
     useEffect(() => {
@@ -1089,10 +1125,14 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             if (!isHtmlPlaybackActive()) return;
             const t = audio.currentTime;
             setCurrentTime(t);
+            if (!audio.paused && !isPlaying) {
+                setIsPlaying(true);
+                setRuntimeStatus('playing');
+            }
             const song = selectedSongRef.current;
             if (song && t > 0) {
                 const now = Date.now();
-                if (now - lastSessionSaveRef.current >= 3000) {
+                if (now - lastSessionSaveRef.current >= 2000) {
                     lastSessionSaveRef.current = now;
                     const session: SessionState = {
                         filePath: song.path,
@@ -1243,11 +1283,21 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     );
 
     const seekTo = useCallback((t: number) => {
-        setCurrentTime(t);
+        const clamped = Math.max(0, t);
+        setCurrentTime(clamped);
+        currentTimeRef.current = clamped;
+        const song = selectedSongRef.current;
+        if (song) {
+            saveSessionState({
+                filePath: song.path,
+                currentTime: clamped,
+                timestamp: Date.now(),
+            });
+        }
         if (nativeEngineActiveRef.current) {
-            bpSendCommandRef.current({command: "seek", position: t}).catch(() => {});
+            bpSendCommandRef.current({command: "seek", position: clamped}).catch(() => {});
         } else if (audioRef.current) {
-            audioRef.current.currentTime = t;
+            audioRef.current.currentTime = clamped;
         }
     }, [setCurrentTime]);
 
