@@ -27,6 +27,8 @@ import {resetAppConfig} from "./lib/storage";
 import {useModalRouter} from "./hooks/useModalRouter";
 import {useGlobalContextMenu} from "./hooks/useGlobalContextMenu";
 import {useBitPerfectEngine} from "./hooks/useBitPerfectEngine";
+import {useEqualizerPlugin} from "./hooks/useEqualizerPlugin";
+import {useTagEditorPlugin} from "./hooks/useTagEditorPlugin";
 
 export default function Home() {
     const mounted = useSyncExternalStore(
@@ -219,15 +221,18 @@ function HomeContent() {
     }, [settings.volumeLimitExceeded, settings.volumeLimit, showStatusNotif]);
 
     const { status: bpStatus } = useBitPerfectEngine();
+    const { installed: isEqualizerInstalled } = useEqualizerPlugin();
+    const { installed: isTagEditorInstalled } = useTagEditorPlugin();
     const isPluginInstalled = bpStatus?.installed === true;
     const effectiveOutputMode = isPluginInstalled ? settings.outputMode : 'default';
 
+    const { setOutputMode: setSettingsOutputMode, setOutputDeviceState: setSettingsOutputDeviceState } = settings;
     useEffect(() => {
-        if (bpStatus !== null && !bpStatus.installed && settings.outputMode === 'bitperfect') {
-            settings.setOutputMode('default');
-            settings.setOutputDeviceState(null);
+        if (bpStatus !== null && bpStatus.installed === false && settings.outputMode === 'bitperfect') {
+            setSettingsOutputMode('default');
+            setSettingsOutputDeviceState(null);
         }
-    }, [bpStatus, settings]);
+    }, [bpStatus, settings.outputMode, setSettingsOutputMode, setSettingsOutputDeviceState]);
 
     const player = useAudioPlayer({
         lang,
@@ -451,8 +456,8 @@ function HomeContent() {
                 accentColor={settings.accentColor}
                 onOpenStreaming={openStreaming}
                 onOpenSettings={openSettings}
-                onOpenEqualizer={openEqualizer}
-                onOpenEditMetadata={openMetadataEdit}
+                onOpenEqualizer={isEqualizerInstalled ? openEqualizer : undefined}
+                onOpenEditMetadata={isTagEditorInstalled ? openMetadataEdit : undefined}
                 onToggleLeftSidebar={() => setShowLeftSidebar((v) => !v)}
                 onToggleRightSidebar={() => setShowRightSidebar((v) => !v)}
                 onGlobalContextMenu={showGlobalContextMenu}
@@ -503,7 +508,7 @@ function HomeContent() {
                 toggleSystemMute={player.toggleSystemMute}
                 onGlobalContextMenu={showGlobalContextMenu}
                 onCoverSaved={() => showStatusNotif('cover-saved')}
-                onOpenEditMetadata={openMetadataEdit}
+                onOpenEditMetadata={isTagEditorInstalled ? openMetadataEdit : undefined}
                 outputMode={effectiveOutputMode}
                 bpEngineState={player.bpEngineState ?? undefined}
                 layoutMode={settings.layoutMode}

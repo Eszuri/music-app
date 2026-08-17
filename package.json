@@ -8,9 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "tauri": "tauri",
-    "build:plugin-audio": "build-plugin.bat",
+    "build:plugin-audio": "build-plugin-audio.bat",
     "build:plugin-lyrics": "build-plugin-lyrics.bat",
-    "build:plugins": "npm run build:plugin-audio && npm run build:plugin-lyrics"
+    "build:plugin-equalizer": "build-plugin-equalizer.bat",
+    "build:plugin-tag-editor": "build-plugin-tag-editor.bat",
+    "build:plugins": "build-all-plugins.bat"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.0",

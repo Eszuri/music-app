@@ -256,12 +256,12 @@ export function usePlayerSettings() {
         };
     }, []);
 
-    // Automatically reset outputMode to 'default' if bitperfect engine plugin is not installed
+    // Automatically reset outputMode to 'default' if bitperfect engine plugin is confirmed not installed
     useEffect(() => {
         const handler = (e: Event) => {
             const customEvent = e as CustomEvent<{ installed: boolean } | null>;
             const s = customEvent.detail;
-            if (s && !s.installed) {
+            if (s !== null && s !== undefined && s.installed === false) {
                 setOutputModeStateInternal('default');
                 setOutputDeviceStateInternal(null);
                 setStoredValue('output_mode', 'default');

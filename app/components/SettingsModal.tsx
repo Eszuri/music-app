@@ -99,13 +99,13 @@ export default function SettingsModal({
     const { status } = useBitPerfectEngine();
     const isPluginInstalled = status?.installed === true;
 
-    // Automatically reset outputMode to 'default' when plugin is not installed
+    // Automatically reset outputMode to 'default' when plugin is confirmed not installed
     useEffect(() => {
-        if (!isPluginInstalled && outputMode === 'bitperfect') {
+        if (status !== null && status.installed === false && outputMode === 'bitperfect') {
             setOutputMode('default');
             setOutputDevice(null);
         }
-    }, [isPluginInstalled, outputMode, setOutputMode, setOutputDevice]);
+    }, [status, outputMode, setOutputMode, setOutputDevice]);
 
     const { pluginStatus: aiPluginStatus } = useAiLyricsPlugin();
     const isAiPluginInstalled = aiPluginStatus?.installed === true;

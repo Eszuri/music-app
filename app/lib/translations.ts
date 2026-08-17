@@ -150,6 +150,7 @@ const en: Record<string, string> = {
     'audio.bitperfect.plugin.fileInfo': 'Executable Location Details',
     'lyrics.aiPlugin.title': 'AI Lyrics Generator',
     'lyrics.aiPlugin.desc': 'Generate synchronized LRC lyrics offline using local Whisper AI.',
+    'lyrics.aiPlugin.uninstall.disabledGenerating': 'Wait for AI lyrics generation to complete before uninstalling.',
     'lyrics.aiPlugin.generateBtn': 'Generate Lyrics',
     'lyrics.aiPlugin.generateBtnDownload': 'Download & Generate',
     'lyrics.aiPlugin.generating': 'Generating lyrics... {pct}%',
@@ -170,8 +171,38 @@ const en: Record<string, string> = {
     'lyrics.aiPlugin.tagDownloaded': 'Installed',
     'lyrics.aiPlugin.tagNotDownloaded': 'Requires Download',
     'lyrics.aiPlugin.tagOk': 'Smooth',
-    'lyrics.aiPlugin.tagHeavy': 'Heavy ({ram}GB+)',
     'lyrics.aiPlugin.vocalIsolatingProgress': 'Isolating vocals ({pct}%)...',
+
+    // Plugin: Equalizer DSP
+    'plugin.equalizer.title': 'Equalizer Audio DSP Engine',
+    'plugin.equalizer.desc': 'High-precision 64-bit floating point audio equalizer and DSP frequency processing engine (~10.5 MB).',
+    'plugin.equalizer.badge.installed': 'Installed',
+    'plugin.equalizer.badge.notInstalled': 'Not Installed',
+    'plugin.equalizer.install': 'Download & Install',
+    'plugin.equalizer.cancel': 'Cancel',
+    'plugin.equalizer.installing': 'Downloading Equalizer Plugin… {pct}%',
+    'plugin.equalizer.uninstall': 'Uninstall Equalizer',
+    'plugin.equalizer.installFromFile': 'Import Local File (.exe)',
+    'plugin.equalizer.installFromFile.desc': 'Select symvonia-equalizer.exe manually',
+    'plugin.equalizer.fileInfo': 'Equalizer Executable Details',
+    'plugin.equalizer.needsPlugin': 'Install the Equalizer plugin in Settings to enable audio equalization.',
+
+    // Plugin: Tag Editor
+    'plugin.tagEditor.title': 'Track Tag & Artwork Editor',
+    'plugin.tagEditor.desc': 'Multi-format audio metadata editor (ID3v2, FLAC Vorbis, MP4/M4A, OGG, WAV) and cover art embedding engine (~11.6 MB).',
+    'plugin.tagEditor.badge.installed': 'Installed',
+    'plugin.tagEditor.badge.notInstalled': 'Not Installed',
+    'plugin.tagEditor.install': 'Download & Install',
+    'plugin.tagEditor.cancel': 'Cancel',
+    'plugin.tagEditor.installing': 'Downloading Tag Editor… {pct}%',
+    'plugin.tagEditor.uninstall': 'Uninstall Tag Editor',
+    'plugin.tagEditor.installFromFile': 'Import Local File (.exe)',
+    'plugin.tagEditor.installFromFile.desc': 'Select symvonia-tag-editor.exe manually',
+    'plugin.tagEditor.fileInfo': 'Tag Editor Executable Details',
+    'plugin.tagEditor.needsPlugin': 'Install the Tag Editor plugin in Settings to edit track metadata.',
+
+    'plugin.selectEqualizerExeTitle': 'Select Symvonia Equalizer (.exe)',
+    'plugin.selectTagEditorExeTitle': 'Select Symvonia Tag Editor (.exe)',
 
 
     'audio.bitperfect.confirmTitle': 'Enable Bit-Perfect Mode?',
@@ -862,6 +893,7 @@ const id: Record<string, string> = {
     'audio.bitperfect.plugin.fileInfo': 'Detail Lokasi Executable',
     'lyrics.aiPlugin.title': 'Generate Lirik AI',
     'lyrics.aiPlugin.desc': 'Buat lirik tersinkronisasi LRC secara offline dengan Whisper AI lokal.',
+    'lyrics.aiPlugin.uninstall.disabledGenerating': 'Tunggu proses pembuatan lirik AI selesai terlebih dahulu untuk mencopot engine.',
     'lyrics.aiPlugin.generateBtn': 'Mulai Buat Lirik',
     'lyrics.aiPlugin.generateBtnDownload': 'Unduh & Buat Lirik',
     'lyrics.aiPlugin.generating': 'Membuat lirik... {pct}%',
@@ -882,8 +914,38 @@ const id: Record<string, string> = {
     'lyrics.aiPlugin.tagDownloaded': 'Terinstall',
     'lyrics.aiPlugin.tagNotDownloaded': 'Perlu Diunduh',
     'lyrics.aiPlugin.tagOk': 'Lancar',
-    'lyrics.aiPlugin.tagHeavy': 'Berat (Min {ram}GB)',
     'lyrics.aiPlugin.vocalIsolatingProgress': 'Memisahkan vokal ({pct}%)...',
+
+    // Plugin: Equalizer DSP
+    'plugin.equalizer.title': 'Equalizer Audio (DSP Engine)',
+    'plugin.equalizer.desc': 'Modul DSP audio 64-bit presisi tinggi untuk pemrosesan equalizer multi-band dan respon frekuensi (~10.5 MB).',
+    'plugin.equalizer.badge.installed': 'Terpasang',
+    'plugin.equalizer.badge.notInstalled': 'Belum Terpasang',
+    'plugin.equalizer.install': 'Unduh & Pasang',
+    'plugin.equalizer.cancel': 'Batal Unduh',
+    'plugin.equalizer.installing': 'Mengunduh Plugin Equalizer… {pct}%',
+    'plugin.equalizer.uninstall': 'Copot Plugin Equalizer',
+    'plugin.equalizer.installFromFile': 'Impor Berkas (.exe)',
+    'plugin.equalizer.installFromFile.desc': 'Pilih berkas symvonia-equalizer.exe secara manual',
+    'plugin.equalizer.fileInfo': 'Detail Berkas Equalizer',
+    'plugin.equalizer.needsPlugin': 'Pasang plugin Equalizer di Pengaturan untuk mengaktifkan fitur equalizer audio.',
+
+    // Plugin: Tag Editor
+    'plugin.tagEditor.title': 'Editor Tag & Metadata Musik',
+    'plugin.tagEditor.desc': 'Engine editor metadata audio multi-format (ID3v2, FLAC Vorbis, MP4/M4A, OGG, WAV) dan penyisipan cover lagu (~11.6 MB).',
+    'plugin.tagEditor.badge.installed': 'Terpasang',
+    'plugin.tagEditor.badge.notInstalled': 'Belum Terpasang',
+    'plugin.tagEditor.install': 'Unduh & Pasang',
+    'plugin.tagEditor.cancel': 'Batal Unduh',
+    'plugin.tagEditor.installing': 'Mengunduh Tag Editor… {pct}%',
+    'plugin.tagEditor.uninstall': 'Copot Tag Editor',
+    'plugin.tagEditor.installFromFile': 'Impor Berkas (.exe)',
+    'plugin.tagEditor.installFromFile.desc': 'Pilih berkas symvonia-tag-editor.exe secara manual',
+    'plugin.tagEditor.fileInfo': 'Detail Berkas Tag Editor',
+    'plugin.tagEditor.needsPlugin': 'Pasang plugin Tag Editor di Pengaturan untuk mengedit informasi lagu.',
+
+    'plugin.selectEqualizerExeTitle': 'Pilih Symvonia Equalizer (.exe)',
+    'plugin.selectTagEditorExeTitle': 'Pilih Symvonia Tag Editor (.exe)',
 
 
 

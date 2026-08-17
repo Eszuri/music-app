@@ -5,9 +5,11 @@ use tauri::Manager;
 pub mod ai_lyrics_plugin_manager;
 pub mod audio;
 pub mod commands;
+pub mod equalizer_plugin_manager;
 pub mod plugin_manager;
 pub mod sidecar;
 pub mod sidecar_lyrics;
+pub mod tag_editor_plugin_manager;
 
 pub use commands::*;
 
@@ -149,7 +151,18 @@ pub fn run() {
             get_storage_usage,
             clean_ai_models_data,
             clean_all_app_data,
-            get_app_environment
+            get_app_environment,
+            get_equalizer_plugin_status,
+            download_equalizer_plugin,
+            cancel_equalizer_plugin_download,
+            install_equalizer_plugin_from_file,
+            uninstall_equalizer_plugin,
+            get_dsp_curve,
+            get_tag_editor_plugin_status,
+            download_tag_editor_plugin,
+            cancel_tag_editor_plugin_download,
+            install_tag_editor_plugin_from_file,
+            uninstall_tag_editor_plugin
         ])
         .register_uri_scheme_protocol("stream", |_app, request| {
             if request.method() == tauri::http::Method::OPTIONS {

@@ -3,7 +3,6 @@ use lofty::file::AudioFile;
 use lofty::file::TaggedFileExt;
 use lofty::read_from_path;
 use lofty::tag::Accessor;
-use id3::TagLike;
 use rayon::prelude::*;
 use serde::Serialize;
 use std::ffi::OsStr;
@@ -303,6 +302,7 @@ pub fn get_metadata(file_path: String) -> Result<SongMetadata, String> {
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
 pub fn save_metadata(
+    app: tauri::AppHandle,
     file_path: String,
     title: Option<String>,
     artist: Option<String>,
@@ -317,138 +317,22 @@ pub fn save_metadata(
     cover_b64: Option<String>,
     cover_mime: Option<String>,
 ) -> Result<(), String> {
-    let path = Path::new(&file_path);
-    if !path.exists() {
-        return Err("File not found".to_string());
-    }
-
-    let is_mp3 = path.extension().and_then(|s| s.to_str()).map(|s| s.eq_ignore_ascii_case("mp3")).unwrap_or(false);
-
-    if is_mp3 {
-        let mut id3_tag = id3::Tag::read_from_path(path).unwrap_or_else(|_| id3::Tag::new());
-        if let Some(t) = &title { id3_tag.set_title(t); } else { id3_tag.remove_title(); }
-        if let Some(a) = &artist { id3_tag.set_artist(a); } else { id3_tag.remove_artist(); }
-        if let Some(al) = &album { id3_tag.set_album(al); } else { id3_tag.remove_album(); }
-        if let Some(g) = &genre { id3_tag.set_genre(g); } else { id3_tag.remove_genre(); }
-        if let Some(y) = year { id3_tag.set_year(y as i32); } else { id3_tag.remove_year(); }
-        if let Some(tn) = track_number { id3_tag.set_track(tn); } else { id3_tag.remove_track(); }
-        if let Some(tt) = total_tracks { id3_tag.set_total_tracks(tt); } else { id3_tag.remove_total_tracks(); }
-        if let Some(dn) = disc_number { id3_tag.set_disc(dn); } else { id3_tag.remove_disc(); }
-        if let Some(td) = total_discs { id3_tag.set_total_discs(td); } else { id3_tag.remove_total_discs(); }
-        if let Some(c) = &comment {
-            id3_tag.remove_comment(None, None);
-            id3_tag.add_frame(id3::frame::Comment {
-                lang: "eng".to_string(),
-                description: String::new(),
-                text: c.clone(),
-            });
-        } else {
-            id3_tag.remove_comment(None, None);
-        }
-
-        if let (Some(b64), Some(mime)) = (&cover_b64, &cover_mime) {
-            let engine = base64::engine::general_purpose::STANDARD;
-            if let Ok(bytes) = engine.decode(b64) {
-                id3_tag.remove_picture_by_type(id3::frame::PictureType::CoverFront);
-                id3_tag.add_frame(id3::frame::Picture {
-                    mime_type: mime.clone(),
-                    picture_type: id3::frame::PictureType::CoverFront,
-                    description: String::new(),
-                    data: bytes,
-                });
-            }
-        }
-        if let Ok(()) = id3_tag.write_to_path(path, id3::Version::Id3v24) {
-            return Ok(());
-        }
-        if let Ok(()) = id3_tag.write_to_path(path, id3::Version::Id3v23) {
-            return Ok(());
-        }
-
-        let mut clean_tag = id3::Tag::new();
-        if let Some(t) = &title { clean_tag.set_title(t); }
-        if let Some(a) = &artist { clean_tag.set_artist(a); }
-        if let Some(al) = &album { clean_tag.set_album(al); }
-        if let Some(g) = &genre { clean_tag.set_genre(g); }
-        if let Some(y) = year { clean_tag.set_year(y as i32); }
-        if let Some(tn) = track_number { clean_tag.set_track(tn); }
-        if let Some(tt) = total_tracks { clean_tag.set_total_tracks(tt); }
-        if let Some(dn) = disc_number { clean_tag.set_disc(dn); }
-        if let Some(td) = total_discs { clean_tag.set_total_discs(td); }
-        if let Some(c) = &comment {
-            clean_tag.add_frame(id3::frame::Comment {
-                lang: "eng".to_string(),
-                description: String::new(),
-                text: c.clone(),
-            });
-        }
-        if let (Some(b64), Some(mime)) = (&cover_b64, &cover_mime) {
-            let engine = base64::engine::general_purpose::STANDARD;
-            if let Ok(bytes) = engine.decode(b64) {
-                clean_tag.add_frame(id3::frame::Picture {
-                    mime_type: mime.clone(),
-                    picture_type: id3::frame::PictureType::CoverFront,
-                    description: String::new(),
-                    data: bytes,
-                });
-            }
-        }
-        if let Ok(()) = clean_tag.write_to_path(path, id3::Version::Id3v23) {
-            return Ok(());
-        }
-    }
-
-    let mut tagged_file = match read_from_path(path) {
-        Ok(t) => t,
-        Err(_) => {
-            lofty::probe::Probe::open(path)
-                .map_err(|e| format!("Failed to open file: {}", e))?
-                .options(lofty::config::ParseOptions::new().parsing_mode(lofty::config::ParsingMode::Relaxed))
-                .read()
-                .map_err(|e| format!("Failed to read metadata: {}", e))?
-        }
-    };
-
-    let tag_type = tagged_file.primary_tag_type();
-    if tagged_file.primary_tag().is_none() {
-        tagged_file.insert_tag(lofty::tag::Tag::new(tag_type));
-    }
-
-    if let Some(tag) = tagged_file.primary_tag_mut() {
-        if let Some(t) = title { tag.set_title(t); } else { tag.remove_title(); }
-        if let Some(a) = artist { tag.set_artist(a); } else { tag.remove_artist(); }
-        if let Some(al) = album { tag.set_album(al); } else { tag.remove_album(); }
-        if let Some(g) = genre { tag.set_genre(g); } else { tag.remove_genre(); }
-        if let Some(y) = year { tag.set_year(y); } else { tag.remove_year(); }
-        if let Some(tn) = track_number { tag.set_track(tn); } else { tag.remove_track(); }
-        if let Some(tt) = total_tracks { tag.set_track_total(tt); } else { tag.remove_track_total(); }
-        if let Some(dn) = disc_number { tag.set_disk(dn); } else { tag.remove_disk(); }
-        if let Some(td) = total_discs { tag.set_disk_total(td); } else { tag.remove_disk_total(); }
-        if let Some(c) = comment { tag.set_comment(c); } else { tag.remove_comment(); }
-
-        tag.remove_picture_type(lofty::picture::PictureType::CoverFront);
-
-        if let (Some(b64), Some(mime)) = (cover_b64, cover_mime) {
-            let engine = base64::engine::general_purpose::STANDARD;
-            if let Ok(bytes) = engine.decode(&b64) {
-                let mime_type = match mime.as_str() {
-                    "image/png" => lofty::picture::MimeType::Png,
-                    "image/jpeg" | "image/jpg" => lofty::picture::MimeType::Jpeg,
-                    other => lofty::picture::MimeType::Unknown(other.to_string()),
-                };
-                let pic = lofty::picture::Picture::new_unchecked(
-                    lofty::picture::PictureType::CoverFront,
-                    Some(mime_type),
-                    None,
-                    bytes,
-                );
-                tag.push_picture(pic);
-            }
-        }
-    }
-
-    tagged_file.save_to_path(path, lofty::config::WriteOptions::default()).map_err(|e| format!("Failed to save metadata: {}", e))?;
-    Ok(())
+    crate::tag_editor_plugin_manager::write_tags_via_plugin(
+        &app,
+        &file_path,
+        title,
+        artist,
+        album,
+        genre,
+        year,
+        track_number,
+        total_tracks,
+        disc_number,
+        total_discs,
+        comment,
+        cover_b64,
+        cover_mime,
+    )
 }
 
 #[tauri::command]
