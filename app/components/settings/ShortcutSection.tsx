@@ -147,13 +147,26 @@ function ShortcutRow({
             return;
         }
         // Normalise: single chars -> lowercase, special keys kept as-is
-        let key: string;
-        if (e.key === ' ') key = ' ';
-        else if (e.key.length === 1) key = e.key.toLowerCase();
-        else key = e.key;
-        // Block modifier-only presses
-        if (['Shift', 'Control', 'Alt', 'Meta'].includes(key)) return;
-        onChange(key);
+
+        const validPrefixes = ['Key', 'Digit', 'Space', 'Arrow', 'Numpad'];
+        const isLetterOrDigit = validPrefixes.some((p) => e.code.startsWith(p));
+        const isFKey = /^F\d{1,2}$/.test(e.key);
+        const isSpecial = ['Enter', 'Tab', 'Backspace', 'Delete', 'Home', 'End', 'PageUp', 'PageDown'].includes(e.key);
+
+        if (!isLetterOrDigit && !isFKey && !isSpecial) {
+            return;
+        }
+
+        const keyName = e.code.startsWith('Key') ? e.code.slice(3) : e.code.startsWith('Digit') ? e.code.slice(5) : e.key;
+
+        const parts: string[] = [];
+        if (e.ctrlKey) parts.push('Ctrl');
+        if (e.altKey) parts.push('Alt');
+        if (e.shiftKey) parts.push('Shift');
+        if (e.metaKey) parts.push('Meta');
+        parts.push(keyName);
+
+        onChange(parts.join('+'));
         setCapturing(false);
     };
 
@@ -163,7 +176,7 @@ function ShortcutRow({
                 <div className="flex items-center gap-2">
                     <h5 className="text-sm font-medium text-zinc-100">{label}</h5>
                     {isCustom && (
-                        <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 border border-zinc-700/40">
+                        <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-zinc-800 text-zinc-300 border border-zinc-700/60 shadow-xs">
                             {t(lang, 'shortcut.custom')}
                         </span>
                     )}
@@ -173,16 +186,16 @@ function ShortcutRow({
                     {t(lang, 'shortcut.defaultKey')} <span className="font-mono">{formatKey(defaultKey)}</span>
                 </p>
             </div>
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
                 <button
                     onClick={() => setCapturing(true)}
                     onKeyDown={capturing ? handleCapture : undefined}
                     onBlur={() => setCapturing(false)}
-                    className={`min-w-16 px-3 py-1.5 rounded-lg text-xs font-mono font-medium border transition-colors cursor-pointer text-center ${capturing
+                    className={`min-w-18 px-3.5 py-1.5 rounded-lg text-xs font-mono font-medium border shadow-xs transition-all cursor-pointer text-center active:scale-[0.98] ${capturing
                         ? `${accent.bg10} ${accent.text400} ${accent.border500_20} animate-pulse`
                         : isCustom
-                            ? `bg-amber-900/15 text-amber-300 border-amber-700/30 hover:bg-amber-900/25`
-                            : 'bg-zinc-800/60 text-zinc-300 border-zinc-700/50 hover:bg-zinc-700/70'
+                            ? 'bg-amber-500/10 text-amber-300 border-amber-500/30 hover:bg-amber-500/20'
+                            : 'bg-zinc-800 text-zinc-200 border-zinc-700/60 hover:bg-zinc-700 hover:text-white'
                         }`}
                     title={capturing ? t(lang, 'shortcut.pressKeyTitle') : t(lang, 'shortcut.clickToChange')}
                 >
@@ -192,7 +205,7 @@ function ShortcutRow({
                     <button
                         onClick={onReset}
                         title={`${t(lang, 'shortcut.resetToDefault')} (${formatKey(defaultKey)})`}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-200 bg-zinc-800/40 hover:bg-zinc-700/60 border border-zinc-700/40 cursor-pointer"
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-100 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700/60 shadow-xs transition-all cursor-pointer active:scale-[0.98]"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />

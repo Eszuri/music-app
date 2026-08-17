@@ -197,6 +197,32 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         outputDeviceRef.current = outputDevice;
     }, [files, selectedSong, metadata, autoWallpaper, formats, volumeMode, volumeLimit, folderSort, fileSort, sortDir, nameSource, shuffle, repeat, outputDevice]);
 
+    const prevOutputDeviceRef = useRef<string | null>(outputDevice);
+    useEffect(() => {
+        const prev = prevOutputDeviceRef.current;
+        outputDeviceRef.current = outputDevice;
+        prevOutputDeviceRef.current = outputDevice;
+
+        if (prev !== outputDevice) {
+            const currentSong = selectedSongRef.current;
+            if (currentSong && nativeEngineActiveRef.current && (isPlaying || runtimeStatus === 'playing' || runtimeStatus === 'paused')) {
+                const curPos = Math.max(0, currentTimeRef.current);
+                const wasPlaying = isPlaying || nativePlayingRef.current;
+                const gen = ++playbackGenerationRef.current;
+
+                enginePlayRef.current(currentSong, curPos, gen).then(() => {
+                    if (!wasPlaying) {
+                        bpSendCommandRef.current({ command: "pause" }).catch(() => {});
+                    }
+                }).catch((err) => {
+                    console.error("[Symvonia] Failed to switch output device on the fly:", err);
+                });
+            } else if (audioRef.current && typeof (audioRef.current as any).setSinkId === 'function') {
+                (audioRef.current as any).setSinkId(outputDevice || "").catch(() => {});
+            }
+        }
+    }, [outputDevice, isPlaying, runtimeStatus]);
+
     const activeVolume = volumeMode === "system" ? systemVolume : appVolume;
 
     const isVolumeSilent = useCallback(() => {

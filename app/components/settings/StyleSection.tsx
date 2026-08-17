@@ -129,7 +129,7 @@ export default function StyleSection({
             >
                 <button
                     onClick={onResetSidebarWidth}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 bg-zinc-800/60 hover:bg-zinc-700/70 border border-zinc-700/50 transition-colors cursor-pointer"
+                    className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-200 bg-zinc-800 hover:bg-zinc-700 hover:text-white border border-zinc-700/60 shadow-xs transition-all cursor-pointer active:scale-[0.98]"
                 >
                     {t(lang, 'style.sidebarWidth.resetBtn')}
                 </button>

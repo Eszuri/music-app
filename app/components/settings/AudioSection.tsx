@@ -3,6 +3,7 @@
 import {useCallback, useEffect, useState} from 'react';
 import {SelectStub, SettingGroup, SettingRow} from './controls';
 import {t, type Lang} from '../../lib/translations';
+import {getAccent} from '../../lib/colors';
 import {useBitPerfectEngine, type EngineDevice} from '../../hooks/useBitPerfectEngine';
 import type {OutputMode} from '../../lib/storage';
 import type {PlaybackRuntimeInfo} from '../../hooks/audio/playbackTypes';
@@ -32,12 +33,20 @@ export default function AudioSection({
     onRetryNativeAudio?: () => void;
     accentColor: string;
 }) {
+    const accent = getAccent(accentColor);
     const {status, getDevices} = useBitPerfectEngine();
     const [devices, setDevices] = useState<EngineDevice[]>([]);
     const [devicesLoading, setDevicesLoading] = useState(false);
     const [devicesError, setDevicesError] = useState<string | null>(null);
     const [pendingMode, setPendingMode] = useState<OutputMode | null>(null);
     const [confirmModeOpen, setConfirmModeOpen] = useState(false);
+    const [selectedDevice, setSelectedDevice] = useState<string | null>(outputDevice);
+    const [appliedFeedback, setAppliedFeedback] = useState(false);
+
+    useEffect(() => {
+        setSelectedDevice(outputDevice);
+    }, [outputDevice]);
+
     const installed = status?.installed === true;
     const nativeMode = isNativeMode(outputMode);
     const activeDeviceKnown = Boolean(audioRuntime.deviceName);
@@ -78,6 +87,23 @@ export default function AudioSection({
         setOutputMode(nextMode);
     };
 
+    const handleApplyDevice = () => {
+        setOutputDevice(selectedDevice);
+        setAppliedFeedback(true);
+        window.setTimeout(() => setAppliedFeedback(false), 1800);
+    };
+
+    const deviceOptions: [string, string, boolean?][] = [
+        ['', t(lang, 'audio.device.default')],
+        ...(activeDeviceKnown && selectedDevice && !devices.some((device) => device.id === selectedDevice)
+            ? [[selectedDevice, `${audioRuntime.deviceName} (${t(lang, 'audio.device.active')})`]] as [string, string][]
+            : []),
+        ...devices.map((device) => [
+            device.id,
+            `${device.name}${device.isDefault ? ` (${t(lang, 'audio.device.default')})` : ''}`,
+        ] as [string, string]),
+    ];
+
     return (
         <div className="space-y-5">
             <ConfirmDialog
@@ -110,36 +136,49 @@ export default function AudioSection({
                         ]}
                         value={outputMode}
                         onChange={selectMode}
+                        accent={accent}
+                        accentColor={accentColor}
                     />
                 </SettingRow>
-                <SettingRow
-                    title={t(lang, 'audio.outputDevice.title')}
-                    description={nativeMode ? t(lang, 'audio.outputDevice.desc') : t(lang, 'audio.outputMode.deviceIgnored')}
-                >
-                    <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
-                        <select
-                            aria-label={t(lang, 'audio.outputDevice.title')}
-                            value={outputDevice || ''}
-                            onChange={(e) => setOutputDevice(e.target.value || null)}
+                <div className="px-4 py-3.5 border-b border-zinc-800/40 last:border-0">
+                    <div className="text-sm font-medium text-zinc-100">{t(lang, 'audio.outputDevice.title')}</div>
+                    <p className="text-xs text-zinc-500 mt-0.5">{nativeMode ? t(lang, 'audio.outputDevice.desc') : t(lang, 'audio.outputMode.deviceIgnored')}</p>
+
+                    <div className="mt-3 space-y-3">
+                        <SelectStub
+                            ariaLabel={t(lang, 'audio.outputDevice.title')}
+                            options={deviceOptions}
+                            value={selectedDevice || ''}
+                            onChange={(val) => setSelectedDevice(val || null)}
                             disabled={!installed || !nativeMode || devicesLoading}
-                            className="min-h-10 max-w-full min-w-35 rounded-lg border border-zinc-700/50 bg-zinc-800/60 px-3 text-base text-zinc-300 outline-none transition-colors hover:bg-zinc-700/70 focus-visible:outline-2 focus-visible:outline-offset-2 sm:text-xs disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                            <option value="">{t(lang, 'audio.device.default')}</option>
-                            {activeDeviceKnown && outputDevice && !devices.some((device) => device.id === outputDevice) && (
-                                <option value={outputDevice}>{audioRuntime.deviceName} ({t(lang, 'audio.device.active')})</option>
-                            )}
-                            {devices.map((device) => <option key={device.id} value={device.id}>{device.name}{device.isDefault ? ` (${t(lang, 'audio.device.default')})` : ''}</option>)}
-                        </select>
-                        <button
-                            type="button"
-                            onClick={() => void refreshDevices()}
-                            disabled={!installed || !nativeMode || devicesLoading}
-                            className="min-h-10 rounded-lg border border-zinc-700/50 bg-zinc-800/60 px-3 text-xs text-zinc-300 transition-colors hover:bg-zinc-700/70 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                            {devicesLoading ? t(lang, 'audio.device.refreshing') : t(lang, 'audio.device.refresh')}
-                        </button>
+                            accent={accent}
+                            accentColor={accentColor}
+                            fullWidth
+                        />
+                        <div className="flex items-center gap-2.5">
+                            <button
+                                type="button"
+                                onClick={handleApplyDevice}
+                                disabled={!installed || !nativeMode || devicesLoading}
+                                className={`px-4 py-2 rounded-lg text-xs font-semibold text-white transition-all duration-150 shadow-sm cursor-pointer active:scale-[0.98] ${
+                                    appliedFeedback
+                                        ? 'bg-emerald-600 hover:bg-emerald-500'
+                                        : `${accent.bg500} hover:brightness-110`
+                                } disabled:cursor-not-allowed disabled:opacity-40`}
+                            >
+                                {appliedFeedback ? t(lang, 'audio.device.applied') : t(lang, 'audio.device.apply')}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => void refreshDevices()}
+                                disabled={!installed || !nativeMode || devicesLoading}
+                                className="px-4 py-2 rounded-lg border border-zinc-700/60 bg-zinc-800/80 text-xs font-medium text-zinc-300 transition-all duration-150 hover:bg-zinc-700/70 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer active:scale-[0.98]"
+                            >
+                                {devicesLoading ? t(lang, 'audio.device.refreshing') : t(lang, 'audio.device.refresh')}
+                            </button>
+                        </div>
                     </div>
-                </SettingRow>
+                </div>
                 {devicesError && nativeMode && !activeDeviceKnown && <div className="border-b border-zinc-800/40 px-4 py-3 text-xs text-amber-300" role="status">{devicesError}</div>}
             </SettingGroup>
         </div>

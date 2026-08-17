@@ -6,6 +6,7 @@ import {getAccent} from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
 import {modalContentMotion, backdropMotion} from '../lib/animations';
 import {EQIcon, PowerIcon, ResetIcon, ZoomInIcon, ZoomOutIcon} from './icons';
+import {SelectStub} from './settings/controls';
 import {
     type EQBandMode,
     type EQPresetKey,
@@ -159,37 +160,29 @@ function EqualizerModal({
                     {/* Left Group: Band Mode & Preset Selectors */}
                     <div className="flex flex-wrap items-center gap-3">
                         {/* Band Mode Dropdown */}
-                        <div className="flex items-center gap-2 bg-zinc-900/80 border border-zinc-800 rounded-xl px-3 py-1">
+                        <div className="flex items-center gap-2">
                             <span className="text-zinc-400 font-medium text-[11px] uppercase tracking-wider">{t(lang, 'equalizer.bandMode')}:</span>
-                            <select
-                                value={bandMode}
-                                onChange={(e) => setBandMode(parseInt(e.target.value) as EQBandMode)}
+                            <SelectStub
+                                options={BAND_MODE_OPTIONS.map((bm) => [String(bm), t(lang, `equalizer.bandMode.${bm}`)])}
+                                value={String(bandMode)}
+                                onChange={(val) => setBandMode(parseInt(val, 10) as EQBandMode)}
                                 disabled={disabled || !enabled}
-                                className="bg-transparent text-zinc-100 font-semibold focus:outline-none disabled:opacity-50 cursor-pointer text-xs"
-                            >
-                                {BAND_MODE_OPTIONS.map((bm) => (
-                                    <option key={bm} value={bm} className="bg-zinc-900 text-zinc-200">
-                                        {t(lang, `equalizer.bandMode.${bm}`)}
-                                    </option>
-                                ))}
-                            </select>
+                                accent={accent}
+                                accentColor={accentColor}
+                            />
                         </div>
 
                         {/* Preset Dropdown */}
-                        <div className="flex items-center gap-2 bg-zinc-900/80 border border-zinc-800 rounded-xl px-3 py-1">
+                        <div className="flex items-center gap-2">
                             <span className="text-zinc-400 font-medium text-[11px] uppercase tracking-wider">{t(lang, 'equalizer.preset')}:</span>
-                            <select
+                            <SelectStub
+                                options={PRESET_OPTIONS.map((key) => [key, t(lang, `equalizer.preset.${key}`)])}
                                 value={preset}
-                                onChange={(e) => setPreset(e.target.value as EQPresetKey)}
+                                onChange={(val) => setPreset(val as EQPresetKey)}
                                 disabled={disabled || !enabled}
-                                className="bg-transparent text-zinc-100 font-semibold focus:outline-none disabled:opacity-50 cursor-pointer text-xs"
-                            >
-                                {PRESET_OPTIONS.map((key) => (
-                                    <option key={key} value={key} className="bg-zinc-900 text-zinc-200">
-                                        {t(lang, `equalizer.preset.${key}`)}
-                                    </option>
-                                ))}
-                            </select>
+                                accent={accent}
+                                accentColor={accentColor}
+                            />
                         </div>
 
                         {/* Auto Headroom Guard Toggle */}

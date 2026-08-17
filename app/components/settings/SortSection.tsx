@@ -16,6 +16,7 @@ export default function SortSection({
     setNameSource,
     formats,
     setFormats,
+    accentColor = 'sky',
 }: {
     lang: Lang;
     folderSort: string;
@@ -28,6 +29,7 @@ export default function SortSection({
     setNameSource: (v: string) => void;
     formats: string[];
     setFormats: (v: string[]) => void;
+    accentColor?: string;
 }) {
     const allFormats = ['mp3', 'flac', 'ogg', 'wav', 'm4a', 'wma'];
     const [customInput, setCustomInput] = useState('');
@@ -57,6 +59,7 @@ export default function SortSection({
                     options={[['name', t(lang, 'sort.folder.name')], ['mtime', t(lang, 'sort.folder.mtime')], ['ctime', t(lang, 'sort.folder.ctime')]]}
                     value={folderSort}
                     onChange={setFolderSort}
+                    accentColor={accentColor}
                 />
             </SettingRow>
             <SettingRow
@@ -67,6 +70,7 @@ export default function SortSection({
                     options={[['name', t(lang, 'sort.file.name')], ['mtime', t(lang, 'sort.file.mtime')], ['size', t(lang, 'sort.file.size')], ['ext', t(lang, 'sort.file.ext')], ['ctime', t(lang, 'sort.file.ctime')]]}
                     value={fileSort}
                     onChange={setFileSort}
+                    accentColor={accentColor}
                 />
             </SettingRow>
             <SettingRow
@@ -79,6 +83,7 @@ export default function SortSection({
                     options={[['filename', t(lang, 'sort.name.filenameLabel')], ['title', t(lang, 'sort.name.titleLabel')]]}
                     value={nameSource}
                     onChange={setNameSource}
+                    accentColor={accentColor}
                 />
                 <div className='absolute -bottom-16 inset-x-0 w-full h-full'>
                     <div className={`flex items-start gap-2 px-3 py-2 rounded-lg text-[11px] leading-relaxed mt-3 ${nameSource === 'title' ? 'bg-amber-900/20 text-amber-300/90 border border-amber-700/30' : 'bg-zinc-800/30 text-zinc-500 border border-zinc-700/30'}`}>
@@ -115,6 +120,7 @@ export default function SortSection({
                     options={[['asc', t(lang, 'sort.dir.asc')], ['desc', t(lang, 'sort.dir.desc')]]}
                     value={sortDir}
                     onChange={setSortDir}
+                    accentColor={accentColor}
                 />
             </SettingRow>
             <SettingRow
@@ -130,9 +136,9 @@ export default function SortSection({
                                 <button
                                     key={fmt}
                                     onClick={() => toggleFormat(fmt)}
-                                    className={`px-2 py-1 rounded-md text-[11px] font-medium border cursor-pointer transition-all ${active
-                                        ? 'bg-zinc-700/80 text-zinc-200 border-zinc-600'
-                                        : 'bg-zinc-800/40 text-zinc-500 border-zinc-700/50 hover:bg-zinc-800/70 hover:text-zinc-400'
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-medium border cursor-pointer transition-all shadow-xs active:scale-[0.98] ${active
+                                        ? 'bg-zinc-700 text-zinc-100 border-zinc-500 font-semibold'
+                                        : 'bg-zinc-800/80 text-zinc-400 border-zinc-700/60 hover:bg-zinc-700/80 hover:text-zinc-200'
                                         } ${isCustom ? 'italic' : ''}`}
                                 >
                                     .{fmt}
@@ -140,18 +146,18 @@ export default function SortSection({
                             );
                         })}
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                         <input
                             type="text"
                             value={customInput}
                             onChange={(e) => setCustomInput(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && addCustomFormat()}
                             placeholder={t(lang, 'sort.format.placeholder')}
-                            className="w-20 px-2 py-1 rounded-md text-[11px] bg-zinc-800/60 border border-zinc-700/50 text-zinc-300 outline-none focus:border-zinc-500 placeholder:text-zinc-600"
+                            className="w-24 px-3 py-1.5 rounded-lg text-xs bg-zinc-800/80 border border-zinc-700/60 text-zinc-200 outline-none focus:border-zinc-500 placeholder:text-zinc-500 shadow-xs"
                         />
                         <button
                             onClick={addCustomFormat}
-                            className="px-2 py-1 rounded-md text-[11px] font-medium text-zinc-300 bg-zinc-800/60 hover:bg-zinc-700/70 border border-zinc-700/50 transition-colors cursor-pointer"
+                            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-200 bg-zinc-800 hover:bg-zinc-700 hover:text-white border border-zinc-700/60 shadow-xs transition-all cursor-pointer active:scale-[0.98]"
                         >
                             {t(lang, 'sort.format.add')}
                         </button>

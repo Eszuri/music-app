@@ -109,7 +109,7 @@ function GainBoostControl({
         !supported
             ? t(lang, 'gainBoost.unsupported')
             : disabled
-            ? 'Disabled in Bit-Perfect mode'
+            ? t(lang, 'gainBoost.disabledBp')
             : t(lang, 'gainBoost.desc'),
     );
 
@@ -165,7 +165,7 @@ function GainBoostControl({
         return (
             <div className="flex items-center gap-2 w-full justify-center text-amber-500/80 text-[11px]">
                 <WarningIcon size={15} />
-                <span>Dinonaktifkan di mode Bit-Perfect</span>
+                <span>{t(lang, 'gainBoost.disabledBp')}</span>
             </div>
         );
     }

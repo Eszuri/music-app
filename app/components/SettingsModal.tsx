@@ -229,6 +229,7 @@ export default function SettingsModal({
                                     setNameSource={setNameSource}
                                     formats={formats}
                                     setFormats={setFormats}
+                                    accentColor={accentColor}
                                 />
                             )}
                             {effectiveActiveSection === 'shortcut' && (
