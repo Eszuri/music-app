@@ -575,13 +575,15 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             addLog("warn", t(lang, 'audio.outputMode.log.fallback'));
         } catch (fallbackError) {
             setRuntimeStatus('error');
-            setRuntimeError({
+            const finalError = {
                 ...error,
                 message: `${error.message}: ${(fallbackError as Error).message || String(fallbackError)}`,
-            });
+            };
+            setRuntimeError(finalError);
             setIsPlaying(false);
+            showError(t(lang, 'log.playbackFailed', {msg: finalError.message}));
         }
-    }, [addLog, appVolume, cancelFade, getAudioSrc, lang, prepareAudio, setCurrentTime]);
+    }, [addLog, appVolume, cancelFade, getAudioSrc, lang, prepareAudio, setCurrentTime, showError]);
 
     // ─── playback ──────────────────────────────────────────────────────────────
 
@@ -1010,8 +1012,9 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             if (!isCurrentNativeEvent(error)) return;
             setRuntimeStatus('fallback');
             setRuntimeError(error);
-            fallbackNativeToHtml(error).catch(() => {});
-            showError(t(lang, 'log.playbackFailed', {msg: error.message}));
+            fallbackNativeToHtml(error).catch(() => {
+                showError(t(lang, 'log.playbackFailed', {msg: error.message}));
+            });
         },
     });
 
