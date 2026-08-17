@@ -47,7 +47,7 @@ using var player = new AudioPlayer();
 
 player.PlaybackEnded += () =>
 {
-    Protocol.EmitState("ended", player.CurrentPath, player.CurrentMode, null, null, player.DeviceName, player.RequestId);
+    Protocol.EmitState("ended", player.CurrentPath, player.CurrentMode, null, null, player.DeviceName, player.RequestId, player.Generation);
 };
 
 static string? ResolveMode(Protocol.Command command)
@@ -92,18 +92,18 @@ while ((line = Console.In.ReadLine()) != null)
             {
                 if (string.IsNullOrEmpty(cmd.Path))
                 {
-                    Protocol.EmitError("AUDIO_FILE_NOT_FOUND", "Missing 'path' for play command", "play", null, null, cmd.RequestId);
+                    Protocol.EmitError("AUDIO_FILE_NOT_FOUND", "Missing 'path' for play command", "play", null, null, cmd.RequestId, cmd.Generation);
                     break;
                 }
                 var mode = ResolveMode(cmd);
                 if (mode == null)
                 {
-                    Protocol.EmitError("INVALID_MODE", "Missing 'mode' for play command", "play", null, cmd.Path, cmd.RequestId);
+                    Protocol.EmitError("INVALID_MODE", "Missing 'mode' for play command", "play", null, cmd.Path, cmd.RequestId, cmd.Generation);
                     break;
                 }
-                player.Play(cmd.Path, mode, cmd.DeviceId, cmd.RequestId);
+                player.Play(cmd.Path, mode, cmd.DeviceId, cmd.RequestId, cmd.Generation, cmd.StartAt);
                 var (rate, bits) = player.CurrentFormat;
-                Protocol.EmitState("playing", player.CurrentPath, player.CurrentMode, rate, bits, player.DeviceName, player.RequestId);
+                Protocol.EmitState("playing", player.CurrentPath, player.CurrentMode, rate, bits, player.DeviceName, player.RequestId, player.Generation);
                 break;
             }
 
@@ -111,7 +111,7 @@ while ((line = Console.In.ReadLine()) != null)
             {
                 player.Pause();
                 var (rate, bits) = player.CurrentFormat;
-                Protocol.EmitState("paused", player.CurrentPath, player.CurrentMode, rate, bits, player.DeviceName, player.RequestId);
+                Protocol.EmitState("paused", player.CurrentPath, player.CurrentMode, rate, bits, player.DeviceName, player.RequestId, player.Generation);
                 break;
             }
 
@@ -119,7 +119,7 @@ while ((line = Console.In.ReadLine()) != null)
             {
                 player.Resume();
                 var (rate, bits) = player.CurrentFormat;
-                Protocol.EmitState("playing", player.CurrentPath, player.CurrentMode, rate, bits, player.DeviceName, player.RequestId);
+                Protocol.EmitState("playing", player.CurrentPath, player.CurrentMode, rate, bits, player.DeviceName, player.RequestId, player.Generation);
                 break;
             }
 
@@ -128,8 +128,9 @@ while ((line = Console.In.ReadLine()) != null)
                 var mode = player.CurrentMode;
                 var deviceName = player.DeviceName;
                 var requestId = player.RequestId;
+                var generation = player.Generation;
                 player.Stop();
-                Protocol.EmitState("stopped", null, mode, null, null, deviceName, requestId);
+                Protocol.EmitState("stopped", null, mode, null, null, deviceName, requestId, generation);
                 break;
             }
 
@@ -138,7 +139,7 @@ while ((line = Console.In.ReadLine()) != null)
                 {
                     player.Seek(cmd.Position.Value);
                     var (pos, dur) = player.GetProgress();
-                    Protocol.EmitProgress(pos, dur);
+                    Protocol.EmitProgress(pos, dur, player.CurrentPath, player.CurrentMode, player.RequestId, player.Generation);
                 }
                 else
                 {
@@ -154,14 +155,14 @@ while ((line = Console.In.ReadLine()) != null)
                 break;
 
             case "get_devices":
-                Protocol.Emit(new { @event = "devices", devices = AudioPlayer.GetDevices() });
+                Protocol.Emit(new { @event = "devices", requestId = cmd.RequestId, devices = AudioPlayer.GetDevices() });
                 break;
 
             case "get_state":
             {
                 var (rate, bits) = player.CurrentFormat;
                 string state = player.IsPlaying ? "playing" : player.IsPaused ? "paused" : "stopped";
-                Protocol.EmitState(state, player.CurrentPath, player.CurrentMode, rate, bits, player.DeviceName, player.RequestId);
+                Protocol.EmitState(state, player.CurrentPath, player.CurrentMode, rate, bits, player.DeviceName, player.RequestId, player.Generation);
                 break;
             }
 
@@ -247,7 +248,8 @@ while ((line = Console.In.ReadLine()) != null)
             cmd.Name,
             ResolveMode(cmd),
             cmd.Path,
-            cmd.RequestId);
+            cmd.RequestId,
+            cmd.Generation);
     }
 }
 

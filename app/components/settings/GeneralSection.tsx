@@ -57,6 +57,7 @@ export default function GeneralSection({
     updateTotal,
     onResetAllSettings,
     outputMode,
+    nativeOutputActive = false,
 }: {
     lang: Lang;
     setLang: (v: Lang) => void;
@@ -90,6 +91,7 @@ export default function GeneralSection({
     updateTotal: number;
     onResetAllSettings: () => void;
     outputMode?: OutputMode;
+    nativeOutputActive?: boolean;
 }) {
     const accent = getAccent(accentColor);
     const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -206,9 +208,13 @@ export default function GeneralSection({
             <SettingGroup title={t(lang, 'general.group.volume')}>
                 <SettingRow
                     title={t(lang, 'general.volumeMode.title')}
-                    description={t(lang, 'general.volumeMode.desc')}
+                        description={nativeOutputActive
+                            ? t(lang, 'general.volumeMode.nativeDisabled')
+                            : t(lang, 'general.volumeMode.desc')}
                 >
                     <SelectStub
+                        ariaLabel={t(lang, 'general.volumeMode.title')}
+                        disabled={nativeOutputActive}
                         options={[['app', t(lang, 'general.volumeMode.app')], ['system', t(lang, 'general.volumeMode.system')]]}
                         value={volumeMode}
                         onChange={setVolumeMode}
@@ -257,13 +263,15 @@ export default function GeneralSection({
                     }
                 >
                     <div className="flex flex-col items-end gap-1.5">
-                        <div className={outputMode !== 'html_audio' ? 'opacity-50 pointer-events-none' : ''}>
+                        <div>
                             <SelectStub
+                                ariaLabel={t(lang, 'general.fadeAudio.title')}
+                                disabled={outputMode !== 'html_audio'}
                                 options={[
                                     ['true', t(lang, 'general.pauseIfMuted.on')],
                                     ['false', t(lang, 'general.pauseIfMuted.off')],
                                 ]}
-                                value={outputMode !== 'html_audio' ? 'false' : String(fadeAudio)}
+                                value={String(fadeAudio)}
                                 onChange={(v) => setFadeAudio(v === 'true')}
                             />
                         </div>

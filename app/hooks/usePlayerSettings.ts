@@ -263,22 +263,6 @@ export function usePlayerSettings() {
         };
     }, []);
 
-    // Native output modes require the audio engine plugin.
-    useEffect(() => {
-        const handler = (e: Event) => {
-            const customEvent = e as CustomEvent<{ installed: boolean } | null>;
-            const s = customEvent.detail;
-            if (s !== null && s !== undefined && s.installed === false && outputMode !== 'html_audio') {
-                setOutputModeStateInternal('html_audio');
-                setOutputDeviceStateInternal(null);
-                setStoredValue('output_mode', 'html_audio');
-                setStoredValue('output_device', null);
-            }
-        };
-        window.addEventListener('bitperfect-status-changed', handler);
-        return () => window.removeEventListener('bitperfect-status-changed', handler);
-    }, [outputMode]);
-
     useEffect(() => {
         if (!isBrowserTauri() || volumeMode !== 'system') {
             const frame = requestAnimationFrame(() => setSystemVolumeSynced(false));

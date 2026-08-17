@@ -17,7 +17,6 @@ import ShortcutSection from './settings/ShortcutSection';
 import SortSection from './settings/SortSection';
 import StyleSection from './settings/StyleSection';
 import {getSections} from './settings/sectionsConfig';
-import {useBitPerfectEngine} from '../hooks/useBitPerfectEngine';
 import {useAiLyricsPlugin} from '../hooks/useAiLyricsPlugin';
 import type {SectionId, SettingsModalProps} from './settings/types';
 
@@ -74,6 +73,8 @@ export default function SettingsModal({
     setOutputDevice,
     outputMode,
     setOutputMode,
+    audioRuntime,
+    onRetryNativeAudio,
     onResetSidebarWidth,
     onResetAllSettings,
     logs,
@@ -93,18 +94,14 @@ export default function SettingsModal({
             if (e.key === 'Escape') onClose();
         };
         window.addEventListener('keydown', onKey);
-        return () => window.removeEventListener('keydown', onKey);
+        const frame = requestAnimationFrame(() => {
+            document.getElementById('settings-dialog-title')?.focus();
+        });
+        return () => {
+            cancelAnimationFrame(frame);
+            window.removeEventListener('keydown', onKey);
+        };
     }, [open, onClose]);
-
-    const { status } = useBitPerfectEngine();
-
-    // Native output modes require the audio engine plugin
-    useEffect(() => {
-        if (status !== null && status.installed === false && outputMode !== 'html_audio') {
-            setOutputMode('html_audio');
-            setOutputDevice(null);
-        }
-    }, [status, outputMode, setOutputMode, setOutputDevice]);
 
     const { pluginStatus: aiPluginStatus } = useAiLyricsPlugin();
     const isAiPluginInstalled = aiPluginStatus?.installed === true;
@@ -137,7 +134,10 @@ export default function SettingsModal({
                     <motion.div
                         key="settings-modal"
                         {...modalContentMotion}
-                        className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl shadow-black/60 w-[min(900px,90vw)] h-[min(560px,80vh)] flex overflow-hidden cursor-default"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="settings-dialog-title"
+                        className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl shadow-black/60 w-[min(900px,90vw)] h-[min(560px,80vh)] flex overflow-hidden overscroll-contain cursor-default"
                         onClick={(e) => e.stopPropagation()}
                     >
                     {/* Sidebar nav */}
@@ -154,6 +154,7 @@ export default function SettingsModal({
                                     <button
                                         {...settingItemHover}
                                         onClick={() => setActiveSection(s.id)}
+                                        aria-current={isActive ? 'page' : undefined}
                                         className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left cursor-pointer ${isActive
                                             ? `${a.bg15} ${a.text400} border ${a.border500_20}`
                                             : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100 border border-transparent'
@@ -170,9 +171,12 @@ export default function SettingsModal({
                     {/* Content */}
                     <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                         <header className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-zinc-800 shrink-0">
-                            <h2 className="text-lg font-semibold text-zinc-100">
+                            <h2 id="settings-dialog-title" tabIndex={-1} className="text-lg font-semibold text-zinc-100">
                                 {sections.find((s) => s.id === effectiveActiveSection)?.label}
                             </h2>
+                            <button type="button" onClick={onClose} aria-label={t(lang, 'settings.close')} className="min-h-10 min-w-10 rounded-lg text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2">
+                                ×
+                            </button>
                         </header>
                         <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 min-w-0">
                             {effectiveActiveSection === 'general' && (
@@ -209,6 +213,7 @@ export default function SettingsModal({
                                     updateTotal={updateTotal}
                                     onResetAllSettings={onResetAllSettings}
                                     outputMode={outputMode}
+                                    nativeOutputActive={audioRuntime.effectiveMode === 'wasapi_shared' || audioRuntime.effectiveMode === 'wasapi_exclusive'}
                                 />
                             )}
                             {effectiveActiveSection === 'sort' && (
@@ -263,6 +268,8 @@ export default function SettingsModal({
                                         setOutputDevice={setOutputDevice}
                                         outputMode={outputMode}
                                         setOutputMode={setOutputMode}
+                                        audioRuntime={audioRuntime}
+                                        onRetryNativeAudio={onRetryNativeAudio}
                                         accentColor={accentColor}
                                     />
                                 )}

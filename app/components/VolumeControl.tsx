@@ -17,6 +17,7 @@ interface VolumeControlProps {
     handleVolumeChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onToggleSystemMute: () => void;
     accentColor: string;
+    disabled?: boolean;
 }
 
 function VolumeIcon({muted, low}: {muted: boolean; low: boolean}) {
@@ -40,12 +41,14 @@ function VolumeControl({
     handleVolumeChange,
     onToggleSystemMute,
     accentColor,
+    disabled = false,
 }: VolumeControlProps) {
     const accent = getAccent(accentColor);
     const prevVolumeRef = useRef(volume);
 
     const isSystem = volumeMode === 'system';
     const limit = volumeLimit;
+    const controlDisabled = disabled;
     const pct = Math.round(volume * 100);
 
     useEffect(() => {
@@ -90,6 +93,7 @@ function VolumeControl({
         : `${pct}%`;
 
     const toggleMute = () => {
+        if (controlDisabled) return;
         if (isSystem) {
             onToggleSystemMute();
         } else if (!muted) {
@@ -102,7 +106,7 @@ function VolumeControl({
     };
 
     const onSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (isSliderDisabled) return;
+        if (controlDisabled || isSliderDisabled) return;
         if (isSystem) {
             let sysVal = parseFloat(e.target.value);
             if (limit > 0 && sysVal > limit) {
@@ -156,9 +160,10 @@ function VolumeControl({
 
     return (
         <div className="flex items-center gap-2 w-full justify-center">
-            <button
-                {...muteHover}
-                onClick={toggleMute}
+                <button
+            {...muteHover}
+            onClick={toggleMute}
+            disabled={controlDisabled}
                 className="text-white/80 hover:text-white cursor-pointer flex items-center justify-center w-7 h-7 shrink-0"
             >
                 <VolumeIcon muted={muted} low={low} />
@@ -167,7 +172,7 @@ function VolumeControl({
             <button
                 {...volumeHover}
                 onClick={() => onStepButton('down')}
-                disabled={isDecreaseDisabled}
+                disabled={controlDisabled || isDecreaseDisabled}
                 className={decreaseBtnClass}
                 title={isDecreaseDisabled ? t(lang, 'volume.decreaseDisabled') : t(lang, 'volume.decrease')}
             >
@@ -206,7 +211,7 @@ function VolumeControl({
                     min="0"
                     max={isSystem ? String(sliderMax) : "1"}
                     step={isSystem ? "1" : "0.01"}
-                    disabled={isSliderDisabled}
+                    disabled={controlDisabled || isSliderDisabled}
                     value={showSlider ? (isSystem ? visualPct : volume) : 0}
                     onChange={onSliderChange}
                     className={`absolute inset-0 w-full h-full opacity-0 z-10 ${isSliderDisabled ? "cursor-not-allowed" : "cursor-pointer"

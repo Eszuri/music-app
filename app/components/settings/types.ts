@@ -2,6 +2,7 @@ import type {LogEntry} from '../../types/log';
 
 import type {Lang} from '../../lib/translations';
 import type {OutputMode} from '../../lib/storage';
+import type {PlaybackRuntimeInfo} from '../../hooks/audio/playbackTypes';
 
 export type SectionId = 'general' | 'sort' | 'shortcut' | 'style' | 'plugin' | 'audio' | 'lyrics' | 'changelog' | 'about' | 'debug';
 
@@ -57,6 +58,8 @@ export interface SettingsModalProps {
     setOutputDevice: (v: string | null) => void;
     outputMode: OutputMode;
     setOutputMode: (v: OutputMode) => void;
+    audioRuntime: PlaybackRuntimeInfo;
+    onRetryNativeAudio: () => void;
     onResetSidebarWidth: () => void;
     onResetAllSettings: () => void;
     logs: LogEntry[];

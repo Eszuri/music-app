@@ -1,6 +1,7 @@
 'use client';
 
 import {useEffect, useRef} from 'react';
+import {createPortal} from 'react-dom';
 import {AnimatePresence, motion} from 'framer-motion';
 import {getAccent} from '../lib/colors';
 import {t, type Lang} from '../lib/translations';
@@ -43,7 +44,9 @@ export default function ConfirmDialog({
         return () => window.removeEventListener('keydown', onKey);
     }, [open, onCancel]);
 
-    return (
+    if (typeof document === 'undefined') return null;
+
+    return createPortal(
         <AnimatePresence>
             {open && (
                 <motion.div
@@ -85,6 +88,7 @@ export default function ConfirmDialog({
                     </motion.div>
                 </motion.div>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body,
     );
 }

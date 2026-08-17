@@ -19,6 +19,7 @@ export interface EngineStateEvent {
     bitDepth?: number | null;
     deviceName?: string | null;
     requestId?: string | null;
+    generation?: number | null;
 }
 
 export interface EngineErrorEvent {
@@ -28,12 +29,17 @@ export interface EngineErrorEvent {
     mode?: NativeOutputMode | null;
     path?: string | null;
     requestId?: string | null;
+    generation?: number | null;
     recoverable?: boolean;
 }
 
-interface EngineProgressEvent {
+export interface EngineProgressEvent {
     position: number;
     duration: number;
+    path?: string | null;
+    mode?: NativeOutputMode | null;
+    requestId?: string | null;
+    generation?: number | null;
 }
 
 export interface EngineDevice {
@@ -46,6 +52,43 @@ interface EngineEventHandlers {
     onState?: (e: EngineStateEvent) => void;
     onProgress?: (e: EngineProgressEvent) => void;
     onError?: (e: EngineErrorEvent) => void;
+}
+
+function isNativeOutputMode(value: unknown): value is NativeOutputMode {
+    return value === "shared" || value === "exclusive";
+}
+
+function parseStateEvent(value: Record<string, unknown>): EngineStateEvent | null {
+    if (value.state !== "playing" && value.state !== "paused" && value.state !== "stopped" && value.state !== "ended") return null;
+    if (typeof value.exclusive !== "boolean") return null;
+    return {
+        state: value.state,
+        path: typeof value.path === "string" ? value.path : null,
+        mode: isNativeOutputMode(value.mode)
+            ? value.mode
+            : value.exclusive === true
+                ? "exclusive"
+                : "shared",
+        exclusive: value.exclusive,
+        sampleRate: typeof value.sampleRate === "number" && Number.isFinite(value.sampleRate) ? value.sampleRate : null,
+        bitDepth: typeof value.bitDepth === "number" && Number.isFinite(value.bitDepth) ? value.bitDepth : null,
+        deviceName: typeof value.deviceName === "string" ? value.deviceName : null,
+        requestId: typeof value.requestId === "string" ? value.requestId : null,
+        generation: typeof value.generation === "number" && Number.isFinite(value.generation) ? value.generation : null,
+    };
+}
+
+function parseProgressEvent(value: Record<string, unknown>): EngineProgressEvent | null {
+    if (typeof value.position !== "number" || !Number.isFinite(value.position)) return null;
+    if (typeof value.duration !== "number" || !Number.isFinite(value.duration)) return null;
+    return {
+        position: Math.max(0, value.position),
+        duration: Math.max(0, value.duration),
+        path: typeof value.path === "string" ? value.path : null,
+        mode: isNativeOutputMode(value.mode) ? value.mode : null,
+        requestId: typeof value.requestId === "string" ? value.requestId : null,
+        generation: typeof value.generation === "number" && Number.isFinite(value.generation) ? value.generation : null,
+    };
 }
 
 /**
@@ -117,13 +160,19 @@ export function useBitPerfectEngine(handlers: EngineEventHandlers = {}) {
                     return;
                 }
                 switch (parsed.event) {
-                    case "state":
-                        setEngineState(parsed as unknown as EngineStateEvent);
-                        handlersRef.current.onState?.(parsed as unknown as EngineStateEvent);
+                    case "state": {
+                        const state = parseStateEvent(parsed);
+                        if (state) {
+                            setEngineState(state);
+                            handlersRef.current.onState?.(state);
+                        }
                         break;
-                    case "progress":
-                        handlersRef.current.onProgress?.(parsed as unknown as EngineProgressEvent);
+                    }
+                    case "progress": {
+                        const progress = parseProgressEvent(parsed);
+                        if (progress) handlersRef.current.onProgress?.(progress);
                         break;
+                    }
                     case "error":
                         handlersRef.current.onError?.({
                             code: parsed.code ? String(parsed.code) : undefined,
@@ -132,6 +181,7 @@ export function useBitPerfectEngine(handlers: EngineEventHandlers = {}) {
                             mode: parsed.mode === "shared" || parsed.mode === "exclusive" ? parsed.mode : null,
                             path: parsed.path ? String(parsed.path) : null,
                             requestId: parsed.requestId ? String(parsed.requestId) : null,
+                            generation: typeof parsed.generation === "number" ? parsed.generation : null,
                             recoverable: parsed.recoverable === true,
                         });
                         break;
@@ -151,6 +201,11 @@ export function useBitPerfectEngine(handlers: EngineEventHandlers = {}) {
                 if (cancelled) return;
                 setDownloadProgress(event.payload);
             }).then((fn) => (cancelled ? fn() : unlistens.push(fn)));
+        }).catch(() => {
+            if (!cancelled) {
+                setEngineRunning(false);
+                setEngineState(null);
+            }
         });
 
         return () => {
@@ -219,38 +274,45 @@ export function useBitPerfectEngine(handlers: EngineEventHandlers = {}) {
     const getDevices = useCallback(async (): Promise<EngineDevice[]> => {
         if (!isBrowserTauri()) return [];
         const mod = await getTauri();
+        const requestId = crypto.randomUUID();
         return new Promise<EngineDevice[]>((resolve) => {
             let done = false;
+            let unlisten: (() => void) | null = null;
+            const timer = window.setTimeout(() => finish([]), 3000);
             const finish = (devices: EngineDevice[]) => {
-                if (!done) {
-                    done = true;
-                    resolve(devices);
-                }
+                if (done) return;
+                done = true;
+                window.clearTimeout(timer);
+                unlisten?.();
+                resolve(devices);
             };
-            const timer = setTimeout(() => finish([]), 3000);
-            import("@tauri-apps/api/event").then(({listen}) => {
-                listen<string>("audio-event", (event) => {
+
+            import("@tauri-apps/api/event")
+                .then(({listen}) => listen<string>("audio-event", (event) => {
                     try {
-                        const parsed = JSON.parse(event.payload);
-                        if (parsed.event === "devices" && Array.isArray(parsed.devices)) {
-                            clearTimeout(timer);
+                        const parsed = JSON.parse(event.payload) as Record<string, unknown>;
+                        if (
+                            parsed.event === "devices" &&
+                            (parsed.requestId === requestId || parsed.requestId === undefined) &&
+                            Array.isArray(parsed.devices)
+                        ) {
                             finish(parsed.devices as EngineDevice[]);
                         }
                     } catch {
-                        // ignore
+                        // Ignore malformed device events.
                     }
-                }).then((unlisten) => {
-                    mod.invoke("send_audio_command", {json: JSON.stringify({command: "get_devices"})})
-                        .then(() => setEngineRunning(true))
-                        .catch(() => {
-                            clearTimeout(timer);
-                            unlisten();
-                            finish([]);
-                        });
-                    // Safety: auto-unlisten after resolution
-                    setTimeout(unlisten, 3500);
-                });
-            });
+                }))
+                .then((stopListening) => {
+                    unlisten = stopListening;
+                    if (done) {
+                        stopListening();
+                        return;
+                    }
+                    return mod.invoke("send_audio_command", {
+                        json: JSON.stringify({command: "get_devices", requestId}),
+                    }).then(() => setEngineRunning(true));
+                })
+                .catch(() => finish([]));
         });
     }, []);
 

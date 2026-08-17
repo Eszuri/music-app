@@ -11,8 +11,7 @@ import {
 } from "react";
 import FolderExplorer, {FileEntry} from "../FolderExplorer";
 import PlayerPanel, {SongMetadata} from "../PlayerPanel";
-import type {EngineStateEvent} from '../../hooks/useBitPerfectEngine';
-import type {OutputMode} from '../../lib/storage';
+import type {PlaybackRuntimeInfo} from '../../hooks/audio/playbackTypes';
 import SeekBar from "../SeekBar";
 import PlaybackControls from "../PlaybackControls";
 import VolumeControl from "../VolumeControl";
@@ -62,7 +61,7 @@ interface HomePlayerAreaProps {
     handlePickFolder: () => void;
     goUp: () => void;
     setCurrentPath: (path: string) => void;
-    playSong: (file: FileEntry, skipWallpaper?: boolean) => void;
+    playSong: (file: FileEntry, startAt?: number) => void;
     handleSeek: (e: ChangeEvent<HTMLInputElement>) => void;
     seekTo?: (timeSec: number) => void;
     playPrev: () => void;
@@ -75,8 +74,7 @@ interface HomePlayerAreaProps {
     onGlobalContextMenu: (e: React.MouseEvent) => void;
     onCoverSaved: () => void;
     onOpenEditMetadata?: (file?: FileEntry) => void;
-    outputMode?: OutputMode;
-    bpEngineState?: EngineStateEvent;
+    runtime?: PlaybackRuntimeInfo;
     lyricsSearchOpen?: boolean;
     onOpenLyricsSearch?: () => void;
     onCloseLyricsSearch?: () => void;
@@ -170,8 +168,7 @@ function HomePlayerArea({
     onGlobalContextMenu,
     onCoverSaved,
     onOpenEditMetadata,
-    outputMode,
-    bpEngineState,
+    runtime,
     lyricsSearchOpen,
     onOpenLyricsSearch,
     onCloseLyricsSearch,
@@ -599,8 +596,7 @@ function HomePlayerArea({
                                                 coverDataUrl={coverDataUrl}
                                                 onContextMenu={showAlbumMenu}
                                                 hideCover={isFullScreenAlbum}
-                                                outputMode={outputMode}
-                                                bpEngineState={bpEngineState}
+                                                runtime={runtime}
                                             />
                                             <div className="w-full px-2">
                                                 <SeekBar
@@ -637,6 +633,7 @@ function HomePlayerArea({
                                                     volumeLimit={volumeLimit}
                                                     handleVolumeChange={handleVolumeChange}
                                                     onToggleSystemMute={toggleSystemMute}
+                                                    disabled={runtime?.effectiveMode === 'wasapi_shared' || runtime?.effectiveMode === 'wasapi_exclusive' ? volumeMode === 'system' : false}
                                                     accentColor={accentColor}
                                                 />
                                             </div>
@@ -649,7 +646,7 @@ function HomePlayerArea({
                                                     supported={gainBoostSupported}
                                                     accentColor={accentColor}
                                                     lang={lang}
-                                                    disabled={outputMode !== 'html_audio'}
+                                                    disabled={runtime?.effectiveMode !== 'html_audio'}
                                                 />
                                             </div>
                                         </motion.div>

@@ -46,12 +46,13 @@ export function SettingRow({
     );
 }
 
-export function ToggleStub({checked = false, onChange, accent, disabled}: {checked?: boolean; onChange?: (v: boolean) => void; accent: Record<string, string>; disabled?: boolean}) {
+export function ToggleStub({checked = false, onChange, accent, disabled, ariaLabel}: {checked?: boolean; onChange?: (v: boolean) => void; accent: Record<string, string>; disabled?: boolean; ariaLabel?: string}) {
     return (
         <button
             type="button"
             role="switch"
             aria-checked={checked}
+            aria-label={ariaLabel}
             disabled={disabled}
             onClick={() => onChange?.(!checked)}
             className={`w-9 h-5 rounded-full relative transition-colors ${checked ? accent.bg500 : 'bg-zinc-700'
@@ -69,19 +70,25 @@ export function SelectStub({
     options,
     value,
     onChange,
+    disabled = false,
+    ariaLabel,
 }: {
-    options: [string, string][];
+    options: [string, string, boolean?][];
     value: string;
     onChange: (v: string) => void;
+    disabled?: boolean;
+    ariaLabel?: string;
 }) {
     return (
         <select
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className="px-3 py-1.5 rounded-lg bg-zinc-800/60 border border-zinc-700/50 text-xs text-zinc-300 cursor-pointer min-w-35 outline-none hover:bg-zinc-700/70 focus:bg-zinc-700/70 transition-colors"
+            disabled={disabled}
+            aria-label={ariaLabel}
+            className="min-h-10 min-w-35 rounded-lg border border-zinc-700/50 bg-zinc-800/60 px-3 text-base text-zinc-300 outline-none transition-colors hover:bg-zinc-700/70 focus-visible:outline-2 focus-visible:outline-offset-2 sm:min-h-0 sm:text-xs disabled:cursor-not-allowed disabled:opacity-40"
         >
-            {options.map(([v, label]) => (
-                <option key={v} value={v} className="bg-zinc-900 text-zinc-200">
+            {options.map(([v, label, optionDisabled]) => (
+                <option key={v} value={v} disabled={optionDisabled} className="bg-zinc-900 text-zinc-200">
                     {label}
                 </option>
             ))}

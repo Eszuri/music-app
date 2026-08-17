@@ -6,6 +6,7 @@ import StreamingModal from '../StreamingModal';
 import type {LogEntry} from '../../types/log';
 import {t, type Lang} from '../../lib/translations';
 import type {OutputMode} from '../../lib/storage';
+import type {PlaybackRuntimeInfo} from '../../hooks/audio/playbackTypes';
 
 interface HomeModalsProps {
     lang: Lang;
@@ -44,6 +45,8 @@ interface HomeModalsProps {
     setOutputDevice: (v: string | null) => void;
     outputMode: OutputMode;
     setOutputMode: (v: OutputMode) => void;
+    audioRuntime: PlaybackRuntimeInfo;
+    onRetryNativeAudio: () => void;
     folderSort: string;
     setFolderSort: (v: string) => void;
     fileSort: string;
@@ -109,6 +112,8 @@ export default function HomeModals({
     setOutputDevice,
     outputMode,
     setOutputMode,
+    audioRuntime,
+    onRetryNativeAudio,
     folderSort,
     setFolderSort,
     fileSort,
@@ -185,6 +190,8 @@ export default function HomeModals({
                 setOutputDevice={setOutputDevice}
                 outputMode={outputMode}
                 setOutputMode={setOutputMode}
+                audioRuntime={audioRuntime}
+                onRetryNativeAudio={onRetryNativeAudio}
                 folderSort={folderSort}
                 setFolderSort={setFolderSort}
                 fileSort={fileSort}

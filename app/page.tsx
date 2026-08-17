@@ -224,18 +224,6 @@ function HomeContent() {
     const isPluginInstalled = bpStatus?.installed === true;
     const isEqualizerInstalled = isPluginInstalled;
     const isTagEditorInstalled = isPluginInstalled;
-    const effectiveOutputMode = isPluginInstalled || settings.outputMode === 'html_audio'
-        ? settings.outputMode
-        : 'html_audio';
-
-    const { setOutputMode: setSettingsOutputMode, setOutputDeviceState: setSettingsOutputDeviceState } = settings;
-    useEffect(() => {
-        if (bpStatus !== null && bpStatus.installed === false && settings.outputMode !== 'html_audio') {
-            setSettingsOutputMode('html_audio');
-            setSettingsOutputDeviceState(null);
-        }
-    }, [bpStatus, settings.outputMode, setSettingsOutputMode, setSettingsOutputDeviceState]);
-
     const player = useAudioPlayer({
         lang,
         musicFolder: settings.musicFolder,
@@ -261,8 +249,9 @@ function HomeContent() {
         systemMuted: settings.systemMuted,
         fadeAudio: settings.fadeAudio,
         fadeDuration: settings.fadeDuration,
-        outputMode: effectiveOutputMode,
+        outputMode: settings.outputMode,
         outputDevice: settings.outputDevice,
+        nativeEngineInstalled: settings.outputMode === 'html_audio' ? true : bpStatus?.installed ?? null,
     });
 
     useKeyboardShortcuts({
@@ -511,8 +500,7 @@ function HomeContent() {
                 onGlobalContextMenu={showGlobalContextMenu}
                 onCoverSaved={() => showStatusNotif('cover-saved')}
                 onOpenEditMetadata={isTagEditorInstalled ? openMetadataEdit : undefined}
-                outputMode={effectiveOutputMode}
-                bpEngineState={player.bpEngineState ?? undefined}
+                runtime={player.runtime}
                 layoutMode={settings.layoutMode}
                 lyricsSearchOpen={lyricsSearchOpen}
                 onOpenLyricsSearch={openLyricsSearch}
@@ -587,6 +575,8 @@ function HomeContent() {
                 updateChecking={updateChecking}
                 updateDownloaded={updateDownloaded}
                 updateTotal={updateTotal}
+                audioRuntime={player.runtime}
+                onRetryNativeAudio={player.retryNative}
                 streamingOpen={streamingOpen}
                 onCloseStreaming={closeStreaming}
             />
@@ -597,7 +587,7 @@ function HomeContent() {
                 equalizer={player.equalizer}
                 accentColor={settings.accentColor}
                 lang={lang}
-                disabled={effectiveOutputMode !== 'html_audio'}
+                disabled={(player.runtime.effectiveMode ?? settings.outputMode) !== 'html_audio'}
             />
 
             <MetadataEditModal

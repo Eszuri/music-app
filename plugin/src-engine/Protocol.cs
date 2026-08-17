@@ -50,6 +50,8 @@ public static class Protocol
         [JsonPropertyName("exclusive")] public bool? Exclusive { get; set; }
         [JsonPropertyName("deviceId")] public string? DeviceId { get; set; }
         [JsonPropertyName("requestId")] public string? RequestId { get; set; }
+        [JsonPropertyName("generation")] public long? Generation { get; set; }
+        [JsonPropertyName("startAt")] public double? StartAt { get; set; }
         [JsonPropertyName("position")] public double? Position { get; set; }
         [JsonPropertyName("volume")] public float? Volume { get; set; }
 
@@ -103,7 +105,8 @@ public static class Protocol
         int? sampleRate,
         int? bitDepth,
         string? deviceName,
-        string? requestId = null)
+        string? requestId = null,
+        long? generation = null)
     {
         Emit(new
         {
@@ -115,7 +118,8 @@ public static class Protocol
             sampleRate,
             bitDepth,
             deviceName,
-            requestId
+            requestId,
+            generation
         });
     }
 
@@ -126,9 +130,10 @@ public static class Protocol
         string? mode = null,
         string? path = null,
         string? requestId = null,
+        long? generation = null,
         bool recoverable = false)
     {
-        Emit(new { @event = "error", code, message, context, mode, path, requestId, recoverable });
+        Emit(new { @event = "error", code, message, context, mode, path, requestId, generation, recoverable });
     }
 
     public static void EmitError(string message, string? context = null)
@@ -136,13 +141,23 @@ public static class Protocol
         EmitError("ENGINE_ERROR", message, context);
     }
 
-    public static void EmitProgress(double position, double duration)
+    public static void EmitProgress(
+        double position,
+        double duration,
+        string? path = null,
+        string? mode = null,
+        string? requestId = null,
+        long? generation = null)
     {
         Emit(new
         {
             @event = "progress",
             position = Math.Round(position, 2),
-            duration = Math.Round(duration, 2)
+            duration = Math.Round(duration, 2),
+            path,
+            mode,
+            requestId,
+            generation
         });
     }
 

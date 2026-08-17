@@ -22,6 +22,7 @@ public sealed class AudioPlayer : IDisposable
     private string? _currentPath;
     private string? _currentMode;
     private string? _requestId;
+    private long? _generation;
     private float _volume = 1.0f;
     private bool _disposed;
 
@@ -46,6 +47,11 @@ public sealed class AudioPlayer : IDisposable
     public string? RequestId
     {
         get { lock (_gate) return _requestId; }
+    }
+
+    public long? Generation
+    {
+        get { lock (_gate) return _generation; }
     }
 
     public bool IsPlaying
@@ -88,7 +94,7 @@ public sealed class AudioPlayer : IDisposable
     /// Loads a file and starts playback in the requested WASAPI mode.
     /// Exclusive tries the source's native sample rate at float32 → PCM24 → PCM16.
     /// </summary>
-    public void Play(string path, string mode, string? deviceId, string? requestId)
+    public void Play(string path, string mode, string? deviceId, string? requestId, long? generation, double? startAt)
     {
         if (!File.Exists(path))
             throw new FileNotFoundException("Audio file not found", path);
@@ -118,6 +124,9 @@ public sealed class AudioPlayer : IDisposable
             _currentPath = path;
             _currentMode = mode;
             _requestId = requestId;
+            _generation = generation;
+            if (startAt.HasValue)
+                _reader.CurrentTime = TimeSpan.FromSeconds(Math.Clamp(startAt.Value, 0, _reader.TotalTime.TotalSeconds));
             _output.Play();
             StartProgressTimerLocked();
         }
@@ -206,6 +215,7 @@ public sealed class AudioPlayer : IDisposable
         _currentPath = null;
         _currentMode = null;
         _requestId = null;
+        _generation = null;
     }
 
     public void Seek(double seconds)
@@ -299,7 +309,7 @@ public sealed class AudioPlayer : IDisposable
                     progress = GetProgressNoLock();
                 }
                 if (playing)
-                    Protocol.EmitProgress(progress.pos, progress.dur);
+                    Protocol.EmitProgress(progress.pos, progress.dur, CurrentPath, CurrentMode, RequestId, Generation);
             }
             catch { /* ignore */ }
         }, null, TimeSpan.FromMilliseconds(250), TimeSpan.FromMilliseconds(250));
@@ -334,7 +344,8 @@ public sealed class AudioPlayer : IDisposable
                 "playback",
                 CurrentMode,
                 CurrentPath,
-                RequestId);
+                RequestId,
+                Generation);
             return;
         }
 
