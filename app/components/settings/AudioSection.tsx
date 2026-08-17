@@ -43,12 +43,14 @@ export default function AudioSection({
     const [devicesError, setDevicesError] = useState<string | null>(null);
     const [pendingMode, setPendingMode] = useState<OutputMode | null>(null);
     const [confirmModeOpen, setConfirmModeOpen] = useState(false);
+    const [prevPropDevice, setPrevPropDevice] = useState(outputDevice);
     const [selectedDevice, setSelectedDevice] = useState<string | null>(outputDevice);
     const [appliedFeedback, setAppliedFeedback] = useState(false);
 
-    useEffect(() => {
+    if (prevPropDevice !== outputDevice) {
+        setPrevPropDevice(outputDevice);
         setSelectedDevice(outputDevice);
-    }, [outputDevice]);
+    }
 
     const installed = status?.installed === true;
     const nativeMode = isNativeMode(outputMode);

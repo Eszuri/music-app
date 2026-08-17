@@ -59,7 +59,11 @@ public sealed class AudioPlayer : IDisposable
         get
         {
             lock (_gate)
+            {
+                if (_currentMode == "shared")
+                    return _output?.PlaybackState == PlaybackState.Playing;
                 return _output?.PlaybackState == PlaybackState.Playing && _pausable != null && !_pausable.IsPaused;
+            }
         }
     }
 
@@ -68,7 +72,11 @@ public sealed class AudioPlayer : IDisposable
         get
         {
             lock (_gate)
+            {
+                if (_currentMode == "shared")
+                    return _output?.PlaybackState == PlaybackState.Paused;
                 return _output?.PlaybackState == PlaybackState.Playing && _pausable != null && _pausable.IsPaused;
+            }
         }
     }
 
@@ -184,9 +192,16 @@ public sealed class AudioPlayer : IDisposable
     {
         lock (_gate)
         {
-            if (_output?.PlaybackState == PlaybackState.Playing && _pausable != null)
+            if (_output?.PlaybackState == PlaybackState.Playing)
             {
-                _pausable.IsPaused = true;
+                if (_currentMode == "shared")
+                {
+                    _output.Pause();
+                }
+                else if (_pausable != null)
+                {
+                    _pausable.IsPaused = true;
+                }
             }
         }
     }
@@ -195,9 +210,19 @@ public sealed class AudioPlayer : IDisposable
     {
         lock (_gate)
         {
-            if (_output?.PlaybackState == PlaybackState.Playing && _pausable != null)
+            if (_output != null)
             {
-                _pausable.IsPaused = false;
+                if (_currentMode == "shared")
+                {
+                    if (_output.PlaybackState == PlaybackState.Paused)
+                    {
+                        _output.Play();
+                    }
+                }
+                else if (_pausable != null)
+                {
+                    _pausable.IsPaused = false;
+                }
             }
         }
     }
@@ -224,6 +249,11 @@ public sealed class AudioPlayer : IDisposable
         {
             try { _reader.Dispose(); } catch { /* ignore */ }
             _reader = null;
+        }
+        if (_pausable != null)
+        {
+            _pausable.IsPaused = false;
+            _pausable = null;
         }
         _currentPath = null;
         _currentMode = null;
@@ -318,7 +348,7 @@ public sealed class AudioPlayer : IDisposable
                 (double pos, double dur) progress;
                 lock (_gate)
                 {
-                    playing = _output?.PlaybackState == PlaybackState.Playing && _reader != null;
+                    playing = _output?.PlaybackState == PlaybackState.Playing && _pausable != null && !_pausable.IsPaused && _reader != null;
                     progress = GetProgressNoLock();
                 }
                 if (playing)

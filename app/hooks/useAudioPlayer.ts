@@ -158,6 +158,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     const nativeEngineModeRef = useRef<NativeOutputMode | null>(null);
     const activeNativeRequestRef = useRef<string | null>(null);
     const nativePlayingRef = useRef(false);
+    const nativeStateRef = useRef<"idle" | "playing" | "paused" | "stopped">("idle");
     const nativeSuppressedRef = useRef(false);
     const bpSendCommandRef = useRef<(cmd: Record<string, unknown>) => Promise<void>>(async () => {});
     const enginePlayRef = useRef<(file: FileEntry, seekPosition?: number, generation?: number) => Promise<void>>(async () => {});
@@ -237,8 +238,11 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 }).catch((err) => {
                     console.error("[Symvonia] Failed to switch output device on the fly:", err);
                 });
-            } else if (audioRef.current && typeof (audioRef.current as any).setSinkId === 'function') {
-                (audioRef.current as any).setSinkId(outputDevice || "").catch(() => {});
+            } else if (audioRef.current && 'setSinkId' in audioRef.current) {
+                const el = audioRef.current as HTMLMediaElement & { setSinkId?: (id: string) => Promise<void> };
+                if (typeof el.setSinkId === 'function') {
+                    el.setSinkId(outputDevice || "").catch(() => {});
+                }
             }
         }
     }, [outputDevice, isPlaying, runtimeStatus]);
@@ -599,6 +603,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         nativeEngineModeRef.current = null;
         activeNativeRequestRef.current = null;
         nativeRestoreStartedRef.current = false;
+        nativeStateRef.current = "stopped";
         setEffectiveOutputMode('html_audio');
         setRuntimeStatus('fallback');
         setRuntimeError(error);
@@ -668,6 +673,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             setDuration(0);
             setIsPlaying(true);
             nativePlayingRef.current = nativeEngineActiveRef.current;
+            nativeStateRef.current = nativeEngineActiveRef.current ? 'playing' : 'idle';
             setRuntimeError(null);
             setNativeSuppressed(false);
             nativeSuppressedRef.current = false;
@@ -766,17 +772,15 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 bpSendCommandRef.current({command: "pause"}).catch(() => {});
                 setIsPlaying(false);
                 nativePlayingRef.current = false;
+                nativeStateRef.current = "paused";
                 setRuntimeStatus('paused');
             } else if (selectedSongRef.current) {
                 const song = selectedSongRef.current;
-                if (
-                    bp.engineState?.state === 'paused' &&
-                    bp.engineState?.path &&
-                    normalizePath(bp.engineState.path) === normalizePath(song.path)
-                ) {
+                if (nativeStateRef.current === 'paused') {
                     bpSendCommandRef.current({command: "resume"}).catch(() => {});
                     setIsPlaying(true);
                     nativePlayingRef.current = true;
+                    nativeStateRef.current = "playing";
                     setRuntimeStatus('playing');
                 } else {
                     playSong(song, currentTimeRef.current > 0 ? currentTimeRef.current : 0);
@@ -830,7 +834,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 audio.pause();
             }
         }
-    }, [pauseIfMuted, isVolumeSilent, setMinimumResumeVolume, applyWallpaper, appVolume, fadeVolumeTo, isPlaying]);
+    }, [pauseIfMuted, isVolumeSilent, setMinimumResumeVolume, applyWallpaper, appVolume, fadeVolumeTo, isPlaying, playSong, prepareAudio, cancelFade]);
 
     const resetPlayer = useCallback(() => {
         cancelFade();
@@ -841,6 +845,8 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         nativeRestoreStartedRef.current = false;
         nativeEngineActiveRef.current = false;
         nativeEngineModeRef.current = null;
+        nativePlayingRef.current = false;
+        nativeStateRef.current = "stopped";
         bpSendCommandRef.current({command: "stop"}).catch(() => {});
         if (isBrowserTauri()) {
             getTauri().then((m) => m.invoke("stop_audio_engine")).catch(() => {});
@@ -992,13 +998,9 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         onProgress: (e) => {
             if (!isCurrentNativeEvent(e)) return;
             if (!Number.isFinite(e.position) || !Number.isFinite(e.duration)) return;
+            if (nativeStateRef.current === 'paused' || !nativePlayingRef.current) return;
             setCurrentTime(Math.max(0, e.position));
             if (e.duration > 0) setDuration(e.duration);
-            if (!nativePlayingRef.current) {
-                nativePlayingRef.current = true;
-                setIsPlaying(true);
-                setRuntimeStatus('playing');
-            }
             const song = selectedSongRef.current;
             if (song && e.position > 0) {
                 const now = Date.now();
@@ -1017,6 +1019,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             switch (e.state) {
                 case "playing":
                     nativePlayingRef.current = true;
+                    nativeStateRef.current = "playing";
                     setRuntimeStatus('playing');
                     setEffectiveOutputMode(e.mode === 'exclusive' ? 'wasapi_exclusive' : 'wasapi_shared');
                     setRuntimeError(null);
@@ -1031,6 +1034,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                     break;
                 case "paused":
                     nativePlayingRef.current = false;
+                    nativeStateRef.current = "paused";
                     setRuntimeStatus('paused');
                     setIsPlaying(false);
                     if (e.path) {
@@ -1047,11 +1051,13 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                     break;
                 case "stopped":
                     nativePlayingRef.current = false;
+                    nativeStateRef.current = "stopped";
                     setRuntimeStatus('idle');
                     setIsPlaying(false);
                     break;
                 case "ended": {
                     nativePlayingRef.current = false;
+                    nativeStateRef.current = "stopped";
                     setRuntimeStatus('idle');
                     setIsPlaying(false);
                     saveSessionState(null);
@@ -1067,6 +1073,8 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         },
         onError: (error: EngineErrorEvent) => {
             if (!isCurrentNativeEvent(error)) return;
+            nativeStateRef.current = "stopped";
+            nativePlayingRef.current = false;
             if (autoFallbackRef.current) {
                 setRuntimeStatus('fallback');
                 setRuntimeError(error);
