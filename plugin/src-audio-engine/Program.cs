@@ -4,8 +4,32 @@ using Symvonia.AudioEngine;
 // Speaks JSON lines on stdin/stdout (see Protocol.cs). Nothing else may ever
 // be written to stdout, or the host's JSON parser will break.
 
-Console.InputEncoding = System.Text.Encoding.UTF8;
-Console.OutputEncoding = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+using System.Runtime.InteropServices;
+
+[DllImport("kernel32.dll", SetLastError = true)]
+static extern IntPtr GetStdHandle(int nStdHandle);
+
+try
+{
+    IntPtr hOut = GetStdHandle(-11);
+    if (hOut != IntPtr.Zero && hOut != new IntPtr(-1))
+    {
+        var outStream = new FileStream(new Microsoft.Win32.SafeHandles.SafeFileHandle(hOut, false), FileAccess.Write, 4096);
+        Console.SetOut(new StreamWriter(outStream, new System.Text.UTF8Encoding(false)) { AutoFlush = true });
+    }
+}
+catch { }
+
+try
+{
+    IntPtr hIn = GetStdHandle(-10);
+    if (hIn != IntPtr.Zero && hIn != new IntPtr(-1))
+    {
+        var inStream = new FileStream(new Microsoft.Win32.SafeHandles.SafeFileHandle(hIn, false), FileAccess.Read, 4096);
+        Console.SetIn(new StreamReader(inStream, System.Text.Encoding.UTF8));
+    }
+}
+catch { }
 
 if (args.Length >= 2 && args[0] == "--verify")
 {

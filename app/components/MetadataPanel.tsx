@@ -12,6 +12,7 @@ import { useHoverDescription } from '../hooks/useHoverDescription';
 import { useHoverInfo } from '../contexts/HoverInfoContext';
 import { CopyIcon, MusicNoteIcon, LyricsIcon, DetailsIcon } from './icons';
 import { useLyrics } from '../hooks/useLyrics';
+import { useAiLyricsPlugin } from '../hooks/useAiLyricsPlugin';
 import { LyricsSearchModal } from './LyricsSearchModal';
 import { AiLyricsModal } from './AiLyricsModal';
 import { getStoredValue, setStoredValue } from '../lib/storage';
@@ -173,6 +174,9 @@ function LyricsSection({
         saveAsLrcFile,
     } = useLyrics(songPath, currentTime ?? 0, songTitle, artistName, albumName, duration);
 
+    const { pluginStatus: aiPluginStatus } = useAiLyricsPlugin();
+    const isAiPluginInstalled = aiPluginStatus?.installed === true;
+
     const [isSaving, setIsSaving] = useState(false);
     const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -326,12 +330,14 @@ function LyricsSection({
                         </div>
                         <div className="flex flex-col space-y-2 pt-1 w-full max-w-[210px]">
                             {/* Button 1: ✨ Local AI Lyrics Generator */}
-                            <button
-                                onClick={() => onOpenAiLyricsModal?.()}
-                                className="px-4 py-2 rounded-xl text-xs font-bold text-white transition-all shadow-md cursor-pointer flex items-center justify-center space-x-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 border border-purple-400/30"
-                            >
-                                <span>{t(lang, 'lyrics.aiPlugin.generateBtn')}</span>
-                            </button>
+                            {isAiPluginInstalled && (
+                                <button
+                                    onClick={() => onOpenAiLyricsModal?.()}
+                                    className="px-4 py-2 rounded-xl text-xs font-bold text-white transition-all shadow-md cursor-pointer flex items-center justify-center space-x-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 border border-purple-400/30"
+                                >
+                                    <span>{t(lang, 'lyrics.aiPlugin.generateBtn')}</span>
+                                </button>
+                            )}
 
                             {/* Button 2: 🔍 Online LRCLIB Search */}
                             <button
@@ -373,13 +379,15 @@ function LyricsSection({
                         </div>
                         <div className="flex items-center space-x-1.5 shrink-0">
                             {/* ✨ AI Generator Modal Trigger */}
-                            <button
-                                onClick={() => onOpenAiLyricsModal?.()}
-                                className="px-2 py-1 rounded-lg bg-purple-900/40 hover:bg-purple-800/60 text-purple-200 border border-purple-700/40 transition-colors cursor-pointer text-xs font-semibold flex items-center gap-1 shadow-xs"
-                                title={t(lang, 'lyrics.aiPlugin.title')}
-                            >
-                                <span className="text-[10px] font-bold">AI</span>
-                            </button>
+                            {isAiPluginInstalled && (
+                                <button
+                                    onClick={() => onOpenAiLyricsModal?.()}
+                                    className="px-2 py-1 rounded-lg bg-purple-900/40 hover:bg-purple-800/60 text-purple-200 border border-purple-700/40 transition-colors cursor-pointer text-xs font-semibold flex items-center gap-1 shadow-xs"
+                                    title={t(lang, 'lyrics.aiPlugin.title')}
+                                >
+                                    <span className="text-[10px] font-bold">AI</span>
+                                </button>
+                            )}
 
                             {/* 💾 Save LRC File Trigger */}
                             {(source === 'lrclib' || source === 'custom') && (

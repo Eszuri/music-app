@@ -148,7 +148,8 @@ pub fn run() {
             open_config_folder,
             get_storage_usage,
             clean_ai_models_data,
-            clean_all_app_data
+            clean_all_app_data,
+            get_app_environment
         ])
         .register_uri_scheme_protocol("stream", |_app, request| {
             if request.method() == tauri::http::Method::OPTIONS {

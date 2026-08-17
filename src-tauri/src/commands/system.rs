@@ -539,3 +539,23 @@ pub fn get_system_specs() -> SystemSpecsInfo {
         })
         .clone()
 }
+
+#[derive(Serialize, Clone, Debug)]
+pub struct AppEnvironmentInfo {
+    pub is_dev: bool,
+    pub environment: String,
+}
+
+#[tauri::command]
+pub fn get_app_environment() -> AppEnvironmentInfo {
+    let is_dev = cfg!(debug_assertions);
+    AppEnvironmentInfo {
+        is_dev,
+        environment: if is_dev {
+            "development".to_string()
+        } else {
+            "production".to_string()
+        },
+    }
+}
+

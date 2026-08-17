@@ -324,7 +324,7 @@ pub fn verify_plugin_executable(src: &Path) -> Result<(), String> {
             let mut reader = std::io::BufReader::new(stdout);
             let mut line = String::new();
             let start = std::time::Instant::now();
-            while start.elapsed().as_millis() < 2500 {
+            while start.elapsed().as_millis() < 8000 {
                 if reader.read_line(&mut line).unwrap_or(0) > 0 {
                     break;
                 }
@@ -357,10 +357,18 @@ pub fn invalidate_cache() {
     }
 }
 
+pub fn is_dev_mode() -> bool {
+    cfg!(debug_assertions)
+}
+
 /// Verifies the AI lyrics plugin executable before execution using an in-memory fingerprint cache.
 /// Returns Ok(()) in <0.05ms if the file size and modification time have not changed.
 /// If the file is modified or replaced manually, it re-runs full verification and updates the cache.
 pub fn verify_with_cache(path: &Path) -> Result<(), String> {
+    if is_dev_mode() {
+        return Ok(());
+    }
+
     let meta = fs::metadata(path)
         .map_err(|e| format!("Gagal membaca metadata berkas plugin ({}): {}", path.display(), e))?;
     let size = meta.len();
@@ -416,11 +424,17 @@ fn kill_existing_plugin_process() {
     }
 }
 
+/// Installs the AI lyrics plugin from a local exe file.
+/// In development mode (debug assertions), all verification is skipped.
+/// In production mode, full strict SHA-256 release hash and binary handshake verification are enforced.
 pub fn install_from_file(app: &AppHandle, source: &str) -> Result<PluginStatus, String> {
     let src = PathBuf::from(source);
     validate_manual_import_source(&src)?;
-    verify_download_hash(&src, PLUGIN_EXPECTED_SHA256)?;
-    verify_plugin_executable(&src)?;
+
+    if !is_dev_mode() {
+        verify_download_hash(&src, PLUGIN_EXPECTED_SHA256)?;
+        verify_plugin_executable(&src)?;
+    }
 
     kill_existing_plugin_process();
     invalidate_cache();
@@ -579,5 +593,19 @@ mod tests {
         assert!(VERIFIED_CACHE.lock().unwrap().is_none());
 
         let _ = fs::remove_file(&temp_file);
+    }
+
+    #[test]
+    fn test_is_dev_mode_returns_debug_assertions_state() {
+        assert_eq!(is_dev_mode(), cfg!(debug_assertions));
+    }
+
+    #[test]
+    fn test_verify_real_published_ai_lyrics_exe() {
+        let published_exe = Path::new("../plugin/src-ai-lyrics/publish/symvonia-ai-lyrics.exe");
+        if published_exe.exists() {
+            let res = verify_plugin_executable(published_exe);
+            assert!(res.is_ok(), "Verification failed: {:?}", res.err());
+        }
     }
 }

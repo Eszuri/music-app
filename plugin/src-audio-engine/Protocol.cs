@@ -63,11 +63,13 @@ public static class Protocol
         }
     }
 
+    private static readonly object LogLock = new();
+
     /// <summary>Writes one event as a single JSON line to stdout (thread-safe).</summary>
     public static void Emit(object payload)
     {
         string line = JsonSerializer.Serialize(payload, JsonOptions);
-        lock (Console.Out)
+        lock (LogLock)
         {
             Console.Out.WriteLine(line);
             Console.Out.Flush();

@@ -42,7 +42,7 @@ public static class Protocol
     public static void Emit(object payload)
     {
         string line = JsonSerializer.Serialize(payload, JsonOptions);
-        lock (Console.Out)
+        lock (LogLock)
         {
             Console.Out.WriteLine(line);
             Console.Out.Flush();

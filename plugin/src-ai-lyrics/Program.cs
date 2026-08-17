@@ -1,8 +1,30 @@
 using System.Runtime.InteropServices;
 using Symvonia.AiLyrics;
 
-Console.InputEncoding = System.Text.Encoding.UTF8;
-Console.OutputEncoding = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+[DllImport("kernel32.dll", SetLastError = true)]
+static extern IntPtr GetStdHandle(int nStdHandle);
+
+try
+{
+    IntPtr hOut = GetStdHandle(-11);
+    if (hOut != IntPtr.Zero && hOut != new IntPtr(-1))
+    {
+        var outStream = new FileStream(new Microsoft.Win32.SafeHandles.SafeFileHandle(hOut, false), FileAccess.Write, 4096);
+        Console.SetOut(new StreamWriter(outStream, new System.Text.UTF8Encoding(false)) { AutoFlush = true });
+    }
+}
+catch { }
+
+try
+{
+    IntPtr hIn = GetStdHandle(-10);
+    if (hIn != IntPtr.Zero && hIn != new IntPtr(-1))
+    {
+        var inStream = new FileStream(new Microsoft.Win32.SafeHandles.SafeFileHandle(hIn, false), FileAccess.Read, 4096);
+        Console.SetIn(new StreamReader(inStream, System.Text.Encoding.UTF8));
+    }
+}
+catch { }
 
 if (args.Length >= 2 && args[0] == "--verify")
 {
@@ -17,23 +39,25 @@ if (args.Length >= 2 && args[0] == "--verify")
     return;
 }
 
-// Pre-load all Whisper native DLLs before Whisper.net tries to load them.
-// Whisper.net uses NativeLibrary.Load internally (not [DllImport]),
-// so SetDllImportResolver won't help. We must load them ourselves.
+// Pre-load all Whisper & ONNX native DLLs before Whisper.net and OnnxRuntime use them.
 {
-    string exeDir = Path.GetDirectoryName(Environment.ProcessPath ?? "") ?? AppDomain.CurrentDomain.BaseDirectory;
+    string baseDir = AppContext.BaseDirectory;
+    string exeDir = Path.GetDirectoryName(Environment.ProcessPath ?? "") ?? baseDir;
 
-    // Set Whisper.net's library search path
-    Whisper.net.LibraryLoader.RuntimeOptions.LibraryPath = exeDir;
+    // Prefer extraction base directory if native dlls exist there, otherwise exe directory
+    string libraryPath = Directory.GetFiles(baseDir, "*whisper*.dll").Length > 0 ? baseDir : exeDir;
+    Whisper.net.LibraryLoader.RuntimeOptions.LibraryPath = libraryPath;
 
-    // Pre-load native DLLs in dependency order (ggml deps first, then whisper)
-    string[] nativeDlls = ["ggml-base-whisper.dll", "ggml-whisper.dll", "ggml-cpu-whisper.dll", "whisper.dll"];
+    // Pre-load native DLLs in dependency order (ggml deps first, then whisper, then onnxruntime)
+    string[] nativeDlls = ["ggml-base-whisper.dll", "ggml-whisper.dll", "ggml-cpu-whisper.dll", "whisper.dll", "onnxruntime.dll"];
     foreach (var dll in nativeDlls)
     {
-        string path = Path.Combine(exeDir, dll);
-        if (File.Exists(path))
+        string pathBase = Path.Combine(baseDir, dll);
+        string pathExe = Path.Combine(exeDir, dll);
+        string? path = File.Exists(pathBase) ? pathBase : (File.Exists(pathExe) ? pathExe : null);
+        if (path != null)
         {
-            NativeLibrary.Load(path);
+            NativeLibrary.TryLoad(path, out _);
         }
     }
 }
@@ -62,22 +86,25 @@ if (args.Length >= 1 && args[0] == "--test-native")
 
         // Try explicit load
         Console.WriteLine($"\n--- Explicit Load Test ---");
-        string[] toLoad = ["whisper.dll", "ggml-whisper.dll", "ggml-base-whisper.dll", "ggml-cpu-whisper.dll"];
+        string[] toLoad = ["whisper.dll", "ggml-whisper.dll", "ggml-base-whisper.dll", "ggml-cpu-whisper.dll", "onnxruntime.dll"];
         foreach (var dll in toLoad)
         {
-            string path = Path.Combine(exeDir, dll);
-            bool exists = File.Exists(path);
+            string pathBase = Path.Combine(baseDir, dll);
+            string pathExe = Path.Combine(exeDir, dll);
+            string? path = File.Exists(pathBase) ? pathBase : (File.Exists(pathExe) ? pathExe : null);
+            bool exists = path != null;
             bool loaded = false;
             IntPtr handle = IntPtr.Zero;
             if (exists)
-                loaded = NativeLibrary.TryLoad(path, out handle);
+                loaded = NativeLibrary.TryLoad(path!, out handle);
             Console.WriteLine($"  {dll}: exists={exists}, loaded={loaded}, handle=0x{handle:X}");
         }
 
         // Try WhisperFactory
         Console.WriteLine($"\n--- WhisperFactory Test ---");
-        Whisper.net.LibraryLoader.RuntimeOptions.LibraryPath = exeDir;
-        Console.WriteLine($"RuntimeOptions.LibraryPath set to: {exeDir}");
+        string libraryPath = Directory.GetFiles(baseDir, "*whisper*.dll").Length > 0 ? baseDir : exeDir;
+        Whisper.net.LibraryLoader.RuntimeOptions.LibraryPath = libraryPath;
+        Console.WriteLine($"RuntimeOptions.LibraryPath set to: {libraryPath}");
     }
     catch (Exception ex)
     {
