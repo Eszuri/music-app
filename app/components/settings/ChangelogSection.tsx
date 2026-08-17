@@ -5,6 +5,14 @@ import {type Lang} from '../../lib/translations';
 
 const changelogEn = [
     {
+        version: '1.0.5',
+        items: [
+            'Unified Audio Engine: Merged WASAPI Shared & Exclusive playback, Equalizer DSP, and Tag Editor into a single plugin.',
+            'Simplified Plugin Architecture: Reduced to 2 plugins — Unified Audio Engine & AI Lyrics Generator.',
+            'Fixed WASAPI pause/resume in both Shared and Exclusive modes.',
+        ],
+    },
+    {
         version: '1.0.4',
         items: [
             'Bug fixes and stability improvements.',
@@ -181,6 +189,14 @@ const changelogEn = [
 ];
 
 const changelogId = [
+    {
+        version: '1.0.5',
+        items: [
+            'Unified Audio Engine: Menggabungkan WASAPI Shared & Exclusive, Equalizer DSP, dan Tag Editor ke dalam satu plugin.',
+            'Penyederhanaan Plugin: Dipangkas menjadi 2 plugin — Unified Audio Engine & Pembuat Lirik AI.',
+            'Perbaikan jeda/resume WASAPI mode Shared dan Exclusive.',
+        ],
+    },
     {
         version: '1.0.4',
         items: [
