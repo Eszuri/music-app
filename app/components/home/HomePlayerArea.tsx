@@ -401,6 +401,7 @@ function HomePlayerArea({
                 {
                     label: t(lang, "contextMenu.editMetadata"),
                     icon: <EditIcon size={14} />,
+                    disabled: !onOpenEditMetadata,
                     onClick: () => {
                         if (onOpenEditMetadata) {
                             onOpenEditMetadata(file);

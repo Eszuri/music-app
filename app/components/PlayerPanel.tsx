@@ -106,7 +106,6 @@ function PlayerPanel({lang, metadata, selectedSong, accentColor, coverDataUrl, o
                         {runtime && runtime.status !== 'idle' && (
                             <div className="mt-2 flex justify-center">
                                 <span className={`inline-flex max-w-full flex-wrap items-center justify-center gap-1.5 rounded-full border bg-zinc-900 px-3 py-1 text-[10px] font-semibold tracking-wide shadow-[0_0_10px_rgba(0,0,0,0.5)] ${runtime.status === 'error' || runtime.status === 'fallback' ? 'border-amber-500/30 text-amber-300' : `${accent.border500_30} ${accent.text400}`}`}>
-                                    <span className={`h-1.5 w-1.5 rounded-full ${runtime.status === 'error' || runtime.status === 'fallback' ? 'bg-amber-400' : accent.bg500} ${runtime.status === 'playing' ? 'animate-pulse' : ''}`}></span>
                                     {runtime.effectiveMode === 'wasapi_exclusive'
                                         ? t(lang, 'audio.outputMode.wasapiExclusive')
                                         : runtime.effectiveMode === 'wasapi_shared'

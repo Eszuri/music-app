@@ -58,6 +58,8 @@ export interface SettingsModalProps {
     setOutputDevice: (v: string | null) => void;
     outputMode: OutputMode;
     setOutputMode: (v: OutputMode) => void;
+    autoFallbackHtmlAudio?: boolean;
+    setAutoFallbackHtmlAudio?: (v: boolean) => void;
     audioRuntime: PlaybackRuntimeInfo;
     onRetryNativeAudio: () => void;
     onResetSidebarWidth: () => void;

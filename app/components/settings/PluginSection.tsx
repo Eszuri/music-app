@@ -202,15 +202,13 @@ export default function PluginSection({
                                 {t(lang, 'audio.bitperfect.plugin.title')}
                             </span>
                             {bitInstalled ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-xs">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-xs">
                                     {t(lang, 'audio.bitperfect.plugin.installed', {
                                         size: bitSizeMB,
                                     })}
                                 </span>
                             ) : (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-800 text-zinc-400 border border-zinc-700/60">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-800 text-zinc-400 border border-zinc-700/60">
                                     {t(
                                         lang,
                                         'audio.bitperfect.plugin.notInstalled'
@@ -380,15 +378,13 @@ export default function PluginSection({
                                 {t(lang, 'lyrics.aiPlugin.title')}
                             </span>
                             {aiInstalled ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-xs">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-xs">
                                     {t(lang, 'audio.bitperfect.plugin.installed', {
                                         size: aiSizeMB,
                                     })}
                                 </span>
                             ) : (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-800 text-zinc-400 border border-zinc-700/60">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-800 text-zinc-400 border border-zinc-700/60">
                                     {t(
                                         lang,
                                         'audio.bitperfect.plugin.notInstalled'

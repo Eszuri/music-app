@@ -44,7 +44,10 @@ interface UseAudioPlayerOptions {
     fadeAudio?: boolean;
     fadeDuration?: number;
     outputMode?: OutputMode;
+    setOutputMode?: (v: OutputMode) => void;
     outputDevice?: string | null;
+    autoFallbackHtmlAudio?: boolean;
+    onAutoFallback?: () => void;
     nativeEngineInstalled?: boolean | null;
 }
 
@@ -79,11 +82,28 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         fadeAudio = true,
         fadeDuration = 500,
         outputMode = "html_audio",
+        setOutputMode,
         outputDevice = null,
+        autoFallbackHtmlAudio = false,
+        onAutoFallback,
         nativeEngineInstalled = null,
     } = options;
 
     const outputModeRef = useRef<OutputMode>(outputMode);
+    const autoFallbackRef = useRef<boolean>(autoFallbackHtmlAudio);
+    useEffect(() => {
+        autoFallbackRef.current = autoFallbackHtmlAudio;
+    }, [autoFallbackHtmlAudio]);
+
+    const onAutoFallbackRef = useRef(onAutoFallback);
+    useEffect(() => {
+        onAutoFallbackRef.current = onAutoFallback;
+    }, [onAutoFallback]);
+
+    const setOutputModeCallbackRef = useRef(setOutputMode);
+    useEffect(() => {
+        setOutputModeCallbackRef.current = setOutputMode;
+    }, [setOutputMode]);
 
     const [files, setFiles] = useState<FileEntry[]>([]);
     const [filesLoadedOnce, setFilesLoadedOnce] = useState(false);
@@ -585,6 +605,11 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         playbackGenerationRef.current += 1;
         bpSendCommandRef.current({command: "stop"}).catch(() => {});
 
+        // Immediately update outputMode state & persistent config to 'html_audio'
+        previousRequestedModeRef.current = 'html_audio';
+        outputModeRef.current = 'html_audio';
+        setOutputModeCallbackRef.current?.('html_audio');
+
         try {
             cancelFade();
             audio.src = getAudioSrc(song.path);
@@ -602,7 +627,8 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             await audio.play();
             setRuntimeStatus('playing');
             setIsPlaying(true);
-            addLog("warn", t(lang, 'audio.outputMode.log.fallback'));
+            addLog("warn", t(lang, 'audio.autoFallback.notification'));
+            onAutoFallbackRef.current?.();
         } catch (fallbackError) {
             setRuntimeStatus('error');
             const finalError = {
@@ -709,12 +735,13 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                     requestId: activeNativeRequestRef.current,
                     generation,
                 };
-                if (nativeEngineActiveRef.current) {
+                if (nativeEngineActiveRef.current && autoFallbackRef.current) {
                     await fallbackNativeToHtml(error);
                 } else {
                     setRuntimeStatus('error');
                     setRuntimeError(error);
                     setIsPlaying(false);
+                    nativePlayingRef.current = false;
                     showError(t(lang, 'log.playbackFailed', {msg: error.message}));
                 }
             }
@@ -1040,11 +1067,19 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         },
         onError: (error: EngineErrorEvent) => {
             if (!isCurrentNativeEvent(error)) return;
-            setRuntimeStatus('fallback');
-            setRuntimeError(error);
-            fallbackNativeToHtml(error).catch(() => {
+            if (autoFallbackRef.current) {
+                setRuntimeStatus('fallback');
+                setRuntimeError(error);
+                fallbackNativeToHtml(error).catch(() => {
+                    showError(t(lang, 'log.playbackFailed', {msg: error.message}));
+                });
+            } else {
+                setRuntimeStatus('error');
+                setRuntimeError(error);
+                setIsPlaying(false);
+                nativePlayingRef.current = false;
                 showError(t(lang, 'log.playbackFailed', {msg: error.message}));
-            });
+            }
         },
     });
 
@@ -1361,6 +1396,10 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
     // ─── return ────────────────────────────────────────────────────────────────
 
+    const isLossless = selectedSong?.ext
+        ? ['flac', 'wav', 'alac', 'aiff', 'dsd', 'dsf'].includes(selectedSong.ext.toLowerCase())
+        : false;
+
     const runtime: PlaybackRuntimeInfo = {
         status: runtimeStatus,
         requestedMode: outputMode,
@@ -1369,8 +1408,8 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         position: currentTime,
         duration,
         deviceName: bp.engineState?.deviceName ?? null,
-        sampleRate: bp.engineState?.sampleRate ?? null,
-        bitDepth: bp.engineState?.bitDepth ?? null,
+        sampleRate: metadata?.sample_rate ?? bp.engineState?.sampleRate ?? null,
+        bitDepth: isLossless ? (metadata?.bit_depth ?? bp.engineState?.bitDepth ?? null) : null,
         error: runtimeError,
     };
 

@@ -333,13 +333,11 @@ export function AiLyricsModal({
 
                                         <div className="flex items-center gap-2.5 shrink-0 ml-2">
                                             {isCurrentModelDownloaded ? (
-                                                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                                <span className="inline-flex items-center text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20">
                                                     {t(lang, 'lyrics.aiPlugin.tagDownloaded')}
                                                 </span>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-400 bg-zinc-800/60 px-2.5 py-1 rounded-md border border-zinc-700/40">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
+                                                <span className="inline-flex items-center text-xs font-medium text-zinc-400 bg-zinc-800/60 px-2.5 py-1 rounded-md border border-zinc-700/40">
                                                     {t(lang, 'lyrics.aiPlugin.tagNotDownloaded')}
                                                 </span>
                                             )}
@@ -412,13 +410,11 @@ export function AiLyricsModal({
                                                                     </span>
                                                                 )}
                                                                 {isDownloaded ? (
-                                                                    <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-medium">
-                                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                                                    <span className="inline-flex items-center text-xs text-emerald-400 font-medium">
                                                                         {t(lang, 'lyrics.aiPlugin.tagDownloaded')}
                                                                     </span>
                                                                 ) : (
-                                                                    <span className="inline-flex items-center gap-1 text-xs text-zinc-400 font-medium">
-                                                                        <span className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
+                                                                    <span className="inline-flex items-center text-xs text-zinc-400 font-medium">
                                                                         {t(lang, 'lyrics.aiPlugin.tagNotDownloaded')}
                                                                     </span>
                                                                 )}
@@ -486,13 +482,11 @@ export function AiLyricsModal({
                                             302 MB
                                         </span>
                                         {isVocalModelDownloaded ? (
-                                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                            <span className="inline-flex items-center text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
                                                 {t(lang, 'lyrics.aiPlugin.tagDownloaded')}
                                             </span>
                                         ) : (
-                                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-400 bg-zinc-800/60 px-2 py-0.5 rounded-md border border-zinc-700/40">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
+                                            <span className="inline-flex items-center text-[11px] font-medium text-zinc-400 bg-zinc-800/60 px-2 py-0.5 rounded-md border border-zinc-700/40">
                                                 {t(lang, 'lyrics.aiPlugin.tagNotDownloaded')}
                                             </span>
                                         )}

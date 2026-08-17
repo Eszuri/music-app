@@ -45,6 +45,8 @@ interface HomeModalsProps {
     setOutputDevice: (v: string | null) => void;
     outputMode: OutputMode;
     setOutputMode: (v: OutputMode) => void;
+    autoFallbackHtmlAudio?: boolean;
+    setAutoFallbackHtmlAudio?: (v: boolean) => void;
     audioRuntime: PlaybackRuntimeInfo;
     onRetryNativeAudio: () => void;
     folderSort: string;
@@ -112,6 +114,8 @@ export default function HomeModals({
     setOutputDevice,
     outputMode,
     setOutputMode,
+    autoFallbackHtmlAudio,
+    setAutoFallbackHtmlAudio,
     audioRuntime,
     onRetryNativeAudio,
     folderSort,
@@ -190,6 +194,8 @@ export default function HomeModals({
                 setOutputDevice={setOutputDevice}
                 outputMode={outputMode}
                 setOutputMode={setOutputMode}
+                autoFallbackHtmlAudio={autoFallbackHtmlAudio}
+                setAutoFallbackHtmlAudio={setAutoFallbackHtmlAudio}
                 audioRuntime={audioRuntime}
                 onRetryNativeAudio={onRetryNativeAudio}
                 folderSort={folderSort}

@@ -73,6 +73,8 @@ export default function SettingsModal({
     setOutputDevice,
     outputMode,
     setOutputMode,
+    autoFallbackHtmlAudio,
+    setAutoFallbackHtmlAudio,
     audioRuntime,
     onRetryNativeAudio,
     onResetSidebarWidth,
@@ -269,6 +271,8 @@ export default function SettingsModal({
                                         setOutputDevice={setOutputDevice}
                                         outputMode={outputMode}
                                         setOutputMode={setOutputMode}
+                                        autoFallbackHtmlAudio={autoFallbackHtmlAudio}
+                                        setAutoFallbackHtmlAudio={setAutoFallbackHtmlAudio}
                                         audioRuntime={audioRuntime}
                                         onRetryNativeAudio={onRetryNativeAudio}
                                         accentColor={accentColor}

@@ -244,7 +244,9 @@ pub fn get_metadata(file_path: String) -> Result<SongMetadata, String> {
     let bitrate = props.audio_bitrate();
     let sample_rate = props.sample_rate();
     let channels = props.channels();
-    let bit_depth = props.bit_depth();
+    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+    let is_lossy = matches!(ext.as_str(), "mp3" | "ogg" | "opus" | "aac");
+    let bit_depth = if is_lossy { None } else { props.bit_depth() };
 
     let tag = tagged_file.primary_tag().or_else(|| tagged_file.first_tag());
 

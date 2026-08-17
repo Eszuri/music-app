@@ -1,8 +1,24 @@
 'use client';
 
-import {t, type Lang} from '../../lib/translations';
+import { t, type Lang } from '../../lib/translations';
+import { getTauri, isBrowserTauri } from '../../lib/homeState';
 
-export default function AboutSection({lang}: {lang: Lang}) {
+export default function AboutSection({ lang }: { lang: Lang }) {
+    const handleOpenLink = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        const url = 'https://github.com/Eszuri/symvonia';
+        if (isBrowserTauri()) {
+            try {
+                const mod = await getTauri();
+                await mod.invoke('open_external_url', { url });
+                return;
+            } catch (err) {
+                console.error('Failed to open external url:', err);
+            }
+        }
+        window.open(url, '_blank', 'noopener,noreferrer');
+    };
+
     return (
         <div className="space-y-5">
             <div className="flex flex-col items-center text-center py-4">
@@ -15,9 +31,8 @@ export default function AboutSection({lang}: {lang: Lang}) {
                     <span>{t(lang, 'about.by')} <span className="text-zinc-400">{t(lang, 'about.author')}</span></span>
                     <a
                         href="https://github.com/Eszuri/symvonia"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors"
+                        onClick={handleOpenLink}
+                        className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors cursor-pointer"
                     >
                         {t(lang, 'about.repo')}
                         <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

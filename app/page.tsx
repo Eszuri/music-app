@@ -172,7 +172,7 @@ function HomeContent() {
 
     // ── Status bar notification ──────────────────────────────────────────────
     const [statusNotif, setStatusNotif] = useState<{
-        type: 'cover-saved' | 'metadata-saved' | 'volume-limit';
+        type: 'cover-saved' | 'metadata-saved' | 'volume-limit' | 'auto-fallback';
         msgKey: string;
         vars?: Record<string, string | number>;
     } | null>(null);
@@ -186,23 +186,26 @@ function HomeContent() {
     }, []);
 
     const showStatusNotif = useCallback(
-        (type: 'cover-saved' | 'metadata-saved' | 'volume-limit', vars?: Record<string, string | number>) => {
+        (type: 'cover-saved' | 'metadata-saved' | 'volume-limit' | 'auto-fallback', vars?: Record<string, string | number>) => {
             if (notifTimerRef.current) clearTimeout(notifTimerRef.current);
             const msgKey =
                 type === 'cover-saved'
                     ? 'notification.coverSaved'
                     : type === 'metadata-saved'
                     ? 'notification.metadataSaved'
+                    : type === 'auto-fallback'
+                    ? 'audio.autoFallback.notification'
                     : 'notification.volumeLimit';
             setStatusNotif({
                 type,
                 msgKey,
                 vars,
             });
-            if (type === 'cover-saved' || type === 'metadata-saved') {
+            if (type === 'cover-saved' || type === 'metadata-saved' || type === 'auto-fallback') {
+                const duration = type === 'auto-fallback' ? 10000 : 3000;
                 notifTimerRef.current = setTimeout(() => {
                     setStatusNotif((prev) => (prev?.type === type ? null : prev));
-                }, 3000);
+                }, duration);
             }
         },
         [],
@@ -250,7 +253,10 @@ function HomeContent() {
         fadeAudio: settings.fadeAudio,
         fadeDuration: settings.fadeDuration,
         outputMode: settings.outputMode,
+        setOutputMode: settings.setOutputMode,
         outputDevice: settings.outputDevice,
+        autoFallbackHtmlAudio: settings.autoFallbackHtmlAudio,
+        onAutoFallback: () => showStatusNotif('auto-fallback'),
         nativeEngineInstalled: settings.outputMode === 'html_audio' ? true : bpStatus?.installed ?? null,
     });
 
@@ -548,6 +554,8 @@ function HomeContent() {
                 setOutputDevice={settings.setOutputDeviceState}
                 outputMode={settings.outputMode}
                 setOutputMode={settings.setOutputMode}
+                autoFallbackHtmlAudio={settings.autoFallbackHtmlAudio}
+                setAutoFallbackHtmlAudio={settings.setAutoFallbackHtmlAudio}
                 folderSort={settings.folderSort}
                 setFolderSort={settings.setFolderSortState}
                 fileSort={settings.fileSort}
@@ -641,15 +649,22 @@ function HomeContent() {
                 </div>
                 {statusNotif && (
                     <div
-                        className={`shrink-0 flex items-center gap-1.5 px-2 mx-2 rounded text-[10px] font-semibold whitespace-nowrap ${statusNotif.type === 'volume-limit'
+                        className={`shrink-0 flex items-center gap-1.5 px-2 mx-2 rounded text-[10px] font-semibold whitespace-nowrap ${
+                            statusNotif.type === 'volume-limit' || statusNotif.type === 'auto-fallback'
                                 ? 'text-amber-300'
                                 : 'text-emerald-400'
-                            }`}
+                        }`}
                     >
                         {statusNotif.type === 'volume-limit' ? (
                             <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                                 <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
                                 <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                            </svg>
+                        ) : statusNotif.type === 'auto-fallback' ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="12" y1="16" x2="12" y2="12" />
+                                <line x1="12" y1="8" x2="12.01" y2="8" />
                             </svg>
                         ) : (
                             <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">

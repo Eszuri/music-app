@@ -44,6 +44,7 @@ export function usePlayerSettings() {
     const [defaultWallpaper, setDefaultWallpaperState] = useState<string | null>(init.default_wallpaper);
     const [outputDevice, setOutputDeviceStateInternal] = useState<string | null>(init.output_device);
     const [outputMode, setOutputModeStateInternal] = useState<OutputMode>(() => normalizeOutputMode(init.output_mode));
+    const [autoFallbackHtmlAudio, setAutoFallbackHtmlAudioStateInternal] = useState(init.auto_fallback_html_audio ?? false);
     const [layoutMode, setLayoutModeStateInternal] = useState<'default' | 'spotify'>(init.layout_mode as 'default' | 'spotify');
     const [shortcuts, setShortcutsState] = useState<Record<ShortcutAction, string>>({
         ...DEFAULT_SHORTCUTS,
@@ -246,6 +247,7 @@ export function usePlayerSettings() {
             if (backendConfig.default_wallpaper !== undefined) setDefaultWallpaperState(backendConfig.default_wallpaper);
             if (backendConfig.output_device !== undefined) setOutputDeviceStateInternal(backendConfig.output_device);
             if (backendConfig.output_mode) setOutputModeStateInternal(normalizeOutputMode(backendConfig.output_mode));
+            if (backendConfig.auto_fallback_html_audio !== undefined) setAutoFallbackHtmlAudioStateInternal(backendConfig.auto_fallback_html_audio);
             if (backendConfig.shortcuts) {
                 const sc = { ...DEFAULT_SHORTCUTS, ...backendConfig.shortcuts };
                 setShortcutsState(sc as Record<ShortcutAction, string>);
@@ -426,6 +428,11 @@ export function usePlayerSettings() {
         setStoredValue('output_mode', mode);
     }, []);
 
+    const setAutoFallbackHtmlAudio = useCallback((v: boolean) => {
+        setAutoFallbackHtmlAudioStateInternal(v);
+        setStoredValue('auto_fallback_html_audio', v);
+    }, []);
+
     const setLayoutModeState = useCallback((mode: 'default' | 'spotify') => {
         setLayoutModeStateInternal(mode);
         setStoredValue('layout_mode', mode);
@@ -485,6 +492,8 @@ export function usePlayerSettings() {
         setOutputDeviceState,
         outputMode,
         setOutputMode,
+        autoFallbackHtmlAudio,
+        setAutoFallbackHtmlAudio,
         layoutMode,
         setLayoutModeState,
         shortcuts,

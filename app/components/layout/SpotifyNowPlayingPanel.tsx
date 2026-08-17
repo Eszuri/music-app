@@ -73,16 +73,18 @@ export default function SpotifyNowPlayingPanel({
                     <h3 className="font-bold text-lg text-zinc-100 truncate hover:underline cursor-pointer" title={title}>
                         {title}
                     </h3>
-                    <button
-                        onClick={() => onOpenEditMetadata?.(selectedSong || undefined)}
-                        className="text-xs text-zinc-400 hover:text-white p-1 rounded hover:bg-zinc-800 transition-colors shrink-0"
-                        title={t(lang, 'spotify.editMetadata')}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M12 20h9" />
-                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                        </svg>
-                    </button>
+                    {onOpenEditMetadata && (
+                        <button
+                            onClick={() => onOpenEditMetadata(selectedSong || undefined)}
+                            className="text-xs text-zinc-400 hover:text-white p-1 rounded hover:bg-zinc-800 transition-colors shrink-0"
+                            title={t(lang, 'spotify.editMetadata')}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M12 20h9" />
+                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                            </svg>
+                        </button>
+                    )}
                 </div>
                 <p className="text-sm font-medium text-zinc-300 truncate">{artist}</p>
                 <p className="text-xs text-zinc-400 truncate">{album}</p>

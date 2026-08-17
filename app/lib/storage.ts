@@ -69,6 +69,7 @@ export interface SymvoniaConfig {
     autohide_delay_ms: number;
     output_mode: OutputMode;
     output_device: string | null;
+    auto_fallback_html_audio: boolean;
     equalizer: EqualizerConfig;
     gain_boost: number;
     ai_lyrics_model: string;
@@ -115,6 +116,7 @@ export const DEFAULT_CONFIG: SymvoniaConfig = {
     autohide_delay_ms: 3000,
     output_mode: 'html_audio',
     output_device: null,
+    auto_fallback_html_audio: false,
     equalizer: {
         enabled: false,
         preset: 'flat',

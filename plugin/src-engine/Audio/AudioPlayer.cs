@@ -78,9 +78,22 @@ public sealed class AudioPlayer : IDisposable
         {
             lock (_gate)
             {
-                if (_output?.OutputWaveFormat is { } wf)
-                    return (wf.SampleRate, wf.BitsPerSample);
-                return (null, null);
+                int? rate = _reader?.WaveFormat.SampleRate;
+                if (rate == null && _output?.OutputWaveFormat is { } wf)
+                    rate = wf.SampleRate;
+
+                int? bits = null;
+                if (_currentPath != null)
+                {
+                    var ext = Path.GetExtension(_currentPath).ToLowerInvariant();
+                    bool isLossless = ext is ".flac" or ".wav" or ".alac" or ".aiff" or ".dsd" or ".dsf";
+                    if (isLossless && _output?.OutputWaveFormat is { } wf2)
+                    {
+                        bits = wf2.BitsPerSample;
+                    }
+                }
+
+                return (rate, bits);
             }
         }
     }

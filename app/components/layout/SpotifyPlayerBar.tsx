@@ -99,7 +99,7 @@ export default function SpotifyPlayerBar({
 
                 <div className="flex flex-col min-w-0 justify-center">
                     <div
-                        className="text-sm font-semibold text-zinc-100 hover:underline cursor-pointer truncate leading-snug"
+                        className={`text-sm font-semibold text-zinc-100 truncate leading-snug ${onOpenEditMetadata ? 'hover:underline cursor-pointer' : 'cursor-default'}`}
                         title={title}
                         onClick={() => onOpenEditMetadata?.(selectedSong || undefined)}
                     >

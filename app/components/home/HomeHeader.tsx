@@ -238,21 +238,7 @@ function HomeHeader({
                     className={`text-[11px] font-medium px-2 sm:px-2.5 py-1 rounded-full flex items-center gap-1 sm:gap-1.5 shrink-0 ${isPlaying ? `${accent.bg15} ${accent.text400} border ${accent.border500_20}` : 'bg-zinc-800/50 text-zinc-500 border border-zinc-700/30'
                         }`}
                 >
-                    {isPlaying ? (
-                        <>
-                            <motion.span
-                                className={`inline-block w-1.5 h-1.5 rounded-full ${accent.bg400}`}
-                                animate={{opacity: [1, 0.5, 1]}}
-                                transition={{duration: 1.2, repeat: Infinity, ease: 'easeInOut'}}
-                            />
-                            {t(lang, 'header.playing')}
-                        </>
-                    ) : (
-                        <>
-                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-zinc-500" />
-                            {t(lang, 'header.stopped')}
-                        </>
-                    )}
+                    {isPlaying ? t(lang, 'header.playing') : t(lang, 'header.stopped')}
                 </motion.span>
             </header>
 

@@ -1,17 +1,16 @@
 'use client';
 
 import {useCallback, useEffect, useState} from 'react';
-import {SelectStub, SettingGroup, SettingRow} from './controls';
+import {SelectStub, SettingGroup, SettingRow, ToggleStub} from './controls';
 import {t, type Lang} from '../../lib/translations';
 import {getAccent} from '../../lib/colors';
 import {useBitPerfectEngine, type EngineDevice} from '../../hooks/useBitPerfectEngine';
-import type {OutputMode} from '../../lib/storage';
 import type {PlaybackRuntimeInfo} from '../../hooks/audio/playbackTypes';
+import type {OutputMode} from '../../lib/storage';
 import ConfirmDialog from '../ConfirmDialog';
 
-const nativeModes: OutputMode[] = ['wasapi_shared', 'wasapi_exclusive'];
-
 function isNativeMode(mode: OutputMode): boolean {
+    const nativeModes: OutputMode[] = ['wasapi_shared', 'wasapi_exclusive'];
     return nativeModes.includes(mode);
 }
 
@@ -23,6 +22,8 @@ export default function AudioSection({
     setOutputMode,
     audioRuntime,
     accentColor,
+    autoFallbackHtmlAudio = false,
+    setAutoFallbackHtmlAudio,
 }: {
     lang: Lang;
     outputDevice: string | null;
@@ -32,6 +33,8 @@ export default function AudioSection({
     audioRuntime: PlaybackRuntimeInfo;
     onRetryNativeAudio?: () => void;
     accentColor: string;
+    autoFallbackHtmlAudio?: boolean;
+    setAutoFallbackHtmlAudio?: (v: boolean) => void;
 }) {
     const accent = getAccent(accentColor);
     const {status, getDevices} = useBitPerfectEngine();
@@ -179,6 +182,17 @@ export default function AudioSection({
                         </div>
                     </div>
                 </div>
+                <SettingRow
+                    title={t(lang, 'audio.autoFallback.title')}
+                    description={t(lang, 'audio.autoFallback.desc')}
+                >
+                    <ToggleStub
+                        checked={autoFallbackHtmlAudio}
+                        onChange={(val) => setAutoFallbackHtmlAudio?.(val)}
+                        disabled={!installed}
+                        accent={accent}
+                    />
+                </SettingRow>
                 {devicesError && nativeMode && !activeDeviceKnown && <div className="border-b border-zinc-800/40 px-4 py-3 text-xs text-amber-300" role="status">{devicesError}</div>}
             </SettingGroup>
         </div>
