@@ -5,12 +5,14 @@ use tauri::Manager;
 pub mod ai_lyrics_plugin_manager;
 pub mod audio;
 pub mod commands;
+pub mod library_cache;
 pub mod migration;
 pub mod sidecar;
 pub mod sidecar_lyrics;
 pub mod unified_engine_manager;
 
 pub use commands::*;
+pub use library_cache::{clear_library_cache, invalidate_library_directory, set_library_root};
 
 fn parse_byte_range(header: Option<&str>, file_size: u64) -> Option<(u64, u64)> {
     let spec = header?.strip_prefix("bytes=")?.split(',').next()?.trim();
@@ -64,6 +66,7 @@ fn decode_percent(s: &str) -> String {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
+        .manage(library_cache::LibraryCacheState::default())
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             // When a second instance is launched, focus the existing main window
             // instead of starting a duplicate process.
@@ -77,7 +80,8 @@ pub fn run() {
             let handle = app.handle();
             let _ = migration::migrate_legacy_plugins(handle);
             let initial_config = commands::config::load_config(handle);
-            let json_str = serde_json::to_string(&initial_config).unwrap_or_else(|_| "{}".to_string());
+            let json_str =
+                serde_json::to_string(&initial_config).unwrap_or_else(|_| "{}".to_string());
             if let Some(window) = app.get_webview_window("main") {
                 let script = format!("window.__SYMVONIA_INITIAL_CONFIG__ = {};", json_str);
                 let _ = window.eval(&script);
@@ -94,6 +98,9 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             list_files,
+            set_library_root,
+            clear_library_cache,
+            invalidate_library_directory,
             get_metadata,
             get_lyrics,
             fetch_online_lyrics,
@@ -178,11 +185,13 @@ pub fn run() {
 
             let raw_path = request.uri().path();
             let decoded = decode_percent(raw_path);
-            let clean_path = if cfg!(windows) && decoded.starts_with('/') && decoded.chars().nth(2) == Some(':') {
-                &decoded[1..]
-            } else {
-                &decoded[..]
-            };
+            let clean_path =
+                if cfg!(windows) && decoded.starts_with('/') && decoded.chars().nth(2) == Some(':')
+                {
+                    &decoded[1..]
+                } else {
+                    &decoded[..]
+                };
 
             let path_buf = std::path::PathBuf::from(clean_path);
             if !path_buf.exists() || !path_buf.is_file() {
@@ -195,11 +204,13 @@ pub fn run() {
 
             let file_size = match std::fs::metadata(&path_buf) {
                 Ok(m) => m.len(),
-                Err(_) => return tauri::http::Response::builder()
-                    .status(500)
-                    .header("Access-Control-Allow-Origin", "*")
-                    .body(Vec::new())
-                    .unwrap(),
+                Err(_) => {
+                    return tauri::http::Response::builder()
+                        .status(500)
+                        .header("Access-Control-Allow-Origin", "*")
+                        .body(Vec::new())
+                        .unwrap()
+                }
             };
 
             let ext = path_buf
@@ -243,11 +254,13 @@ pub fn run() {
 
             let mut file = match std::fs::File::open(&path_buf) {
                 Ok(f) => f,
-                Err(_) => return tauri::http::Response::builder()
-                    .status(500)
-                    .header("Access-Control-Allow-Origin", "*")
-                    .body(Vec::new())
-                    .unwrap(),
+                Err(_) => {
+                    return tauri::http::Response::builder()
+                        .status(500)
+                        .header("Access-Control-Allow-Origin", "*")
+                        .body(Vec::new())
+                        .unwrap()
+                }
             };
 
             const MAX_CHUNK: u64 = 2 * 1024 * 1024;
@@ -274,7 +287,10 @@ pub fn run() {
                 .status(206)
                 .header("Access-Control-Allow-Origin", "*")
                 .header("Accept-Ranges", "bytes")
-                .header("Content-Range", format!("bytes {}-{}/{}", start, end, file_size))
+                .header(
+                    "Content-Range",
+                    format!("bytes {}-{}/{}", start, end, file_size),
+                )
                 .header("Content-Length", length.to_string())
                 .header("Content-Type", mime)
                 .body(buffer)
@@ -312,7 +328,8 @@ pub fn run() {
             unified_engine_manager::cancel_download();
             ai_lyrics_plugin_manager::cancel_download();
             if commands::wallpaper::RESET_ON_CLOSE.load(Ordering::SeqCst) {
-                let has_default = commands::wallpaper::DEFAULT_WALLPAPER_PATH.lock()
+                let has_default = commands::wallpaper::DEFAULT_WALLPAPER_PATH
+                    .lock()
                     .map(|p| p.is_some())
                     .unwrap_or(false);
                 if has_default {

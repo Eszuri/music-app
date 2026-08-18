@@ -17,6 +17,7 @@ import type {OutputMode} from "../lib/storage";
 import {useVolumeFade} from "./audio/useVolumeFade";
 import {useAudioSrc} from "./audio/useAudioSrc";
 import type {PlaybackRuntimeInfo} from "./audio/playbackTypes";
+import {listenTauri, type LibraryCacheInvalidatedEvent} from "../lib/tauri";
 
 interface UseAudioPlayerOptions {
     lang: Lang;
@@ -147,6 +148,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     const playbackGenerationRef = useRef(0);
     const metadataRequestRef = useRef(0);
     const loadFilesTokenRef = useRef(0);
+    const libraryRootPromiseRef = useRef<Promise<void> | null>(null);
     const autoPausedBySilenceRef = useRef(false);
     const lastSessionSaveRef = useRef(0);
     const restoredPendingPlayRef = useRef(false);
@@ -307,22 +309,28 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
     // ─── file listing ──────────────────────────────────────────────────────────
 
+    const listFiles = useCallback(async (dirPath: string): Promise<FileEntry[]> => {
+        await libraryRootPromiseRef.current;
+        const mod = await getTauri();
+        return mod.invoke<FileEntry[]>("list_files", {
+            path: dirPath,
+            folderSort: folderSortRef.current || "name",
+            fileSort: fileSortRef.current || "name",
+            sortDir: sortDirRef.current || "asc",
+            nameSource: nameSourceRef.current || "filename",
+            formats: formatsRef.current && formatsRef.current.length > 0
+                ? formatsRef.current
+                : ['mp3', 'flac', 'ogg', 'wav', 'm4a', 'wma'],
+        });
+    }, []);
+
     const loadFiles = useCallback(
         async (dirPath: string) => {
             const token = ++loadFilesTokenRef.current;
             setLoadingFiles(true);
             try {
-                const mod = await getTauri();
-                const result = await mod.invoke<FileEntry[]>("list_files", {
-                    path: dirPath,
-                    folderSort: folderSortRef.current || "name",
-                    fileSort: fileSortRef.current || "name",
-                    sortDir: sortDirRef.current || "asc",
-                    nameSource: nameSourceRef.current || "filename",
-                    formats: formatsRef.current && formatsRef.current.length > 0 ? formatsRef.current : ['mp3', 'flac', 'ogg', 'wav', 'm4a', 'wma'],
-                });
-                if (token !== loadFilesTokenRef.current)
-                    return;
+                const result = await listFiles(dirPath);
+                if (token !== loadFilesTokenRef.current) return;
                 setFiles(result || []);
                 setSelectedSong((prev) => {
                     if (!prev) return null;
@@ -330,8 +338,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                     return updated || prev;
                 });
             } catch (e) {
-                if (token !== loadFilesTokenRef.current)
-                    return;
+                if (token !== loadFilesTokenRef.current) return;
                 console.error("[Symvonia] Failed to list files in:", dirPath, e);
                 showError(String(e));
                 setFiles([]);
@@ -342,13 +349,19 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 }
             }
         },
-        [showError],
+        [listFiles, showError],
     );
 
     const refreshFiles = useCallback(() => {
-        if (currentPath) {
-            loadFiles(currentPath);
+        if (!currentPath) return;
+        if (isBrowserTauri()) {
+            getTauri()
+                .then((mod) => mod.invoke("invalidate_library_directory", {path: currentPath}))
+                .catch(() => {})
+                .finally(() => loadFiles(currentPath));
+            return;
         }
+        loadFiles(currentPath);
     }, [currentPath, loadFiles]);
 
     // ─── metadata ──────────────────────────────────────────────────────────────
@@ -380,15 +393,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             let fileList = filesRef.current;
             if (currentPathRef.current !== songParent || fileList.length === 0) {
                 if (isBrowserTauri()) {
-                    const mod = await getTauri();
-                    fileList = await mod.invoke<FileEntry[]>("list_files", {
-                        path: songParent,
-                        folderSort: folderSortRef.current,
-                        fileSort: fileSortRef.current,
-                        sortDir: sortDirRef.current,
-                        nameSource: nameSourceRef.current,
-                        formats: formatsRef.current,
-                    });
+                    fileList = await listFiles(songParent);
                     if (isMountedRef.current) {
                         setFiles(fileList);
                         setCurrentPath(songParent);
@@ -410,15 +415,32 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 loadMetadata(filePath, true);
             }
         }
-    }, [loadMetadata]);
+    }, [listFiles, loadMetadata]);
 
     // ─── path / folder effects ─────────────────────────────────────────────────
+
+    useEffect(() => {
+        if (!isBrowserTauri()) {
+            libraryRootPromiseRef.current = null;
+            return;
+        }
+        const previous = libraryRootPromiseRef.current ?? Promise.resolve();
+        const promise = previous
+            .catch(() => {})
+            .then(() => getTauri())
+            .then((mod) => mod.invoke("set_library_root", {path: musicFolder}))
+            .then(() => undefined);
+        libraryRootPromiseRef.current = promise;
+        promise.catch((error) => console.error("[Symvonia] Failed to set library root:", error));
+    }, [musicFolder]);
 
     useEffect(() => {
         const frame = requestAnimationFrame(() => {
             if (musicFolder) {
                 setCurrentPath((prev) => {
-                    if (!prev || !prev.startsWith(musicFolder)) {
+                    const normalizedPrev = prev ? normalizePath(prev) : "";
+                    const normalizedRoot = normalizePath(musicFolder);
+                    if (!normalizedPrev || (normalizedPrev !== normalizedRoot && !normalizedPrev.startsWith(`${normalizedRoot}/`))) {
                         return musicFolder;
                     }
                     return prev;
@@ -429,6 +451,42 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         });
         return () => cancelAnimationFrame(frame);
     }, [musicFolder]);
+
+    useEffect(() => {
+        if (!isBrowserTauri()) return;
+        let disposed = false;
+        let unlisten: (() => void) | null = null;
+        void listenTauri<LibraryCacheInvalidatedEvent>("library-cache-invalidated", (event) => {
+            if (disposed || !musicFolder) return;
+            if (normalizePath(event.root_path) !== normalizePath(musicFolder)) return;
+            const affected = event.affected_paths.map(normalizePath);
+            const current = currentPathRef.current ? normalizePath(currentPathRef.current) : "";
+            const playlistFolder = playlistFolderRef.current ? normalizePath(playlistFolderRef.current) : "";
+            const isAffected = (path: string) => affected.includes(path);
+            const currentAffected = Boolean(current) && isAffected(current);
+            const playlistAffected = Boolean(playlistFolder) && isAffected(playlistFolder);
+            if (currentAffected) void loadFiles(currentPathRef.current!);
+            if (playlistAffected && playlistFolderRef.current) {
+                void listFiles(playlistFolderRef.current).then((result) => {
+                    if (!isMountedRef.current) return;
+                    playlistRef.current = result.filter((file) => !file.is_dir);
+                    const selected = selectedSongRef.current;
+                    if (selected && !playlistRef.current.some((file) => file.path === selected.path)) {
+                        selectedSongRef.current = null;
+                        setSelectedSong(null);
+                        setMetadata(null);
+                    }
+                }).catch(() => {});
+            }
+        }).then((cleanup) => {
+            if (disposed) cleanup();
+            else unlisten = cleanup;
+        }).catch(() => {});
+        return () => {
+            disposed = true;
+            unlisten?.();
+        };
+    }, [listFiles, loadFiles, musicFolder]);
 
     useEffect(() => {
         const timer = window.setTimeout(() => {
@@ -461,9 +519,8 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         if (!playlistFolderRef.current) return;
         if (currentPath !== playlistFolderRef.current) return;
         const freshFiles = files.filter((f) => !f.is_dir);
-        if (freshFiles.length === 0) return;
         playlistRef.current = freshFiles;
-    }, [files]);
+    }, [currentPath, files]);
 
     // ─── session restore ───────────────────────────────────────────────────────
 
@@ -497,15 +554,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 sessionRestoreAttemptedRef.current = true;
                 try {
                     const token = ++loadFilesTokenRef.current;
-                    const mod = await getTauri();
-                    const result = await mod.invoke<FileEntry[]>("list_files", {
-                        path: savedParent,
-                        folderSort: folderSortRef.current,
-                        fileSort: fileSortRef.current,
-                        sortDir: sortDirRef.current,
-                        nameSource: nameSourceRef.current,
-                        formats: formatsRef.current,
-                    });
+                    const result = await listFiles(savedParent);
                     if (token !== loadFilesTokenRef.current || !isMountedRef.current)
                         return;
                     setFiles(result);
@@ -586,7 +635,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 saveSessionState(null);
             }
         }
-    }, [files, filesLoadedOnce, getAudioSrc, nativeEngineInstalled, outputMode]);
+    }, [files, filesLoadedOnce, getAudioSrc, listFiles, nativeEngineInstalled, outputMode]);
 
     const nativeRestoreStartedRef = useRef(false);
     const previousRequestedModeRef = useRef<OutputMode>(outputMode);

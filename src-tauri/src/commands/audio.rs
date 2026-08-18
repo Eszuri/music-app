@@ -9,8 +9,9 @@ use std::ffi::OsStr;
 use std::fs;
 use std::path::Path;
 use std::time::SystemTime;
-use tauri::AppHandle;
+use tauri::{AppHandle, State};
 
+use crate::library_cache::{self, CachedEntry, DirectorySnapshot, LibraryCacheState};
 use crate::sidecar;
 
 #[derive(Serialize)]
@@ -47,124 +48,142 @@ pub struct SongMetadata {
     pub bit_depth: Option<u8>,
 }
 
-fn file_display_name(path: &Path, filename: &str, name_source: &str) -> String {
-    if name_source == "title" {
-        if let Ok(tagged_file) = read_from_path(path) {
-            if let Some(tag) = tagged_file.primary_tag().or_else(|| tagged_file.first_tag()) {
-                if let Some(title) = tag.title() {
-                    let t = title.trim();
-                    if !t.is_empty() {
-                        return t.to_string();
-                    }
-                }
-            }
-        }
-    }
+fn file_title(path: &Path) -> Option<String> {
+    let tagged_file = read_from_path(path).ok()?;
+    let tag = tagged_file
+        .primary_tag()
+        .or_else(|| tagged_file.first_tag())?;
+    let title = tag.title()?;
+    let title = title.trim();
+    (!title.is_empty()).then(|| title.to_string())
+}
+
+fn filename_display_name(filename: &str) -> String {
     Path::new(filename)
         .file_stem()
         .map(|s| s.to_string_lossy().to_string())
         .unwrap_or_else(|| filename.to_string())
 }
 
-fn list_files_inner(
-    path: String,
-    folder_sort: String,
-    file_sort: String,
-    sort_dir: String,
-    name_source: String,
-    formats: Vec<String>,
-) -> Result<Vec<FileEntry>, String> {
-    let entries = fs::read_dir(&path).map_err(|e| format!("Failed to read directory: {}", e))?;
-
-    let dir_entries: Vec<_> = entries
-        .filter_map(|e| e.ok())
-        .filter(|e| {
-            let name = e.file_name();
-            let name_str = name.to_string_lossy();
-            !name_str.starts_with('.')
-        })
+fn scan_directory(root_path: &str, directory_path: &str) -> Result<DirectorySnapshot, String> {
+    let entries =
+        fs::read_dir(directory_path).map_err(|e| format!("Failed to read directory: {}", e))?;
+    let entries: Vec<_> = entries
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| !entry.file_name().to_string_lossy().starts_with('.'))
         .collect();
 
-    let mut files: Vec<FileEntry> = dir_entries
+    let cached_entries: Vec<CachedEntry> = entries
         .into_par_iter()
         .filter_map(|entry| {
             let path_buf = entry.path();
-            let name = entry.file_name().to_string_lossy().to_string();
             let metadata = entry.metadata().ok()?;
+            let name = entry.file_name().to_string_lossy().to_string();
             let is_dir = metadata.is_dir();
-
             let ext = path_buf
                 .extension()
                 .unwrap_or(OsStr::new(""))
                 .to_string_lossy()
                 .to_lowercase();
+            let mtime = metadata
+                .modified()
+                .unwrap_or(SystemTime::UNIX_EPOCH)
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs();
+            let ctime = metadata
+                .created()
+                .unwrap_or(SystemTime::UNIX_EPOCH)
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs();
 
-            if is_dir || formats.iter().any(|f| f == &ext) {
-                let mtime = metadata
-                    .modified()
-                    .unwrap_or(SystemTime::UNIX_EPOCH)
-                    .duration_since(SystemTime::UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_secs();
-                let ctime = metadata
-                    .created()
-                    .unwrap_or(SystemTime::UNIX_EPOCH)
-                    .duration_since(SystemTime::UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_secs();
-                let size = metadata.len();
+            Some(CachedEntry {
+                name,
+                path: path_buf.to_string_lossy().to_string(),
+                is_dir,
+                ext,
+                mtime,
+                size: metadata.len(),
+                ctime,
+                title: None,
+                title_loaded: is_dir,
+            })
+        })
+        .collect();
 
-                let (display_name, sort_key) = if is_dir {
-                    let dn = name.clone();
-                    let sk = name.to_lowercase();
-                    (dn, sk)
-                } else {
-                    let dn = file_display_name(&path_buf, &name, &name_source);
-                    let sk = dn.to_lowercase();
-                    (dn, sk)
-                };
+    library_cache::make_snapshot(root_path, directory_path, cached_entries)
+}
 
-                Some(FileEntry {
-                    name,
-                    path: path_buf.to_string_lossy().to_string(),
-                    is_dir,
-                    ext,
-                    mtime,
-                    size,
-                    ctime,
-                    display_name,
-                    sort_key,
-                })
-            } else {
-                None
+fn project_snapshot(
+    snapshot: &mut DirectorySnapshot,
+    folder_sort: &str,
+    file_sort: &str,
+    sort_dir: &str,
+    name_source: &str,
+    formats: &[String],
+) -> Vec<FileEntry> {
+    let mut files: Vec<FileEntry> = snapshot
+        .entries
+        .iter_mut()
+        .filter_map(|entry| {
+            if !entry.is_dir && !formats.iter().any(|format| format == &entry.ext) {
+                return None;
             }
+            if !entry.is_dir && name_source == "title" && !entry.title_loaded {
+                entry.title = file_title(Path::new(&entry.path));
+                entry.title_loaded = true;
+            }
+            let display_name = if entry.is_dir {
+                entry.name.clone()
+            } else if name_source == "title" {
+                entry
+                    .title
+                    .clone()
+                    .unwrap_or_else(|| filename_display_name(&entry.name))
+            } else {
+                filename_display_name(&entry.name)
+            };
+            Some(FileEntry {
+                name: entry.name.clone(),
+                path: entry.path.clone(),
+                is_dir: entry.is_dir,
+                ext: entry.ext.clone(),
+                mtime: entry.mtime,
+                size: entry.size,
+                ctime: entry.ctime,
+                sort_key: display_name.to_lowercase(),
+                display_name,
+            })
         })
         .collect();
 
     let desc = sort_dir == "desc";
-    let fsort = file_sort;
-    let fosort = folder_sort;
     files.sort_by(|a, b| {
         if a.is_dir != b.is_dir {
             b.is_dir.cmp(&a.is_dir)
         } else {
-            let key = if a.is_dir { &fosort } else { &fsort };
-            let cmp = match key.as_str() {
+            let key = if a.is_dir { folder_sort } else { file_sort };
+            let cmp = match key {
                 "name" => a.sort_key.cmp(&b.sort_key),
                 "size" => a.size.cmp(&b.size),
                 "ext" => a.ext.cmp(&b.ext),
                 "ctime" => a.ctime.cmp(&b.ctime),
                 _ => a.mtime.cmp(&b.mtime),
             };
-            if desc { cmp.reverse() } else { cmp }
+            if desc {
+                cmp.reverse()
+            } else {
+                cmp
+            }
         }
     });
-
-    Ok(files)
+    files
 }
 
-#[tauri::command]
-pub async fn list_files(
+fn list_files_inner(
+    app: AppHandle,
+    cache: LibraryCacheState,
     path: String,
     folder_sort: String,
     file_sort: String,
@@ -172,8 +191,59 @@ pub async fn list_files(
     name_source: String,
     formats: Vec<String>,
 ) -> Result<Vec<FileEntry>, String> {
+    let root_path = cache.active_root().unwrap_or_else(|| path.clone());
+    let mut snapshot = cache.load_or_scan(&app, &root_path, &path, || {
+        scan_directory(&root_path, &path)
+    })?;
+    let before_titles: Vec<_> = snapshot
+        .entries
+        .iter()
+        .map(|entry| (entry.path.clone(), entry.title_loaded, entry.title.clone()))
+        .collect();
+    let files = project_snapshot(
+        &mut snapshot,
+        &folder_sort,
+        &file_sort,
+        &sort_dir,
+        &name_source,
+        &formats,
+    );
+    let titles_changed = before_titles
+        != snapshot
+            .entries
+            .iter()
+            .map(|entry| (entry.path.clone(), entry.title_loaded, entry.title.clone()))
+            .collect::<Vec<_>>();
+    if titles_changed {
+        let _ = library_cache::write_snapshot(&app, &snapshot);
+        cache.update_snapshot(snapshot)?;
+    }
+    Ok(files)
+}
+
+#[tauri::command]
+pub async fn list_files(
+    app: AppHandle,
+    cache: State<'_, LibraryCacheState>,
+    path: String,
+    folder_sort: String,
+    file_sort: String,
+    sort_dir: String,
+    name_source: String,
+    formats: Vec<String>,
+) -> Result<Vec<FileEntry>, String> {
+    let cache = cache.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
-        list_files_inner(path, folder_sort, file_sort, sort_dir, name_source, formats)
+        list_files_inner(
+            app,
+            cache,
+            path,
+            folder_sort,
+            file_sort,
+            sort_dir,
+            name_source,
+            formats,
+        )
     })
     .await
     .map_err(|e| format!("Task error: {}", e))?
@@ -190,7 +260,10 @@ pub fn get_metadata(file_path: String) -> Result<SongMetadata, String> {
         Ok(t) => t,
         Err(_) => {
             if let Ok(probe) = lofty::probe::Probe::open(path) {
-                let probe = probe.options(lofty::config::ParseOptions::new().parsing_mode(lofty::config::ParsingMode::Relaxed));
+                let probe = probe.options(
+                    lofty::config::ParseOptions::new()
+                        .parsing_mode(lofty::config::ParsingMode::Relaxed),
+                );
                 match probe.read() {
                     Ok(t) => t,
                     Err(_) => {
@@ -244,25 +317,52 @@ pub fn get_metadata(file_path: String) -> Result<SongMetadata, String> {
     let bitrate = props.audio_bitrate();
     let sample_rate = props.sample_rate();
     let channels = props.channels();
-    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
     let is_lossy = matches!(ext.as_str(), "mp3" | "ogg" | "opus" | "aac");
     let bit_depth = if is_lossy { None } else { props.bit_depth() };
 
-    let tag = tagged_file.primary_tag().or_else(|| tagged_file.first_tag());
+    let tag = tagged_file
+        .primary_tag()
+        .or_else(|| tagged_file.first_tag());
 
-    let (title, artist, album, genre, year, track_number, total_tracks, disc_number, total_discs, comment) = tag
+    let (
+        title,
+        artist,
+        album,
+        genre,
+        year,
+        track_number,
+        total_tracks,
+        disc_number,
+        total_discs,
+        comment,
+    ) = tag
         .map(|t| {
             (
-                t.title().map(|s| s.trim().to_string()).filter(|s| !s.is_empty()),
-                t.artist().map(|s| s.trim().to_string()).filter(|s| !s.is_empty()),
-                t.album().map(|s| s.trim().to_string()).filter(|s| !s.is_empty()),
-                t.genre().map(|s| s.trim().to_string()).filter(|s| !s.is_empty()),
+                t.title()
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty()),
+                t.artist()
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty()),
+                t.album()
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty()),
+                t.genre()
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty()),
                 t.year(),
                 t.track(),
                 t.track_total(),
                 t.disk(),
                 t.disk_total(),
-                t.comment().map(|s| s.trim().to_string()).filter(|s| !s.is_empty()),
+                t.comment()
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty()),
             )
         })
         .unwrap_or((None, None, None, None, None, None, None, None, None, None));
@@ -340,7 +440,9 @@ pub fn save_metadata(
 #[tauri::command]
 pub async fn save_cover_image(cover_b64: String, mime: String) -> Result<(), String> {
     let engine = base64::engine::general_purpose::STANDARD;
-    let data = engine.decode(&cover_b64).map_err(|e| format!("Base64 decode error: {}", e))?;
+    let data = engine
+        .decode(&cover_b64)
+        .map_err(|e| format!("Base64 decode error: {}", e))?;
 
     let ext = match mime.as_str() {
         "image/jpeg" | "image/jpg" => "jpg",
@@ -378,4 +480,90 @@ pub fn stop_audio_engine() -> Result<(), String> {
 #[tauri::command]
 pub fn is_audio_engine_running() -> bool {
     sidecar::is_running()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::library_cache::DirectorySignature;
+
+    fn snapshot() -> DirectorySnapshot {
+        DirectorySnapshot {
+            schema_version: 1,
+            root_path: "C:/Music".to_string(),
+            directory_path: "C:/Music".to_string(),
+            signature: DirectorySignature {
+                mtime: 1,
+                entry_count: 3,
+                fingerprint: 1,
+            },
+            cached_at: 1,
+            entries: vec![
+                CachedEntry {
+                    name: "song.mp3".to_string(),
+                    path: "C:/Music/song.mp3".to_string(),
+                    is_dir: false,
+                    ext: "mp3".to_string(),
+                    mtime: 1,
+                    size: 10,
+                    ctime: 1,
+                    title: Some("A Song".to_string()),
+                    title_loaded: true,
+                },
+                CachedEntry {
+                    name: "Album".to_string(),
+                    path: "C:/Music/Album".to_string(),
+                    is_dir: true,
+                    ext: String::new(),
+                    mtime: 1,
+                    size: 0,
+                    ctime: 1,
+                    title: None,
+                    title_loaded: true,
+                },
+                CachedEntry {
+                    name: "notes.txt".to_string(),
+                    path: "C:/Music/notes.txt".to_string(),
+                    is_dir: false,
+                    ext: "txt".to_string(),
+                    mtime: 1,
+                    size: 4,
+                    ctime: 1,
+                    title: None,
+                    title_loaded: false,
+                },
+            ],
+        }
+    }
+
+    #[test]
+    fn projection_keeps_folders_and_applies_audio_formats() {
+        let mut snapshot = snapshot();
+        let result = project_snapshot(
+            &mut snapshot,
+            "name",
+            "name",
+            "asc",
+            "filename",
+            &["mp3".to_string()],
+        );
+        assert_eq!(result.len(), 2);
+        assert!(result[0].is_dir);
+        assert_eq!(result[1].display_name, "song");
+    }
+
+    #[test]
+    fn projection_uses_cached_title_without_rescanning_file() {
+        let mut snapshot = snapshot();
+        let result = project_snapshot(
+            &mut snapshot,
+            "name",
+            "name",
+            "asc",
+            "title",
+            &["mp3".to_string()],
+        );
+        assert_eq!(result[1].display_name, "A Song");
+        assert_eq!(snapshot.entries[0].title.as_deref(), Some("A Song"));
+    }
 }

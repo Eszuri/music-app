@@ -250,7 +250,8 @@ pub fn load_config(app: &AppHandle) -> SymvoniaConfig {
         Ok(content) => match serde_json::from_str::<SymvoniaConfig>(&content) {
             Ok(mut config) => {
                 config.sanitize();
-                if config.output_mode == "wasapi_shared" || config.output_mode == "wasapi_exclusive" {
+                if config.output_mode == "wasapi_shared" || config.output_mode == "wasapi_exclusive"
+                {
                     if let Ok(status) = crate::unified_engine_manager::get_status(app) {
                         if !status.installed {
                             config.output_mode = "html_audio".to_string();
@@ -271,7 +272,8 @@ pub fn load_config(app: &AppHandle) -> SymvoniaConfig {
                     .map(|d| d.as_secs())
                     .unwrap_or(0);
                 if let Some(parent) = path.parent() {
-                    let backup_path = parent.join(format!("config.json.corrupted.{}.bak", timestamp));
+                    let backup_path =
+                        parent.join(format!("config.json.corrupted.{}.bak", timestamp));
                     let _ = fs::copy(&path, backup_path);
                 }
 
@@ -282,7 +284,10 @@ pub fn load_config(app: &AppHandle) -> SymvoniaConfig {
             }
         },
         Err(e) => {
-            eprintln!("[Symvonia Config] Warning: Failed to read config.json: {}", e);
+            eprintln!(
+                "[Symvonia Config] Warning: Failed to read config.json: {}",
+                e
+            );
             SymvoniaConfig::default()
         }
     }
@@ -460,7 +465,11 @@ pub fn clean_ai_models_data(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn clean_all_app_data(app: AppHandle) -> Result<(), String> {
+pub fn clean_all_app_data(
+    app: AppHandle,
+    cache: tauri::State<'_, crate::library_cache::LibraryCacheState>,
+) -> Result<(), String> {
+    cache.clear(&app)?;
     let base_dir = app
         .path()
         .app_data_dir()

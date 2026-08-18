@@ -16,3 +16,17 @@ export async function getTauri(): Promise<TauriCore> {
     }
     return tauriPromise;
 }
+
+export interface LibraryCacheInvalidatedEvent {
+    root_path: string;
+    affected_paths: string[];
+}
+
+export async function listenTauri<T>(
+    eventName: string,
+    handler: (payload: T) => void,
+): Promise<() => void> {
+    const {listen} = await import('@tauri-apps/api/event');
+    const unlisten = await listen<T>(eventName, (event) => handler(event.payload));
+    return unlisten;
+}
