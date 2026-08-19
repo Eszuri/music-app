@@ -255,6 +255,7 @@ function HomeContent() {
         outputMode: settings.outputMode,
         setOutputMode: settings.setOutputMode,
         outputDevice: settings.outputDevice,
+        setOutputDevice: settings.setOutputDeviceState,
         autoFallbackHtmlAudio: settings.autoFallbackHtmlAudio,
         onAutoFallback: () => showStatusNotif('auto-fallback'),
         nativeEngineInstalled: settings.outputMode === 'html_audio' ? true : bpStatus?.installed ?? null,

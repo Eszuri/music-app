@@ -47,6 +47,7 @@ interface UseAudioPlayerOptions {
     outputMode?: OutputMode;
     setOutputMode?: (v: OutputMode) => void;
     outputDevice?: string | null;
+    setOutputDevice?: (v: string | null) => void;
     autoFallbackHtmlAudio?: boolean;
     onAutoFallback?: () => void;
     nativeEngineInstalled?: boolean | null;
@@ -85,6 +86,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         outputMode = "html_audio",
         setOutputMode,
         outputDevice = null,
+        setOutputDevice,
         autoFallbackHtmlAudio = false,
         onAutoFallback,
         nativeEngineInstalled = null,
@@ -105,6 +107,11 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     useEffect(() => {
         setOutputModeCallbackRef.current = setOutputMode;
     }, [setOutputMode]);
+
+    const setOutputDeviceCallbackRef = useRef(setOutputDevice);
+    useEffect(() => {
+        setOutputDeviceCallbackRef.current = setOutputDevice;
+    }, [setOutputDevice]);
 
     const [files, setFiles] = useState<FileEntry[]>([]);
     const [filesLoadedOnce, setFilesLoadedOnce] = useState(false);
@@ -162,6 +169,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     const nativePlayingRef = useRef(false);
     const nativeStateRef = useRef<"idle" | "playing" | "paused" | "stopped">("idle");
     const nativeSuppressedRef = useRef(false);
+    const nativeRecoveryPromiseRef = useRef<Promise<void> | null>(null);
     const bpSendCommandRef = useRef<(cmd: Record<string, unknown>) => Promise<void>>(async () => {});
     const enginePlayRef = useRef<(file: FileEntry, seekPosition?: number, generation?: number) => Promise<void>>(async () => {});
 
@@ -640,10 +648,83 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     const nativeRestoreStartedRef = useRef(false);
     const previousRequestedModeRef = useRef<OutputMode>(outputMode);
 
+    const resetPlayer = useCallback(() => {
+        cancelFade();
+        playbackGenerationRef.current += 1;
+        metadataRequestRef.current += 1;
+        activeNativeRequestRef.current = null;
+        nativeRestoreStartedRef.current = false;
+        const resetNativeMode: NativeOutputMode | null = outputModeRef.current === 'wasapi_shared'
+            ? 'shared'
+            : outputModeRef.current === 'wasapi_exclusive'
+                ? 'exclusive'
+                : null;
+        const nativeCanResume = resetNativeMode !== null && nativeEngineInstalled === true;
+        nativeEngineActiveRef.current = nativeCanResume;
+        nativeEngineModeRef.current = nativeCanResume ? resetNativeMode : null;
+        nativePlayingRef.current = false;
+        nativeStateRef.current = "stopped";
+        nativeSuppressedRef.current = false;
+        setNativeSuppressed(false);
+        const stopPromise = (async () => {
+            if (isBrowserTauri()) {
+                try {
+                    const mod = await getTauri();
+                    await mod.invoke("stop_audio_engine");
+                } catch {
+                    // Keep the player reset even if the process is already gone.
+                }
+            }
+        })();
+        nativeRecoveryPromiseRef.current = stopPromise;
+        void stopPromise.finally(() => {
+            if (nativeRecoveryPromiseRef.current === stopPromise) {
+                nativeRecoveryPromiseRef.current = null;
+            }
+        });
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+            audioRef.current.removeAttribute("src");
+            audioRef.current.load();
+        }
+        setSelectedSong(null);
+        setMetadata(null);
+        setCurrentTime(0);
+        setDuration(0);
+        setIsPlaying(false);
+        setRuntimeStatus('idle');
+        setRuntimeError(null);
+        setEffectiveOutputMode(null);
+        playlistRef.current = [];
+        playlistFolderRef.current = null;
+        autoPausedBySilenceRef.current = false;
+        restoredPendingPlayRef.current = false;
+        saveSessionState(null, true);
+        if (isBrowserTauri()) {
+            getTauri()
+                .then((mod) => {
+                    mod.invoke("clear_wallpaper").catch(() => {});
+                })
+                .catch(() => {});
+        }
+    }, [cancelFade, nativeEngineInstalled, setCurrentTime]);
+
+    const clearInvalidNativeDevice = useCallback((error: EngineErrorEvent) => {
+        if (!/audio device not found/i.test(error.message)) return;
+        // A friendly-name device id can become invalid after the endpoint is
+        // removed/recreated. Clear the persisted binding so the next file uses
+        // the current Windows default endpoint instead of retrying the stale id.
+        outputDeviceRef.current = null;
+        setOutputDeviceCallbackRef.current?.(null);
+    }, []);
+
     const fallbackNativeToHtml = useCallback(async (error: EngineErrorEvent) => {
         const song = selectedSongRef.current;
         const audio = audioRef.current;
         if (!song || !audio) return;
+
+        clearInvalidNativeDevice(error);
 
         const position = Math.max(0, currentTimeRef.current);
         nativeSuppressedRef.current = true;
@@ -684,16 +765,17 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             addLog("warn", t(lang, 'audio.autoFallback.notification'));
             onAutoFallbackRef.current?.();
         } catch (fallbackError) {
-            setRuntimeStatus('error');
             const finalError = {
                 ...error,
                 message: `${error.message}: ${(fallbackError as Error).message || String(fallbackError)}`,
             };
+            resetPlayer();
+            setRuntimeStatus('error');
             setRuntimeError(finalError);
             setIsPlaying(false);
             showError(t(lang, 'log.playbackFailed', {msg: finalError.message}));
         }
-    }, [addLog, appVolume, cancelFade, getAudioSrc, lang, prepareAudio, setCurrentTime, showError]);
+    }, [addLog, appVolume, cancelFade, clearInvalidNativeDevice, getAudioSrc, lang, prepareAudio, resetPlayer, setCurrentTime, showError]);
 
     // ─── playback ──────────────────────────────────────────────────────────────
 
@@ -703,6 +785,15 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
 
             const audio = audioRef.current;
             if (!audio) return;
+
+            // A failed native session is stopped asynchronously by resetPlayer.
+            // Wait for that teardown before sending the next play command so a
+            // stale WASAPI request/device cannot poison the next file.
+            const pendingNativeRecovery = nativeRecoveryPromiseRef.current;
+            if (pendingNativeRecovery) {
+                await pendingNativeRecovery;
+                if (!isMountedRef.current) return;
+            }
 
             cancelFade();
             const fileFolder = file.path.replace(/[/\\][^/\\]+$/, "");
@@ -790,9 +881,11 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                     requestId: activeNativeRequestRef.current,
                     generation,
                 };
+                clearInvalidNativeDevice(error);
                 if (nativeEngineActiveRef.current && autoFallbackRef.current) {
                     await fallbackNativeToHtml(error);
                 } else {
+                    resetPlayer();
                     setRuntimeStatus('error');
                     setRuntimeError(error);
                     setIsPlaying(false);
@@ -811,6 +904,9 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             showError,
             getAudioSrc,
             fadeVolumeTo,
+            fallbackNativeToHtml,
+            clearInvalidNativeDevice,
+            resetPlayer,
         ],
     );
 
@@ -884,48 +980,6 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             }
         }
     }, [pauseIfMuted, isVolumeSilent, setMinimumResumeVolume, applyWallpaper, appVolume, fadeVolumeTo, isPlaying, playSong, prepareAudio, cancelFade]);
-
-    const resetPlayer = useCallback(() => {
-        cancelFade();
-        playbackGenerationRef.current += 1;
-        metadataRequestRef.current += 1;
-        const nativeWasActive = nativeEngineActiveRef.current || activeNativeRequestRef.current !== null;
-        activeNativeRequestRef.current = null;
-        nativeRestoreStartedRef.current = false;
-        nativeEngineActiveRef.current = false;
-        nativeEngineModeRef.current = null;
-        nativePlayingRef.current = false;
-        nativeStateRef.current = "stopped";
-        bpSendCommandRef.current({command: "stop"}).catch(() => {});
-        if (isBrowserTauri()) {
-            getTauri().then((m) => m.invoke("stop_audio_engine")).catch(() => {});
-        }
-        if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.currentTime = 0;
-            audioRef.current.removeAttribute("src");
-            audioRef.current.load();
-        }
-        setSelectedSong(null);
-        setMetadata(null);
-        setCurrentTime(0);
-        setDuration(0);
-        setIsPlaying(false);
-        setRuntimeStatus('idle');
-        setRuntimeError(null);
-        setEffectiveOutputMode(null);
-        playlistRef.current = [];
-        autoPausedBySilenceRef.current = false;
-        restoredPendingPlayRef.current = false;
-        saveSessionState(null);
-        if (isBrowserTauri()) {
-            getTauri()
-                .then((mod) => {
-                    mod.invoke("clear_wallpaper").catch(() => {});
-                })
-                .catch(() => {});
-        }
-    }, [cancelFade, setCurrentTime]);
 
     const playNext = useCallback(() => {
         const list = playlistRef.current;
@@ -1122,6 +1176,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         },
         onError: (error: EngineErrorEvent) => {
             if (!isCurrentNativeEvent(error)) return;
+            clearInvalidNativeDevice(error);
             nativeStateRef.current = "stopped";
             nativePlayingRef.current = false;
             if (autoFallbackRef.current) {
@@ -1131,6 +1186,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                     showError(t(lang, 'log.playbackFailed', {msg: error.message}));
                 });
             } else {
+                resetPlayer();
                 setRuntimeStatus('error');
                 setRuntimeError(error);
                 setIsPlaying(false);
@@ -1179,7 +1235,6 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         const hasActivePlayback = Boolean(
             selectedSongRef.current ||
             audioRef.current?.src ||
-            nativeEngineActiveRef.current ||
             activeNativeRequestRef.current !== null ||
             nativePlayingRef.current,
         );
