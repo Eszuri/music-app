@@ -27,6 +27,7 @@ export interface StorageUsage {
     config_bytes: number;
     plugins_bytes: number;
     models_bytes: number;
+    cache_bytes: number;
     total_bytes: number;
     config_path: string;
     app_data_dir: string;
@@ -286,6 +287,21 @@ export async function openConfigFolder(): Promise<void> {
         await tauri.invoke('open_config_folder');
     } catch (err) {
         console.error('[Symvonia Storage] Failed to open config folder:', err);
+    }
+}
+
+/**
+ * Clean library cache (track and directory index)
+ */
+export async function cleanLibraryCache(): Promise<boolean> {
+    if (typeof window === 'undefined') return false;
+    try {
+        const tauri = await getTauri();
+        await tauri.invoke('clean_library_cache');
+        return true;
+    } catch (err) {
+        console.error('[Symvonia Storage] Failed to clean library cache:', err);
+        return false;
     }
 }
 

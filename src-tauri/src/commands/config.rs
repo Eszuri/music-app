@@ -327,6 +327,7 @@ pub struct StorageUsage {
     pub config_bytes: u64,
     pub plugins_bytes: u64,
     pub models_bytes: u64,
+    pub cache_bytes: u64,
     pub total_bytes: u64,
     pub config_path: String,
     pub app_data_dir: String,
@@ -430,6 +431,7 @@ pub fn get_storage_usage(app: AppHandle) -> Result<StorageUsage, String> {
     let config_p = base_dir.join("config.json");
     let plugins_dir = base_dir.join("plugins");
     let models_dir = plugins_dir.join("ai-lyrics").join("models");
+    let cache_dir = base_dir.join("library-cache");
 
     let config_bytes = if config_p.exists() {
         fs::metadata(&config_p).map(|m| m.len()).unwrap_or(0)
@@ -437,6 +439,7 @@ pub fn get_storage_usage(app: AppHandle) -> Result<StorageUsage, String> {
         0
     };
     let models_bytes = calculate_dir_size(&models_dir);
+    let cache_bytes = calculate_dir_size(&cache_dir);
     let plugins_bytes = calculate_dir_size(&plugins_dir).saturating_sub(models_bytes);
     let total_bytes = calculate_dir_size(&base_dir);
 
@@ -444,10 +447,20 @@ pub fn get_storage_usage(app: AppHandle) -> Result<StorageUsage, String> {
         config_bytes,
         plugins_bytes,
         models_bytes,
+        cache_bytes,
         total_bytes,
         config_path: config_p.to_string_lossy().to_string(),
         app_data_dir: base_dir.to_string_lossy().to_string(),
     })
+}
+
+#[tauri::command]
+pub fn clean_library_cache(
+    app: AppHandle,
+    cache: tauri::State<'_, crate::library_cache::LibraryCacheState>,
+) -> Result<(), String> {
+    cache.clear(&app)?;
+    Ok(())
 }
 
 #[tauri::command]

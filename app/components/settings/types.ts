@@ -4,7 +4,7 @@ import type {Lang} from '../../lib/translations';
 import type {OutputMode} from '../../lib/storage';
 import type {PlaybackRuntimeInfo} from '../../hooks/audio/playbackTypes';
 
-export type SectionId = 'general' | 'sort' | 'shortcut' | 'style' | 'plugin' | 'audio' | 'lyrics' | 'changelog' | 'about' | 'debug';
+export type SectionId = 'general' | 'storage' | 'sort' | 'shortcut' | 'style' | 'plugin' | 'audio' | 'lyrics' | 'changelog' | 'about' | 'debug';
 
 export interface SettingsModalProps {
     lang: Lang;

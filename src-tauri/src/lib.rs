@@ -157,6 +157,7 @@ pub fn run() {
             reset_app_config,
             open_config_folder,
             get_storage_usage,
+            clean_library_cache,
             clean_ai_models_data,
             clean_all_app_data,
             get_app_environment,

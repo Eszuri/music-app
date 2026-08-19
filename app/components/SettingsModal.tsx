@@ -13,6 +13,7 @@ import PluginSection from './settings/PluginSection';
 import ChangelogSection from './settings/ChangelogSection';
 import DebugSection from './settings/DebugSection';
 import GeneralSection from './settings/GeneralSection';
+import StorageSection from './settings/StorageSection';
 import ShortcutSection from './settings/ShortcutSection';
 import SortSection from './settings/SortSection';
 import StyleSection from './settings/StyleSection';
@@ -213,9 +214,15 @@ export default function SettingsModal({
                                     updateChecking={updateChecking}
                                     updateDownloaded={updateDownloaded}
                                     updateTotal={updateTotal}
-                                    onResetAllSettings={onResetAllSettings}
                                     outputMode={outputMode}
                                     nativeOutputActive={audioRuntime.effectiveMode === 'wasapi_shared' || audioRuntime.effectiveMode === 'wasapi_exclusive'}
+                                />
+                            )}
+                            {effectiveActiveSection === 'storage' && (
+                                <StorageSection
+                                    lang={lang}
+                                    accentColor={accentColor}
+                                    onResetAllSettings={onResetAllSettings}
                                 />
                             )}
                             {effectiveActiveSection === 'sort' && (
