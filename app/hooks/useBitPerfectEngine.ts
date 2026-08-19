@@ -274,11 +274,45 @@ export function useBitPerfectEngine(handlers: EngineEventHandlers = {}) {
     const getDevices = useCallback(async (): Promise<EngineDevice[]> => {
         if (!isBrowserTauri()) return [];
         const mod = await getTauri();
+
+        // Prefer enumeration in the host process. It keeps the settings UI
+        // usable even when the optional engine has not emitted its IPC event
+        // yet (or an older installed engine does not support get_devices).
+        try {
+            // Do not let a blocked OS audio endpoint hold the settings picker
+            // indefinitely. The sidecar request below is the compatibility
+            // fallback for older installs and slow/unavailable CPAL hosts.
+            const nativeDevices = await new Promise<EngineDevice[] | null>((resolve, reject) => {
+                const timer = window.setTimeout(() => resolve(null), 750);
+                mod.invoke<EngineDevice[]>("get_audio_devices").then(
+                    (devices) => {
+                        window.clearTimeout(timer);
+                        resolve(devices);
+                    },
+                    (error) => {
+                        window.clearTimeout(timer);
+                        reject(error);
+                    },
+                );
+            });
+            if (Array.isArray(nativeDevices) && nativeDevices.length > 0) {
+                return nativeDevices
+                    .filter((device) => device && typeof device.id === "string" && typeof device.name === "string")
+                    .map((device) => ({
+                        id: device.id,
+                        name: device.name,
+                        isDefault: device.isDefault === true,
+                    }));
+            }
+        } catch {
+            // Fall back to the optional engine's request/response path below.
+        }
+
         const requestId = crypto.randomUUID();
         return new Promise<EngineDevice[]>((resolve) => {
             let done = false;
             let unlisten: (() => void) | null = null;
-            const timer = window.setTimeout(() => finish([]), 3000);
+            const timer = window.setTimeout(() => finish([]), 1500);
             const finish = (devices: EngineDevice[]) => {
                 if (done) return;
                 done = true;

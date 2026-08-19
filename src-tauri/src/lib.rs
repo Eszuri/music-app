@@ -131,6 +131,7 @@ pub fn run() {
             install_bit_perfect_plugin_from_file,
             uninstall_bit_perfect_plugin,
             send_audio_command,
+            get_audio_devices,
             stop_audio_engine,
             is_audio_engine_running,
             get_ai_lyrics_plugin_status,

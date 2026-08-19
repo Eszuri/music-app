@@ -326,6 +326,16 @@ public sealed class AudioPlayer : IDisposable
                 }
                 catch
                 {
+                    // The Rust/cpal fallback exposes friendly names because
+                    // cpal does not publish the underlying WASAPI endpoint id.
+                    // Accept that identifier as well as the native endpoint id.
+                    foreach (var endpoint in enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
+                    {
+                        if (string.Equals(endpoint.FriendlyName, deviceId, StringComparison.Ordinal))
+                            return endpoint;
+                        endpoint.Dispose();
+                    }
+
                     throw new InvalidOperationException($"Audio device not found: {deviceId}");
                 }
             }

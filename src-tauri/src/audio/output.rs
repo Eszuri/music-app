@@ -4,7 +4,12 @@ use ringbuf::HeapRb;
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AudioDeviceInfo {
+    /// The cpal backend does not expose the WASAPI endpoint id, so the
+    /// friendly name is used as a portable fallback identifier (the C# engine
+    /// resolves it by name).
+    pub id: String,
     pub name: String,
     pub is_default: bool,
     pub default_sample_rate: u32,
@@ -20,12 +25,17 @@ pub fn get_audio_hosts_and_devices() -> Vec<AudioDeviceInfo> {
         for dev in devices {
             if let Ok(name) = dev.name() {
                 let is_default = default_device_name.as_ref() == Some(&name);
-                let (default_sr, max_ch) = if let Ok(cfg) = dev.default_output_config() {
-                    (cfg.sample_rate().0, cfg.channels())
-                } else {
-                    (44100, 2)
-                };
+
+                // Device discovery is used by the settings picker only. Calling
+                // `default_output_config()` for every endpoint makes CPAL query
+                // the Windows audio service repeatedly and can block for seconds
+                // when an endpoint is waking up. The actual stream setup below
+                // resolves the format lazily for the selected device, so keep
+                // discovery limited to the cheap identity/default checks.
+                let default_sr = 44100;
+                let max_ch = 2;
                 devices_info.push(AudioDeviceInfo {
+                    id: name.clone(),
                     name,
                     is_default,
                     default_sample_rate: default_sr,

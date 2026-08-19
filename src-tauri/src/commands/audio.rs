@@ -14,6 +14,17 @@ use tauri::{AppHandle, State};
 use crate::library_cache::{self, CachedEntry, DirectorySnapshot, LibraryCacheState};
 use crate::sidecar;
 
+/// Enumerate active output devices in the host process. This is a fallback
+/// for installations where the optional C# engine's device-response event is
+/// delayed or unavailable. Device ids are friendly names and are accepted by
+/// the C# engine as a fallback identifier.
+#[tauri::command]
+pub async fn get_audio_devices() -> Result<Vec<crate::audio::output::AudioDeviceInfo>, String> {
+    tauri::async_runtime::spawn_blocking(crate::audio::output::get_audio_hosts_and_devices)
+        .await
+        .map_err(|e| format!("Audio device enumeration task failed: {}", e))
+}
+
 #[derive(Serialize)]
 pub struct FileEntry {
     pub name: String,
@@ -468,8 +479,10 @@ pub async fn save_cover_image(cover_b64: String, mime: String) -> Result<(), Str
 }
 
 #[tauri::command]
-pub fn send_audio_command(app: AppHandle, json: String) -> Result<(), String> {
-    sidecar::send_command(&app, &json)
+pub async fn send_audio_command(app: AppHandle, json: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || sidecar::send_command(&app, &json))
+        .await
+        .map_err(|e| format!("Audio engine command task failed: {}", e))?
 }
 
 #[tauri::command]

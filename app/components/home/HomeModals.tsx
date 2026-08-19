@@ -48,6 +48,7 @@ interface HomeModalsProps {
     autoFallbackHtmlAudio?: boolean;
     setAutoFallbackHtmlAudio?: (v: boolean) => void;
     audioRuntime: PlaybackRuntimeInfo;
+    onResetPlayer: () => void;
     onRetryNativeAudio: () => void;
     folderSort: string;
     setFolderSort: (v: string) => void;
@@ -117,6 +118,7 @@ export default function HomeModals({
     autoFallbackHtmlAudio,
     setAutoFallbackHtmlAudio,
     audioRuntime,
+    onResetPlayer,
     onRetryNativeAudio,
     folderSort,
     setFolderSort,
@@ -197,6 +199,7 @@ export default function HomeModals({
                 autoFallbackHtmlAudio={autoFallbackHtmlAudio}
                 setAutoFallbackHtmlAudio={setAutoFallbackHtmlAudio}
                 audioRuntime={audioRuntime}
+                onResetPlayer={onResetPlayer}
                 onRetryNativeAudio={onRetryNativeAudio}
                 folderSort={folderSort}
                 setFolderSort={setFolderSort}

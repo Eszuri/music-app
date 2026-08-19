@@ -61,6 +61,7 @@ export interface SettingsModalProps {
     autoFallbackHtmlAudio?: boolean;
     setAutoFallbackHtmlAudio?: (v: boolean) => void;
     audioRuntime: PlaybackRuntimeInfo;
+    onResetPlayer: () => void;
     onRetryNativeAudio: () => void;
     onResetSidebarWidth: () => void;
     onResetAllSettings: () => void;

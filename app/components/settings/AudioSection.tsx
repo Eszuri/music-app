@@ -21,6 +21,7 @@ export default function AudioSection({
     outputMode,
     setOutputMode,
     audioRuntime,
+    onResetPlayer,
     accentColor,
     autoFallbackHtmlAudio = false,
     setAutoFallbackHtmlAudio,
@@ -31,6 +32,7 @@ export default function AudioSection({
     outputMode: OutputMode;
     setOutputMode: (v: OutputMode) => void;
     audioRuntime: PlaybackRuntimeInfo;
+    onResetPlayer: () => void;
     onRetryNativeAudio?: () => void;
     accentColor: string;
     autoFallbackHtmlAudio?: boolean;
@@ -84,13 +86,17 @@ export default function AudioSection({
         if (value !== 'html_audio' && value !== 'wasapi_shared' && value !== 'wasapi_exclusive') return;
         const nextMode = value as OutputMode;
         if (nextMode === outputMode) return;
-        if (nextMode === 'wasapi_exclusive' || audioRuntime.status === 'playing' || audioRuntime.status === 'paused' || audioRuntime.path) {
-            setPendingMode(nextMode);
-            setConfirmModeOpen(true);
-            return;
-        }
-        setOutputMode(nextMode);
+        setPendingMode(nextMode);
+        setConfirmModeOpen(true);
     };
+
+    const pendingModeLabel = pendingMode
+        ? t(lang, pendingMode === 'html_audio'
+            ? 'audio.outputMode.htmlAudio'
+            : pendingMode === 'wasapi_shared'
+                ? 'audio.outputMode.wasapiShared'
+                : 'audio.outputMode.wasapiExclusive')
+        : '';
 
     const handleApplyDevice = () => {
         setOutputDevice(selectedDevice);
@@ -100,6 +106,9 @@ export default function AudioSection({
 
     const deviceOptions: [string, string, boolean?][] = [
         ['', t(lang, 'audio.device.default')],
+        ...(devicesLoading
+            ? [['__loading__', t(lang, 'audio.device.refreshing'), true] as [string, string, boolean]]
+            : []),
         ...(activeDeviceKnown && selectedDevice && !devices.some((device) => device.id === selectedDevice)
             ? [[selectedDevice, `${audioRuntime.deviceName} (${t(lang, 'audio.device.active')})`]] as [string, string][]
             : []),
@@ -114,13 +123,18 @@ export default function AudioSection({
             <ConfirmDialog
                 lang={lang}
                 open={confirmModeOpen}
-                title={t(lang, 'audio.outputMode.changeTitle')}
-                message={t(lang, 'audio.outputMode.changeMessage')}
+                title={t(lang, 'audio.outputMode.changeTitle', {mode: pendingModeLabel})}
+                message={t(lang, 'audio.outputMode.changeMessage', {mode: pendingModeLabel})}
                 confirmLabel={t(lang, 'audio.outputMode.changeConfirm')}
                 cancelLabel={t(lang, 'confirm.defaultCancel')}
                 accentColor={accentColor}
                 onConfirm={() => {
-                    if (pendingMode) setOutputMode(pendingMode);
+                    if (pendingMode) {
+                        // Clear the current player before switching engines so
+                        // no HTML/native stream survives the mode change.
+                        onResetPlayer();
+                        setOutputMode(pendingMode);
+                    }
                     setPendingMode(null);
                     setConfirmModeOpen(false);
                 }}
@@ -155,7 +169,7 @@ export default function AudioSection({
                             options={deviceOptions}
                             value={selectedDevice || ''}
                             onChange={(val) => setSelectedDevice(val || null)}
-                            disabled={!installed || !nativeMode || devicesLoading}
+                            disabled={!installed || !nativeMode}
                             accent={accent}
                             accentColor={accentColor}
                             fullWidth

@@ -1173,6 +1173,21 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             return;
         }
 
+        // A confirmed mode change may already have called resetPlayer before
+        // updating the requested mode. Avoid sending duplicate stop commands
+        // when there is no stream/song left to tear down.
+        const hasActivePlayback = Boolean(
+            selectedSongRef.current ||
+            audioRef.current?.src ||
+            nativeEngineActiveRef.current ||
+            activeNativeRequestRef.current !== null ||
+            nativePlayingRef.current,
+        );
+        if (!hasActivePlayback) {
+            setEffectiveOutputMode(outputMode === 'html_audio' ? 'html_audio' : null);
+            return;
+        }
+
         // When switching output mode: ALWAYS stop playback completely in native engine & HTML audio
         bpSendCommandRef.current({command: "stop"}).catch(() => {});
         if (isBrowserTauri()) {

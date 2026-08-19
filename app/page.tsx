@@ -584,6 +584,7 @@ function HomeContent() {
                 updateDownloaded={updateDownloaded}
                 updateTotal={updateTotal}
                 audioRuntime={player.runtime}
+                onResetPlayer={player.resetPlayer}
                 onRetryNativeAudio={player.retryNative}
                 streamingOpen={streamingOpen}
                 onCloseStreaming={closeStreaming}
