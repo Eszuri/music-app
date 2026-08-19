@@ -508,6 +508,11 @@ function HomeContent() {
                 onCoverSaved={() => showStatusNotif('cover-saved')}
                 onOpenEditMetadata={isTagEditorInstalled ? openMetadataEdit : undefined}
                 runtime={player.runtime}
+                fileSort={settings.fileSort}
+                setFileSort={settings.setFileSortState}
+                sortDir={settings.sortDir}
+                setSortDir={settings.setSortDirState}
+                onRefreshFolder={player.refreshFiles}
                 layoutMode={settings.layoutMode}
                 lyricsSearchOpen={lyricsSearchOpen}
                 onOpenLyricsSearch={openLyricsSearch}

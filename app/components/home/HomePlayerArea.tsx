@@ -75,6 +75,11 @@ interface HomePlayerAreaProps {
     onCoverSaved: () => void;
     onOpenEditMetadata?: (file?: FileEntry) => void;
     runtime?: PlaybackRuntimeInfo;
+    fileSort?: string;
+    setFileSort?: (v: string) => void;
+    sortDir?: string;
+    setSortDir?: (v: string) => void;
+    onRefreshFolder?: () => void;
     lyricsSearchOpen?: boolean;
     onOpenLyricsSearch?: () => void;
     onCloseLyricsSearch?: () => void;
@@ -169,6 +174,11 @@ function HomePlayerArea({
     onCoverSaved,
     onOpenEditMetadata,
     runtime,
+    fileSort,
+    setFileSort,
+    sortDir,
+    setSortDir,
+    onRefreshFolder,
     lyricsSearchOpen,
     onOpenLyricsSearch,
     onCloseLyricsSearch,
@@ -499,9 +509,14 @@ function HomePlayerArea({
                                         setCurrentPath={setCurrentPath}
                                         playSong={playSong}
                                         onChangeFolder={handlePickFolder}
+                                        onRefreshFolder={onRefreshFolder}
                                         musicFolder={musicFolder}
                                         resetSidebarToken={resetSidebarToken}
                                         accentColor={accentColor}
+                                        fileSort={fileSort}
+                                        setFileSort={setFileSort}
+                                        sortDir={sortDir}
+                                        setSortDir={setSortDir}
                                         onContextDir={showFolderMenu}
                                         onContextFile={showFileMenu}
                                         onGlobalContextMenu={onGlobalContextMenu}
