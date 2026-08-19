@@ -1201,6 +1201,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
     }, [bp.sendCommand]);
 
     const nativeEngineActive = nativeOutputMode !== null && bp.status?.installed === true && !nativeSuppressed;
+    const getNativeState = bp.getState;
     useEffect(() => {
         if (nativeOutputMode === null || bp.status?.installed !== false || nativeSuppressed) return;
         const timer = window.setTimeout(() => {
@@ -1218,6 +1219,24 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         nativeEngineActiveRef.current = nativeEngineActive;
         nativeEngineModeRef.current = nativeOutputMode;
     }, [nativeEngineActive, nativeOutputMode]);
+
+    useEffect(() => {
+        // The native sidecar survives a WebView reload. Once session restore
+        // has selected the saved file, request its live state so the new UI
+        // reflects whether WASAPI is actually playing or paused.
+        if (
+            nativeOutputMode === null ||
+            bp.status?.installed !== true ||
+            !sessionRestored ||
+            !selectedSongRef.current
+        ) {
+            return;
+        }
+        getNativeState().catch(() => {
+            // A sidecar that exited between reload and the query will be
+            // treated as stopped; the next explicit play can start it again.
+        });
+    }, [bp.status?.installed, getNativeState, nativeOutputMode, sessionRestored]);
 
     useEffect(() => {
         if (previousRequestedModeRef.current === outputMode) return;

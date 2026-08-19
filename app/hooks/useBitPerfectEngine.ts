@@ -221,6 +221,14 @@ export function useBitPerfectEngine(handlers: EngineEventHandlers = {}) {
         setEngineRunning(true);
     }, []);
 
+    // A Tauri/WebView reload does not restart the sidecar process. Ask the
+    // existing engine for its current state so a new frontend can resync the
+    // play/pause controls instead of treating an already-playing stream as
+    // paused.
+    const getState = useCallback(async () => {
+        await sendCommand({command: "get_state"});
+    }, [sendCommand]);
+
     const download = useCallback(async () => {
         if (!isBrowserTauri()) return;
         setDownloading(true);
@@ -358,6 +366,7 @@ export function useBitPerfectEngine(handlers: EngineEventHandlers = {}) {
         engineState,
         refreshStatus,
         sendCommand,
+        getState,
         download,
         cancelDownload,
         installFromFile,
