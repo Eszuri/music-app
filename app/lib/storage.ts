@@ -35,10 +35,19 @@ export interface StorageUsage {
 
 export type OutputMode = 'html_audio' | 'wasapi_shared' | 'wasapi_exclusive';
 
+export type WallpaperFitMode = 'fill' | 'fit' | 'stretch' | 'center' | 'tile' | 'span';
+
 export function normalizeOutputMode(value: unknown): OutputMode {
     if (value === 'wasapi_shared') return 'wasapi_shared';
     if (value === 'wasapi_exclusive' || value === 'bitperfect') return 'wasapi_exclusive';
     return 'html_audio';
+}
+
+export function normalizeWallpaperFitMode(value: unknown): WallpaperFitMode {
+    if (value === 'fit' || value === 'stretch' || value === 'center' || value === 'tile' || value === 'span') {
+        return value;
+    }
+    return 'fill';
 }
 
 export interface SymvoniaConfig {
@@ -50,6 +59,7 @@ export interface SymvoniaConfig {
     auto_wallpaper: boolean;
     reset_on_close: boolean;
     default_wallpaper: string | null;
+    wallpaper_fit_mode: WallpaperFitMode;
     volume_mode: 'app' | 'system';
     app_volume: number;
     volume_step: number;
@@ -92,6 +102,7 @@ export const DEFAULT_CONFIG: SymvoniaConfig = {
     auto_wallpaper: true,
     reset_on_close: true,
     default_wallpaper: null,
+    wallpaper_fit_mode: 'fill',
     volume_mode: 'app',
     app_volume: 1.0,
     volume_step: 2,

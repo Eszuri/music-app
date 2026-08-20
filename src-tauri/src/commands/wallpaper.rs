@@ -20,6 +20,8 @@ extern "system" {
 
 pub static RESET_ON_CLOSE: AtomicBool = AtomicBool::new(true);
 pub static DEFAULT_WALLPAPER_PATH: Mutex<Option<String>> = Mutex::new(None);
+pub static WALLPAPER_FIT_MODE: Mutex<String> = Mutex::new(String::new());
+pub static CURRENT_WALLPAPER_BMP_PATH: Mutex<Option<String>> = Mutex::new(None);
 
 #[tauri::command]
 pub fn set_reset_on_close(enabled: bool) {
@@ -49,8 +51,119 @@ pub fn get_default_wallpaper_path() -> Result<Option<String>, String> {
     Ok(guard.clone())
 }
 
+#[tauri::command]
+pub fn set_wallpaper_fit_mode(mode: String) -> Result<(), String> {
+    let normalized = match mode.to_lowercase().as_str() {
+        "fit" => "fit",
+        "stretch" => "stretch",
+        "center" => "center",
+        "tile" => "tile",
+        "span" => "span",
+        _ => "fill",
+    };
+
+    if let Ok(mut guard) = WALLPAPER_FIT_MODE.lock() {
+        *guard = normalized.to_string();
+    }
+
+    #[cfg(windows)]
+    set_wallpaper_registry_fit(normalized);
+
+    // Reapply current wallpaper to immediately update desktop display
+    reapply_current_wallpaper();
+
+    if crate::sidecar_wallpaper::is_running() {
+        let _ = crate::sidecar_wallpaper::set_fit_mode(normalized);
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_wallpaper_fit_mode() -> Result<String, String> {
+    let guard = WALLPAPER_FIT_MODE.lock().map_err(|e| e.to_string())?;
+    if guard.is_empty() {
+        Ok("fill".to_string())
+    } else {
+        Ok(guard.clone())
+    }
+}
+
+fn reapply_current_wallpaper() {
+    if let Ok(guard) = CURRENT_WALLPAPER_BMP_PATH.lock() {
+        if let Some(ref path_str) = *guard {
+            let path = Path::new(path_str);
+            if path.exists() {
+                let _ = apply_wallpaper(path);
+                return;
+            }
+        }
+    }
+    if let Ok(def_guard) = DEFAULT_WALLPAPER_PATH.lock() {
+        if let Some(ref def_path) = *def_guard {
+            let path = Path::new(def_path);
+            if path.exists() {
+                let _ = clear_wallpaper_internal();
+            }
+        }
+    }
+}
+
+#[cfg(windows)]
+fn set_wallpaper_registry_fit(mode: &str) {
+    use std::process::Command;
+    let (style, tile) = match mode {
+        "fit" => ("6", "0"),
+        "stretch" => ("2", "0"),
+        "center" => ("0", "0"),
+        "tile" => ("0", "1"),
+        "span" => ("22", "0"),
+        _ => ("10", "0"), // fill
+    };
+
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
+    use std::os::windows::process::CommandExt;
+
+    let mut cmd1 = Command::new("reg");
+    cmd1.args([
+        "add",
+        "HKCU\\Control Panel\\Desktop",
+        "/v",
+        "WallpaperStyle",
+        "/t",
+        "REG_SZ",
+        "/d",
+        style,
+        "/f",
+    ])
+    .creation_flags(CREATE_NO_WINDOW);
+    let _ = cmd1.output();
+
+    let mut cmd2 = Command::new("reg");
+    cmd2.args([
+        "add",
+        "HKCU\\Control Panel\\Desktop",
+        "/v",
+        "TileWallpaper",
+        "/t",
+        "REG_SZ",
+        "/d",
+        tile,
+        "/f",
+    ])
+    .creation_flags(CREATE_NO_WINDOW);
+    let _ = cmd2.output();
+}
+
 #[cfg(windows)]
 pub fn apply_wallpaper(bmp_path: &Path) -> Result<(), String> {
+    let mode = WALLPAPER_FIT_MODE
+        .lock()
+        .map(|g| if g.is_empty() { "fill".to_string() } else { g.clone() })
+        .unwrap_or_else(|_| "fill".to_string());
+
+    set_wallpaper_registry_fit(&mode);
+
     let path_wide: Vec<u16> = OsStr::new(&bmp_path.to_string_lossy().as_ref())
         .encode_wide()
         .chain(std::iter::once(0))
@@ -58,13 +171,14 @@ pub fn apply_wallpaper(bmp_path: &Path) -> Result<(), String> {
 
     const SPI_SETDESKWALLPAPER: u32 = 0x0014;
     const SPIF_UPDATEINIFILE: u32 = 0x01;
+    const SPIF_SENDCHANGE: u32 = 0x02;
 
     let result = unsafe {
         SystemParametersInfoW(
             SPI_SETDESKWALLPAPER,
             0,
             path_wide.as_ptr(),
-            SPIF_UPDATEINIFILE,
+            SPIF_UPDATEINIFILE | SPIF_SENDCHANGE,
         )
     };
 
@@ -96,6 +210,14 @@ pub fn clear_wallpaper_internal() -> Result<(), String> {
 
         let res = apply_wallpaper(&bmp_path);
 
+        if let Ok(mut cur_guard) = CURRENT_WALLPAPER_BMP_PATH.lock() {
+            *cur_guard = Some(bmp_path.to_string_lossy().to_string());
+        }
+
+        if crate::sidecar_wallpaper::is_running() {
+            let _ = crate::sidecar_wallpaper::set_texture(&bmp_path.to_string_lossy());
+        }
+
         if let Ok(entries) = std::fs::read_dir(&temp_dir) {
             for entry in entries.flatten() {
                 let p = entry.path();
@@ -125,8 +247,9 @@ pub async fn clear_wallpaper() -> Result<(), String> {
 #[tauri::command]
 pub async fn set_wallpaper(cover_b64: String) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || {
+        use base64::engine::general_purpose::STANDARD as engine;
         use base64::Engine;
-        let engine = base64::engine::general_purpose::STANDARD;
+
         let data = engine.decode(&cover_b64).map_err(|e| format!("Base64 decode error: {}", e))?;
 
         let img = image::load_from_memory(&data)
@@ -144,6 +267,14 @@ pub async fn set_wallpaper(cover_b64: String) -> Result<(), String> {
 
         let res = apply_wallpaper(&bmp_path);
 
+        if let Ok(mut cur_guard) = CURRENT_WALLPAPER_BMP_PATH.lock() {
+            *cur_guard = Some(bmp_path.to_string_lossy().to_string());
+        }
+
+        if crate::sidecar_wallpaper::is_running() {
+            let _ = crate::sidecar_wallpaper::set_texture(&bmp_path.to_string_lossy());
+        }
+
         if let Ok(entries) = std::fs::read_dir(&temp_dir) {
             for entry in entries.flatten() {
                 let p = entry.path();
@@ -159,4 +290,69 @@ pub async fn set_wallpaper(cover_b64: String) -> Result<(), String> {
     })
     .await
     .map_err(|e| format!("Task error: {}", e))?
+}
+
+// ─── Dynamic Live Wallpaper Engine Commands ─────────────────────────────────
+
+#[tauri::command]
+pub fn start_wallpaper_engine(
+    app: tauri::AppHandle,
+    fps: Option<f64>,
+    intensity: Option<f64>,
+    texture_path: Option<String>,
+    fit_mode: Option<String>,
+) -> Result<crate::sidecar_wallpaper::WallpaperEngineState, String> {
+    let mode = fit_mode.or_else(|| {
+        WALLPAPER_FIT_MODE.lock().ok().and_then(|m| if m.is_empty() { None } else { Some(m.clone()) })
+    });
+    crate::sidecar_wallpaper::start_engine(&app, fps, intensity, texture_path, mode)
+}
+
+#[tauri::command]
+pub fn stop_wallpaper_engine() -> Result<(), String> {
+    crate::sidecar_wallpaper::stop_engine();
+    Ok(())
+}
+
+#[tauri::command]
+pub fn pause_wallpaper_engine() -> Result<(), String> {
+    crate::sidecar_wallpaper::pause_engine()
+}
+
+#[tauri::command]
+pub fn resume_wallpaper_engine() -> Result<(), String> {
+    crate::sidecar_wallpaper::resume_engine()
+}
+
+#[tauri::command]
+pub fn set_wallpaper_engine_texture(path: String) -> Result<(), String> {
+    crate::sidecar_wallpaper::set_texture(&path)
+}
+
+#[tauri::command]
+pub fn set_wallpaper_engine_fit_mode(mode: String) -> Result<(), String> {
+    if let Ok(mut guard) = WALLPAPER_FIT_MODE.lock() {
+        *guard = mode.clone();
+    }
+    crate::sidecar_wallpaper::set_fit_mode(&mode)
+}
+
+#[tauri::command]
+pub fn set_wallpaper_engine_fps(fps: f64) -> Result<(), String> {
+    crate::sidecar_wallpaper::set_fps(fps)
+}
+
+#[tauri::command]
+pub fn set_wallpaper_engine_intensity(intensity: f64) -> Result<(), String> {
+    crate::sidecar_wallpaper::set_intensity(intensity)
+}
+
+#[tauri::command]
+pub fn get_wallpaper_engine_state() -> crate::sidecar_wallpaper::WallpaperEngineState {
+    crate::sidecar_wallpaper::get_state()
+}
+
+#[tauri::command]
+pub fn is_wallpaper_engine_running() -> bool {
+    crate::sidecar_wallpaper::is_running()
 }

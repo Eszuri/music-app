@@ -7,7 +7,7 @@ import {getAccent} from '../../lib/colors';
 import {t, type Lang} from '../../lib/translations';
 import {SelectStub, SettingGroup, SettingRow, ToggleStub} from './controls';
 import {useHoverDescription} from '../../hooks/useHoverDescription';
-import type {OutputMode} from '../../lib/storage';
+import type {OutputMode, WallpaperFitMode} from '../../lib/storage';
 
 export default function GeneralSection({
     lang,
@@ -34,6 +34,8 @@ export default function GeneralSection({
     defaultWallpaper,
     onPickWallpaper,
     onClearWallpaper,
+    wallpaperFitMode = 'fill',
+    setWallpaperFitMode,
     accentColor,
     onCheckUpdate,
     updateStatus,
@@ -67,6 +69,8 @@ export default function GeneralSection({
     defaultWallpaper: string | null;
     onPickWallpaper: () => void;
     onClearWallpaper: () => void;
+    wallpaperFitMode?: WallpaperFitMode;
+    setWallpaperFitMode?: (v: WallpaperFitMode) => void;
     accentColor: string;
     onCheckUpdate: () => void;
     updateStatus: string;
@@ -158,6 +162,24 @@ export default function GeneralSection({
                             </button>
                         )}
                     </div>
+                </SettingRow>
+                <SettingRow
+                    title={t(lang, 'general.wallpaperFit.title')}
+                    description={t(lang, 'general.wallpaperFit.desc')}
+                >
+                    <SelectStub
+                        value={wallpaperFitMode}
+                        onChange={(v) => setWallpaperFitMode?.(v as WallpaperFitMode)}
+                        options={[
+                            ['fill', t(lang, 'general.wallpaperFit.fill')],
+                            ['fit', t(lang, 'general.wallpaperFit.fit')],
+                            ['stretch', t(lang, 'general.wallpaperFit.stretch')],
+                            ['center', t(lang, 'general.wallpaperFit.center')],
+                            ['tile', t(lang, 'general.wallpaperFit.tile')],
+                            ['span', t(lang, 'general.wallpaperFit.span')],
+                        ]}
+                        accent={accent}
+                    />
                 </SettingRow>
                 <SettingRow
                     title={t(lang, 'general.resetWallpaper.title')}

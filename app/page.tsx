@@ -565,6 +565,8 @@ function HomeContent() {
                 defaultWallpaper={settings.defaultWallpaper}
                 onPickWallpaper={handlePickWallpaper}
                 onClearWallpaper={() => settings.setDefaultWallpaper(null)}
+                wallpaperFitMode={settings.wallpaperFitMode}
+                setWallpaperFitMode={settings.setWallpaperFitMode}
                 outputDevice={settings.outputDevice}
                 setOutputDevice={settings.setOutputDeviceState}
                 outputMode={settings.outputMode}

@@ -16,8 +16,12 @@ using Microsoft::WRL::ComPtr;
 struct FrameConstants {
     float time = 0.0f;
     float intensity = 0.8f;
-    float width = 1.0f;
-    float height = 1.0f;
+    float screenWidth = 1.0f;
+    float screenHeight = 1.0f;
+    float textureWidth = 1.0f;
+    float textureHeight = 1.0f;
+    uint32_t fitMode = 0;
+    float padding = 0.0f;
 };
 
 static_assert(sizeof(FrameConstants) % 16 == 0);
@@ -60,7 +64,7 @@ bool Renderer::initialize(const std::filesystem::path& shaderDirectory, std::str
     ComPtr<IDXGIDevice> dxgiDevice;
     result = device_.As(&dxgiDevice);
     if (FAILED(result)) {
-        error = hresultMessage("Query IDXGIDevice", result);
+        error = hresultMessage("ID3D11Device::As(IDXGIDevice)", result);
         return false;
     }
     ComPtr<IDXGIAdapter> adapter;
@@ -75,58 +79,75 @@ bool Renderer::initialize(const std::filesystem::path& shaderDirectory, std::str
         return false;
     }
 
-    const auto compileShader = [&](const std::filesystem::path& path, const char* target, auto createShader) {
-        ComPtr<ID3DBlob> byteCode;
-        ComPtr<ID3DBlob> errors;
-        const auto widePath = pathToWide(path);
-        HRESULT compileResult = D3DCompileFromFile(
-            widePath.c_str(),
-            nullptr,
-            D3D_COMPILE_STANDARD_FILE_INCLUDE,
-            "main",
-            target,
-            D3DCOMPILE_ENABLE_STRICTNESS,
-            0,
-            &byteCode,
-            &errors);
-        if (FAILED(compileResult)) {
-            if (errors) {
-                error.assign(static_cast<const char*>(errors->GetBufferPointer()), errors->GetBufferSize());
-            } else {
-                error = hresultMessage("D3DCompileFromFile", compileResult);
-            }
-            return false;
-        }
-        return createShader(byteCode);
-    };
+    const auto vsPath = shaderDirectory / "fullscreen_vs.hlsl";
+    const auto psPath = shaderDirectory / "cover_reactive_ps.hlsl";
+    if (!std::filesystem::exists(vsPath) || !std::filesystem::exists(psPath)) {
+        error = "Shader files were not found in: " + shaderDirectory.string();
+        return false;
+    }
 
-    if (!compileShader(shaderDirectory / "fullscreen_vs.hlsl", "vs_5_0", [&](const ComPtr<ID3DBlob>& blob) {
-            const HRESULT shaderResult = device_->CreateVertexShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &vertexShader_);
-            if (FAILED(shaderResult)) error = hresultMessage("CreateVertexShader", shaderResult);
-            return SUCCEEDED(shaderResult);
-        })) return false;
-
-    if (!compileShader(shaderDirectory / "cover_reactive_ps.hlsl", "ps_5_0", [&](const ComPtr<ID3DBlob>& blob) {
-            const HRESULT shaderResult = device_->CreatePixelShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &pixelShader_);
-            if (FAILED(shaderResult)) error = hresultMessage("CreatePixelShader", shaderResult);
-            return SUCCEEDED(shaderResult);
-        })) return false;
-
-    D3D11_BUFFER_DESC constants{};
-    constants.ByteWidth = sizeof(FrameConstants);
-    constants.Usage = D3D11_USAGE_DEFAULT;
-    constants.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    result = device_->CreateBuffer(&constants, nullptr, &frameConstants_);
+    ComPtr<ID3DBlob> vsBlob;
+    ComPtr<ID3DBlob> vsErrors;
+    result = D3DCompileFromFile(
+        pathToWide(vsPath).c_str(),
+        nullptr,
+        D3D_COMPILE_STANDARD_FILE_INCLUDE,
+        "main",
+        "vs_5_0",
+        0,
+        0,
+        &vsBlob,
+        &vsErrors);
     if (FAILED(result)) {
-        error = hresultMessage("CreateBuffer", result);
+        error = vsErrors ? static_cast<const char*>(vsErrors->GetBufferPointer()) : hresultMessage("Compile VS", result);
+        return false;
+    }
+
+    ComPtr<ID3DBlob> psBlob;
+    ComPtr<ID3DBlob> psErrors;
+    result = D3DCompileFromFile(
+        pathToWide(psPath).c_str(),
+        nullptr,
+        D3D_COMPILE_STANDARD_FILE_INCLUDE,
+        "main",
+        "ps_5_0",
+        0,
+        0,
+        &psBlob,
+        &psErrors);
+    if (FAILED(result)) {
+        error = psErrors ? static_cast<const char*>(psErrors->GetBufferPointer()) : hresultMessage("Compile PS", result);
+        return false;
+    }
+
+    result = device_->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, &vertexShader_);
+    if (FAILED(result)) {
+        error = hresultMessage("CreateVertexShader", result);
+        return false;
+    }
+    result = device_->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, &pixelShader_);
+    if (FAILED(result)) {
+        error = hresultMessage("CreatePixelShader", result);
+        return false;
+    }
+
+    D3D11_BUFFER_DESC bufferDesc{};
+    bufferDesc.ByteWidth = sizeof(FrameConstants);
+    bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+    bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    result = device_->CreateBuffer(&bufferDesc, nullptr, &frameConstants_);
+    if (FAILED(result)) {
+        error = hresultMessage("CreateBuffer(constants)", result);
         return false;
     }
 
     D3D11_SAMPLER_DESC samplerDesc{};
     samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-    samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-    samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-    samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+    samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+    samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+    samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+    samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+    samplerDesc.MinLOD = 0.0f;
     samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
     result = device_->CreateSamplerState(&samplerDesc, &sampler_);
     if (FAILED(result)) {
@@ -134,38 +155,43 @@ bool Renderer::initialize(const std::filesystem::path& shaderDirectory, std::str
         return false;
     }
 
-    std::array<unsigned char, 4> white{255, 255, 255, 255};
-    D3D11_TEXTURE2D_DESC textureDesc{};
-    textureDesc.Width = 1;
-    textureDesc.Height = 1;
-    textureDesc.MipLevels = 1;
-    textureDesc.ArraySize = 1;
-    textureDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-    textureDesc.SampleDesc.Count = 1;
-    textureDesc.Usage = D3D11_USAGE_DEFAULT;
-    textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-    D3D11_SUBRESOURCE_DATA textureData{};
-    textureData.pSysMem = white.data();
-    textureData.SysMemPitch = 4;
-    ComPtr<ID3D11Texture2D> defaultTexture;
-    result = device_->CreateTexture2D(&textureDesc, &textureData, &defaultTexture);
+    D3D11_TEXTURE2D_DESC defaultTexDesc{};
+    defaultTexDesc.Width = 1;
+    defaultTexDesc.Height = 1;
+    defaultTexDesc.MipLevels = 1;
+    defaultTexDesc.ArraySize = 1;
+    defaultTexDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+    defaultTexDesc.SampleDesc.Count = 1;
+    defaultTexDesc.Usage = D3D11_USAGE_DEFAULT;
+    defaultTexDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+    const uint32_t fallbackPixel = 0xFF141A28;
+    D3D11_SUBRESOURCE_DATA defaultData{};
+    defaultData.pSysMem = &fallbackPixel;
+    defaultData.SysMemPitch = sizeof(fallbackPixel);
+    ComPtr<ID3D11Texture2D> defaultTex;
+    result = device_->CreateTexture2D(&defaultTexDesc, &defaultData, &defaultTex);
     if (FAILED(result)) {
-        error = hresultMessage("CreateTexture2D", result);
+        error = hresultMessage("CreateTexture2D(default)", result);
         return false;
     }
-    result = device_->CreateShaderResourceView(defaultTexture.Get(), nullptr, &textureView_);
+    result = device_->CreateShaderResourceView(defaultTex.Get(), nullptr, &textureView_);
     if (FAILED(result)) {
-        error = hresultMessage("CreateShaderResourceView", result);
+        error = hresultMessage("CreateShaderResourceView(default)", result);
         return false;
     }
+
+    textureWidth_ = 1.0f;
+    textureHeight_ = 1.0f;
+    fitMode_ = 0; // Fill by default
+
     return true;
 }
 
 Renderer::Surface* Renderer::findSurface(HWND window) {
-    const auto found = std::find_if(surfaces_.begin(), surfaces_.end(), [window](const auto& surface) {
+    const auto it = std::find_if(surfaces_.begin(), surfaces_.end(), [window](const auto& surface) {
         return surface.window == window;
     });
-    return found == surfaces_.end() ? nullptr : &*found;
+    return it == surfaces_.end() ? nullptr : &(*it);
 }
 
 bool Renderer::createRenderTarget(Surface& surface, std::string& error) {
@@ -195,9 +221,6 @@ bool Renderer::attach(HWND window, std::string& error) {
     desc.SampleDesc.Count = 1;
     desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     desc.BufferCount = 2;
-    // WorkerW is a child desktop host. The blt-model swap effect is more
-    // compatible with child windows than the flip model on older Windows 10
-    // desktop compositions.
     desc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
     desc.Scaling = DXGI_SCALING_STRETCH;
 
@@ -247,6 +270,27 @@ bool Renderer::resize(HWND window, std::string& error) {
     return createRenderTarget(*surface, error);
 }
 
+bool Renderer::setFitMode(const std::string& mode) {
+    if (mode == "fill") fitMode_ = 0;
+    else if (mode == "fit") fitMode_ = 1;
+    else if (mode == "stretch") fitMode_ = 2;
+    else if (mode == "center") fitMode_ = 3;
+    else if (mode == "tile") fitMode_ = 4;
+    else fitMode_ = 0;
+    return true;
+}
+
+std::string Renderer::fitMode() const {
+    switch (fitMode_) {
+    case 0: return "fill";
+    case 1: return "fit";
+    case 2: return "stretch";
+    case 3: return "center";
+    case 4: return "tile";
+    default: return "fill";
+    }
+}
+
 bool Renderer::render(HWND window, float elapsedSeconds, float intensity, std::string& error) {
     auto* surface = findSurface(window);
     if (!surface || !surface->renderTarget) return false;
@@ -254,15 +298,19 @@ bool Renderer::render(HWND window, float elapsedSeconds, float intensity, std::s
     FrameConstants constants;
     constants.time = elapsedSeconds;
     constants.intensity = intensity;
-    constants.width = static_cast<float>(surface->width);
-    constants.height = static_cast<float>(surface->height);
+    constants.screenWidth = static_cast<float>(surface->width);
+    constants.screenHeight = static_cast<float>(surface->height);
+    constants.textureWidth = textureWidth_ > 0.0f ? textureWidth_ : static_cast<float>(surface->width);
+    constants.textureHeight = textureHeight_ > 0.0f ? textureHeight_ : static_cast<float>(surface->height);
+    constants.fitMode = fitMode_;
+    constants.padding = 0.0f;
     context_->UpdateSubresource(frameConstants_.Get(), 0, nullptr, &constants, 0, 0);
 
     const float clear[] = {0.005f, 0.007f, 0.012f, 1.0f};
     context_->OMSetRenderTargets(1, surface->renderTarget.GetAddressOf(), nullptr);
     D3D11_VIEWPORT viewport{};
-    viewport.Width = constants.width;
-    viewport.Height = constants.height;
+    viewport.Width = constants.screenWidth;
+    viewport.Height = constants.screenHeight;
     viewport.MaxDepth = 1.0f;
     context_->RSSetViewports(1, &viewport);
     context_->ClearRenderTargetView(surface->renderTarget.Get(), clear);
@@ -370,6 +418,8 @@ bool Renderer::loadTextureWic(const std::filesystem::path& path, std::string& er
         return false;
     }
     textureView_ = std::move(view);
+    textureWidth_ = static_cast<float>(width);
+    textureHeight_ = static_cast<float>(height);
     return true;
 }
 

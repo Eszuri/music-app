@@ -5,7 +5,7 @@ import SettingsModal from '../SettingsModal';
 import StreamingModal from '../StreamingModal';
 import type {LogEntry} from '../../types/log';
 import {t, type Lang} from '../../lib/translations';
-import type {OutputMode} from '../../lib/storage';
+import type {OutputMode, WallpaperFitMode} from '../../lib/storage';
 import type {PlaybackRuntimeInfo} from '../../hooks/audio/playbackTypes';
 
 interface HomeModalsProps {
@@ -39,6 +39,8 @@ interface HomeModalsProps {
     defaultWallpaper: string | null;
     onPickWallpaper: () => void;
     onClearWallpaper: () => void;
+    wallpaperFitMode: WallpaperFitMode;
+    setWallpaperFitMode: (v: WallpaperFitMode) => void;
     layoutMode?: 'default' | 'spotify';
     setLayoutMode?: (v: 'default' | 'spotify') => void;
     outputDevice: string | null;
@@ -109,6 +111,8 @@ export default function HomeModals({
     defaultWallpaper,
     onPickWallpaper,
     onClearWallpaper,
+    wallpaperFitMode,
+    setWallpaperFitMode,
     layoutMode = 'default',
     setLayoutMode,
     outputDevice,
@@ -190,6 +194,8 @@ export default function HomeModals({
                 defaultWallpaper={defaultWallpaper}
                 onPickWallpaper={onPickWallpaper}
                 onClearWallpaper={onClearWallpaper}
+                wallpaperFitMode={wallpaperFitMode}
+                setWallpaperFitMode={setWallpaperFitMode}
                 layoutMode={layoutMode}
                 setLayoutMode={setLayoutMode}
                 outputDevice={outputDevice}

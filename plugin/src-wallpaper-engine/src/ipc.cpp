@@ -113,6 +113,8 @@ std::optional<Command> parseCommand(const std::string& line) {
     command.texturePath = getString(line, "path").value_or(command.texturePath);
     command.texturePath = getString(line, "texturePath").value_or(command.texturePath);
     command.parameter = getString(line, "name").value_or(command.parameter);
+    command.fitMode = getString(line, "fitMode").value_or(command.fitMode);
+    command.fitMode = getString(line, "mode").value_or(command.fitMode);
     command.value = getNumber(line, "value").value_or(command.value);
     command.fps = getNumber(line, "fps").value_or(command.fps);
     return command;
@@ -127,6 +129,7 @@ std::string makeStateEvent(const State& state) {
     out << "{\"event\":\"state\",\"state\":\"" << escape(state.state)
         << "\",\"scene\":\"" << escape(state.scene)
         << "\",\"texturePath\":\"" << escape(state.texturePath)
+        << "\",\"fitMode\":\"" << escape(state.fitMode)
         << "\",\"fps\":" << std::fixed << std::setprecision(2) << state.fps
         << ",\"monitorCount\":" << state.monitorCount;
     if (!state.error.empty()) out << ",\"error\":\"" << escape(state.error) << "\"";

@@ -25,6 +25,8 @@ public:
     bool resize(HWND window, std::string& error);
     bool render(HWND window, float elapsedSeconds, float intensity, std::string& error);
     bool setTexture(const std::filesystem::path& path, std::string& error);
+    bool setFitMode(const std::string& mode);
+    std::string fitMode() const;
 
 private:
     using Device = Microsoft::WRL::ComPtr<ID3D11Device>;
@@ -52,6 +54,10 @@ private:
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> textureView_;
     Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler_;
     std::vector<Surface> surfaces_;
+
+    float textureWidth_ = 0.0f;
+    float textureHeight_ = 0.0f;
+    uint32_t fitMode_ = 0; // 0 = fill, 1 = fit, 2 = stretch, 3 = center, 4 = tile
 };
 
 } // namespace symvonia::wallpaper

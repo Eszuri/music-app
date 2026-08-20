@@ -42,6 +42,7 @@ int wmain(int argc, wchar_t* argv[]) {
     bool standalone = false;
     std::filesystem::path shaderDirectory;
     std::filesystem::path initialTexture;
+    std::string initialFit = "fill";
     double initialFps = 30.0;
 
     wchar_t executablePath[MAX_PATH]{};
@@ -65,12 +66,20 @@ int wmain(int argc, wchar_t* argv[]) {
                 emitLine(makeErrorEvent("INVALID_ARGUMENT", "Invalid --fps value."));
                 return 2;
             }
+        } else if (argument == L"--fit" && index + 1 < argc) {
+            std::wstring fitArg = argv[++index];
+            if (fitArg == L"fit") initialFit = "fit";
+            else if (fitArg == L"stretch") initialFit = "stretch";
+            else if (fitArg == L"center") initialFit = "center";
+            else if (fitArg == L"tile") initialFit = "tile";
+            else initialFit = "fill";
         } else if (argument == L"--help") {
             std::wcout << L"Symvonia Wallpaper Engine 0.1.0\n"
                        << L"  --standalone             Keep rendering after stdin closes\n"
                        << L"  --stdio                  Exit when stdin closes (default)\n"
                        << L"  --shader-dir <directory> HLSL shader directory\n"
                        << L"  --texture <file>         Initial PNG/JPEG/BMP texture\n"
+                       << L"  --fit <mode>             Fit mode (fill, fit, stretch, center, tile)\n"
                        << L"  --fps <number>           Target frame rate\n";
             return 0;
         }
@@ -87,6 +96,13 @@ int wmain(int argc, wchar_t* argv[]) {
         emitLine(makeErrorEvent("ENGINE_INIT_FAILED", error));
         CoUninitialize();
         return 1;
+    }
+
+    if (initialFit != "fill") {
+        Command fitCmd;
+        fitCmd.name = "set_fit_mode";
+        fitCmd.fitMode = initialFit;
+        engine.handleCommand(fitCmd, error);
     }
 
     if (!initialTexture.empty()) {

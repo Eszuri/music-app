@@ -10,6 +10,7 @@ import AboutSection from './settings/AboutSection';
 import AudioSection from './settings/AudioSection';
 import LyricsSection from './settings/LyricsSection';
 import PluginSection from './settings/PluginSection';
+import WallpaperSection from './settings/WallpaperSection';
 import ChangelogSection from './settings/ChangelogSection';
 import DebugSection from './settings/DebugSection';
 import GeneralSection from './settings/GeneralSection';
@@ -19,9 +20,8 @@ import SortSection from './settings/SortSection';
 import StyleSection from './settings/StyleSection';
 import {getSections} from './settings/sectionsConfig';
 import {useAiLyricsPlugin} from '../hooks/useAiLyricsPlugin';
+import {useWallpaperPlugin} from '../hooks/useWallpaperPlugin';
 import type {SectionId, SettingsModalProps} from './settings/types';
-
-
 
 export default function SettingsModal({
     lang,
@@ -51,6 +51,8 @@ export default function SettingsModal({
     defaultWallpaper,
     onPickWallpaper,
     onClearWallpaper,
+    wallpaperFitMode,
+    setWallpaperFitMode,
     folderSort,
     setFolderSort,
     fileSort,
@@ -89,8 +91,8 @@ export default function SettingsModal({
     updateTotal,
 }: SettingsModalProps) {
     const [activeSection, setActiveSection] = useState<SectionId>('general');
+    const mouseDownOnBackdropRef = useRef(false);
     const settingItemHover = useHoverDescription(t(lang, 'status.settingItem'));
-    const mouseDownOnBackdropRef = useRef<boolean>(false);
 
     useEffect(() => {
         if (!open) return;
@@ -108,14 +110,20 @@ export default function SettingsModal({
     }, [open, onClose]);
 
     const { pluginStatus: aiPluginStatus } = useAiLyricsPlugin();
+    const { pluginStatus: wallpaperPluginStatus } = useWallpaperPlugin();
     const isAiPluginInstalled = aiPluginStatus?.installed === true;
+    const isWallpaperPluginInstalled = wallpaperPluginStatus?.installed === true;
+
     const effectiveActiveSection =
         (activeSection === 'lyrics' && !isAiPluginInstalled)
+            ? 'plugin'
+            : (activeSection === 'wallpaper' && !isWallpaperPluginInstalled)
             ? 'plugin'
             : activeSection;
 
     const sections = getSections(lang).filter(s =>
-        s.id !== 'lyrics' || isAiPluginInstalled
+        (s.id !== 'lyrics' || isAiPluginInstalled) &&
+        (s.id !== 'wallpaper' || isWallpaperPluginInstalled)
     );
 
     return (
@@ -184,31 +192,33 @@ export default function SettingsModal({
                         </header>
                         <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 min-w-0">
                             {effectiveActiveSection === 'general' && (
-                                    <GeneralSection
-                                        lang={lang}
-                                        setLang={setLang}
-                                        musicFolder={musicFolder}
-                                        onChangeFolder={onChangeFolder}
-                                        autoWallpaper={autoWallpaper}
-                                        setAutoWallpaper={setAutoWallpaper}
-                                        resetOnClose={resetOnClose}
-                                        setResetOnClose={setResetOnClose}
-                                        volumeStep={volumeStep}
-                                        setVolumeStep={setVolumeStep}
-                                        volumeMode={volumeMode}
-                                        setVolumeMode={setVolumeMode}
-                                        volumeLimit={volumeLimit}
-                                        setVolumeLimit={setVolumeLimit}
-                                        pauseIfMuted={pauseIfMuted}
-                                        setPauseIfMuted={setPauseIfMuted}
-                                        fadeAudio={fadeAudio}
-                                        setFadeAudio={setFadeAudio}
-                                        fadeDuration={fadeDuration}
-                                        setFadeDuration={setFadeDuration}
-                                        volume={volume}
+                                <GeneralSection
+                                    lang={lang}
+                                    setLang={setLang}
+                                    musicFolder={musicFolder}
+                                    onChangeFolder={onChangeFolder}
+                                    autoWallpaper={autoWallpaper}
+                                    setAutoWallpaper={setAutoWallpaper}
+                                    resetOnClose={resetOnClose}
+                                    setResetOnClose={setResetOnClose}
+                                    volumeStep={volumeStep}
+                                    setVolumeStep={setVolumeStep}
+                                    volumeMode={volumeMode}
+                                    setVolumeMode={setVolumeMode}
+                                    volumeLimit={volumeLimit}
+                                    setVolumeLimit={setVolumeLimit}
+                                    pauseIfMuted={pauseIfMuted}
+                                    setPauseIfMuted={setPauseIfMuted}
+                                    fadeAudio={fadeAudio}
+                                    setFadeAudio={setFadeAudio}
+                                    fadeDuration={fadeDuration}
+                                    setFadeDuration={setFadeDuration}
+                                    volume={volume}
                                     defaultWallpaper={defaultWallpaper}
                                     onPickWallpaper={onPickWallpaper}
                                     onClearWallpaper={onClearWallpaper}
+                                    wallpaperFitMode={wallpaperFitMode}
+                                    setWallpaperFitMode={setWallpaperFitMode}
                                     accentColor={accentColor}
                                     onCheckUpdate={onCheckUpdate}
                                     updateStatus={updateStatus}
@@ -252,47 +262,62 @@ export default function SettingsModal({
                                 />
                             )}
                             {effectiveActiveSection === 'style' && (
-                                 <StyleSection
-                                     lang={lang}
-                                     accentColor={accentColor}
-                                     setAccentColor={setAccentColor}
-                                     customAccentHex={customAccentHex}
-                                     setCustomAccentHex={setCustomAccentHex}
-                                     layoutMode={layoutMode}
-                                     setLayoutMode={setLayoutMode}
-                                     onResetSidebarWidth={onResetSidebarWidth}
-                                 />
-                             )}
-                             {effectiveActiveSection === 'plugin' && (
-                                     <PluginSection
-                                         lang={lang}
-                                         accentColor={accentColor}
-                                         isPlaying={isPlaying}
-                                         setOutputMode={setOutputMode}
-                                         setOutputDevice={setOutputDevice}
-                                     />
-                                 )}
-                                {effectiveActiveSection === 'audio' && (
-                                    <AudioSection
-                                        lang={lang}
-                                        outputDevice={outputDevice}
-                                        setOutputDevice={setOutputDevice}
-                                        outputMode={outputMode}
-                                        setOutputMode={setOutputMode}
-                                        autoFallbackHtmlAudio={autoFallbackHtmlAudio}
-                                        setAutoFallbackHtmlAudio={setAutoFallbackHtmlAudio}
-                                        audioRuntime={audioRuntime}
-                                        onResetPlayer={onResetPlayer}
-                                        onRetryNativeAudio={onRetryNativeAudio}
-                                        accentColor={accentColor}
-                                    />
-                                )}
-                                {effectiveActiveSection === 'lyrics' && isAiPluginInstalled && (
-                                    <LyricsSection
-                                        lang={lang}
-                                        accentColor={accentColor}
-                                    />
-                                )}
+                                <StyleSection
+                                    lang={lang}
+                                    accentColor={accentColor}
+                                    setAccentColor={setAccentColor}
+                                    customAccentHex={customAccentHex}
+                                    setCustomAccentHex={setCustomAccentHex}
+                                    layoutMode={layoutMode}
+                                    setLayoutMode={setLayoutMode}
+                                    onResetSidebarWidth={onResetSidebarWidth}
+                                />
+                            )}
+                            {effectiveActiveSection === 'plugin' && (
+                                <PluginSection
+                                    lang={lang}
+                                    accentColor={accentColor}
+                                    isPlaying={isPlaying}
+                                    setOutputMode={setOutputMode}
+                                    setOutputDevice={setOutputDevice}
+                                />
+                            )}
+                            {effectiveActiveSection === 'audio' && (
+                                <AudioSection
+                                    lang={lang}
+                                    outputDevice={outputDevice}
+                                    setOutputDevice={setOutputDevice}
+                                    outputMode={outputMode}
+                                    setOutputMode={setOutputMode}
+                                    autoFallbackHtmlAudio={autoFallbackHtmlAudio}
+                                    setAutoFallbackHtmlAudio={setAutoFallbackHtmlAudio}
+                                    audioRuntime={audioRuntime}
+                                    onResetPlayer={onResetPlayer}
+                                    onRetryNativeAudio={onRetryNativeAudio}
+                                    accentColor={accentColor}
+                                />
+                            )}
+                            {effectiveActiveSection === 'lyrics' && isAiPluginInstalled && (
+                                <LyricsSection
+                                    lang={lang}
+                                    accentColor={accentColor}
+                                />
+                            )}
+                            {effectiveActiveSection === 'wallpaper' && isWallpaperPluginInstalled && (
+                                <WallpaperSection
+                                    lang={lang}
+                                    accentColor={accentColor}
+                                    autoWallpaper={autoWallpaper}
+                                    setAutoWallpaper={setAutoWallpaper}
+                                    resetOnClose={resetOnClose}
+                                    setResetOnClose={setResetOnClose}
+                                    defaultWallpaper={defaultWallpaper}
+                                    onPickWallpaper={onPickWallpaper}
+                                    onClearWallpaper={onClearWallpaper}
+                                    wallpaperFitMode={wallpaperFitMode}
+                                    setWallpaperFitMode={setWallpaperFitMode}
+                                />
+                            )}
                             {effectiveActiveSection === 'changelog' && <ChangelogSection lang={lang} />}
                             {effectiveActiveSection === 'about' && <AboutSection lang={lang} />}
                             {effectiveActiveSection === 'debug' && <DebugSection lang={lang} logs={logs} />}

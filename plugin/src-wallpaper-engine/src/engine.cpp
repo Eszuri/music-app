@@ -80,11 +80,23 @@ bool WallpaperEngine::handleCommand(const Command& command, std::string& error) 
         return applyTexture(std::filesystem::u8path(command.texturePath), error);
     }
     if (command.name == "set_param") {
-        if (command.parameter != "intensity") {
-            error = "Unsupported shader parameter: " + command.parameter;
-            return false;
+        if (command.parameter == "intensity") {
+            intensity_ = std::clamp(static_cast<float>(command.value), 0.0f, 2.0f);
+            return true;
         }
-        intensity_ = std::clamp(static_cast<float>(command.value), 0.0f, 2.0f);
+        if (command.parameter == "fitMode") {
+            const std::string mode = !command.fitMode.empty() ? command.fitMode : "fill";
+            renderer_.setFitMode(mode);
+            state_.fitMode = renderer_.fitMode();
+            return true;
+        }
+        error = "Unsupported shader parameter: " + command.parameter;
+        return false;
+    }
+    if (command.name == "set_fit_mode") {
+        const std::string mode = !command.fitMode.empty() ? command.fitMode : "fill";
+        renderer_.setFitMode(mode);
+        state_.fitMode = renderer_.fitMode();
         return true;
     }
     if (command.name == "set_fps") {

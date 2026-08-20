@@ -9,7 +9,9 @@ pub mod library_cache;
 pub mod migration;
 pub mod sidecar;
 pub mod sidecar_lyrics;
+pub mod sidecar_wallpaper;
 pub mod unified_engine_manager;
+pub mod wallpaper_plugin_manager;
 
 pub use commands::*;
 pub use library_cache::{clear_library_cache, invalidate_library_directory, set_library_root};
@@ -172,7 +174,24 @@ pub fn run() {
             download_tag_editor_plugin,
             cancel_tag_editor_plugin_download,
             install_tag_editor_plugin_from_file,
-            uninstall_tag_editor_plugin
+            uninstall_tag_editor_plugin,
+            get_wallpaper_plugin_status,
+            download_wallpaper_plugin,
+            cancel_wallpaper_plugin_download,
+            install_wallpaper_plugin_from_file,
+            uninstall_wallpaper_plugin,
+            start_wallpaper_engine,
+            stop_wallpaper_engine,
+            pause_wallpaper_engine,
+            resume_wallpaper_engine,
+            set_wallpaper_engine_texture,
+            set_wallpaper_engine_fps,
+            set_wallpaper_engine_intensity,
+            set_wallpaper_engine_fit_mode,
+            set_wallpaper_fit_mode,
+            get_wallpaper_fit_mode,
+            get_wallpaper_engine_state,
+            is_wallpaper_engine_running
         ])
         .register_uri_scheme_protocol("stream", |_app, request| {
             if request.method() == tauri::http::Method::OPTIONS {

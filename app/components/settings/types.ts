@@ -1,10 +1,9 @@
 import type {LogEntry} from '../../types/log';
-
 import type {Lang} from '../../lib/translations';
-import type {OutputMode} from '../../lib/storage';
+import type {OutputMode, WallpaperFitMode} from '../../lib/storage';
 import type {PlaybackRuntimeInfo} from '../../hooks/audio/playbackTypes';
 
-export type SectionId = 'general' | 'storage' | 'sort' | 'shortcut' | 'style' | 'plugin' | 'audio' | 'lyrics' | 'changelog' | 'about' | 'debug';
+export type SectionId = 'general' | 'storage' | 'sort' | 'shortcut' | 'style' | 'plugin' | 'audio' | 'lyrics' | 'wallpaper' | 'changelog' | 'about' | 'debug';
 
 export interface SettingsModalProps {
     lang: Lang;
@@ -34,6 +33,8 @@ export interface SettingsModalProps {
     defaultWallpaper: string | null;
     onPickWallpaper: () => void;
     onClearWallpaper: () => void;
+    wallpaperFitMode: WallpaperFitMode;
+    setWallpaperFitMode: (v: WallpaperFitMode) => void;
 
     folderSort: string;
     setFolderSort: (v: string) => void;
