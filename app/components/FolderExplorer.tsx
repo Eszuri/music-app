@@ -413,8 +413,8 @@ function FolderExplorer({
     // Compute active columns and minimum table width dynamically
     const activeColumns = useMemo(() => {
         const list = toolbarColumns && toolbarColumns.length > 0 ? toolbarColumns : DEFAULT_TOOLBAR_COLUMNS;
-        if (!list.includes('name')) return ['name', ...list];
-        return list;
+        const withoutName = list.filter((c) => c !== 'name');
+        return ['name', ...withoutName];
     }, [toolbarColumns]);
 
     const minTableWidth = useMemo(() => {

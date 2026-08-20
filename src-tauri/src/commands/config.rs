@@ -227,10 +227,11 @@ impl SymvoniaConfig {
         }
         self.equalizer.pre_amp = self.equalizer.pre_amp.clamp(-12.0, 12.0);
 
-        // Ensure default toolbar columns exist if empty, and ensure 'name' is always included
+        // Ensure default toolbar columns exist if empty, and ensure 'name' is always first
         if self.toolbar_columns.is_empty() {
             self.toolbar_columns = SymvoniaConfig::default().toolbar_columns;
-        } else if !self.toolbar_columns.contains(&"name".to_string()) {
+        } else {
+            self.toolbar_columns.retain(|c| c != "name");
             self.toolbar_columns.insert(0, "name".to_string());
         }
 
