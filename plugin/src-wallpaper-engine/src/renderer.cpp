@@ -274,7 +274,7 @@ bool Renderer::render(HWND window, float elapsedSeconds, float intensity, std::s
     context_->PSSetSamplers(0, 1, sampler_.GetAddressOf());
     context_->Draw(3, 0);
 
-    const HRESULT result = surface->swapChain->Present(1, 0);
+    const HRESULT result = surface->swapChain->Present(0, 0);
     if (FAILED(result)) {
         error = hresultMessage("Present", result);
         return false;

@@ -116,7 +116,12 @@ int wmain(int argc, wchar_t* argv[]) {
     });
 
     bool quitRequested = false;
+    auto lastFrameTime = std::chrono::steady_clock::now();
+
     while (!quitRequested && !engine.shouldQuit()) {
+        engine.tick(quitRequested);
+        if (quitRequested) break;
+
         std::queue<std::string> pending;
         {
             std::lock_guard lock(input->mutex);
@@ -147,10 +152,18 @@ int wmain(int argc, wchar_t* argv[]) {
             break;
         }
 
-        engine.tick(quitRequested);
         const double frameRate = std::clamp(engine.state().fps, 1.0, 120.0);
-        const auto frameDuration = std::chrono::duration<double>(1.0 / frameRate);
-        std::this_thread::sleep_for(std::chrono::duration_cast<std::chrono::milliseconds>(frameDuration));
+        const auto targetFrameDuration = std::chrono::duration<double>(1.0 / frameRate);
+        const auto now = std::chrono::steady_clock::now();
+        const auto elapsed = now - lastFrameTime;
+
+        if (elapsed < targetFrameDuration) {
+            const auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(targetFrameDuration - elapsed);
+            const DWORD waitMs = std::clamp(static_cast<DWORD>(remaining.count()), 1UL, 16UL);
+            MsgWaitForMultipleObjectsEx(0, nullptr, waitMs, QS_ALLINPUT, MWMO_ALERTABLE);
+        } else {
+            lastFrameTime = now;
+        }
     }
 
     if (reader.joinable()) {

@@ -8,7 +8,9 @@ namespace {
 constexpr UINT kWorkerMessage = 0x052C;
 
 struct WorkerSearch {
-    HWND worker = nullptr;
+    HWND defViewParent = nullptr;
+    HWND workerBehindDefView = nullptr;
+    HWND fallbackWorker = nullptr;
 };
 
 } // namespace
@@ -35,20 +37,35 @@ HWND WindowHost::findDesktopHost() const {
     HWND progman = FindWindowW(L"Progman", nullptr);
     if (progman) {
         DWORD_PTR result = 0;
+        SendMessageTimeoutW(progman, kWorkerMessage, 0x0000000D, 0, SMTO_NORMAL, 1000, &result);
+        SendMessageTimeoutW(progman, kWorkerMessage, 0x0000000D, 1, SMTO_NORMAL, 1000, &result);
         SendMessageTimeoutW(progman, kWorkerMessage, 0, 0, SMTO_NORMAL, 1000, &result);
     }
 
     WorkerSearch search;
     EnumWindows(&WindowHost::workerEnumProc, reinterpret_cast<LPARAM>(&search));
-    return search.worker ? search.worker : progman;
+
+    if (search.workerBehindDefView) return search.workerBehindDefView;
+    if (search.fallbackWorker) return search.fallbackWorker;
+
+    return nullptr;
 }
 
 BOOL CALLBACK WindowHost::workerEnumProc(HWND hwnd, LPARAM data) {
     auto* search = reinterpret_cast<WorkerSearch*>(data);
-    if (!search || search->worker) return FALSE;
-    if (!FindWindowExW(hwnd, nullptr, L"SHELLDLL_DefView", nullptr)) return TRUE;
-    search->worker = FindWindowExW(nullptr, hwnd, L"WorkerW", nullptr);
-    return FALSE;
+    if (!search) return FALSE;
+
+    HWND defView = FindWindowExW(hwnd, nullptr, L"SHELLDLL_DefView", nullptr);
+    if (defView) {
+        search->defViewParent = hwnd;
+        search->workerBehindDefView = FindWindowExW(nullptr, hwnd, L"WorkerW", nullptr);
+    } else {
+        wchar_t className[256]{};
+        if (GetClassNameW(hwnd, className, 256) > 0 && wcscmp(className, L"WorkerW") == 0) {
+            search->fallbackWorker = hwnd;
+        }
+    }
+    return TRUE;
 }
 
 BOOL CALLBACK WindowHost::monitorEnumProc(HMONITOR monitor, HDC, LPRECT, LPARAM data) {
@@ -91,32 +108,47 @@ bool WindowHost::rebuild() {
 
     const auto monitors = enumerateMonitors();
     if (monitors.empty()) return false;
-    if (!parentWindow_) parentWindow_ = findDesktopHost();
+    parentWindow_ = findDesktopHost();
 
     RECT parentRect{};
-    if (parentWindow_) GetWindowRect(parentWindow_, &parentRect);
+    if (parentWindow_) {
+        GetWindowRect(parentWindow_, &parentRect);
+    }
 
     for (auto monitor : monitors) {
-        const int x = monitor.monitorRect.left - parentRect.left;
-        const int y = monitor.monitorRect.top - parentRect.top;
+        int x = monitor.monitorRect.left;
+        int y = monitor.monitorRect.top;
         const int width = monitor.monitorRect.right - monitor.monitorRect.left;
         const int height = monitor.monitorRect.bottom - monitor.monitorRect.top;
 
-        const DWORD style = parentWindow_ ? WS_CHILD | WS_VISIBLE : WS_POPUP | WS_VISIBLE;
+        if (parentWindow_) {
+            x -= parentRect.left;
+            y -= parentRect.top;
+        }
+
         const HWND hwnd = CreateWindowExW(
             WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE,
             className_.c_str(),
             L"Symvonia Wallpaper Engine",
-            style,
+            WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_VISIBLE,
             x,
             y,
             width,
             height,
-            parentWindow_,
+            nullptr,
             nullptr,
             instance_,
             this);
         if (!hwnd) return false;
+
+        if (parentWindow_) {
+            SetParent(hwnd, parentWindow_);
+            SetWindowLongPtrW(hwnd, GWL_STYLE, WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_VISIBLE);
+            SetWindowPos(hwnd, HWND_BOTTOM, x, y, width, height, SWP_NOACTIVATE | SWP_SHOWWINDOW | SWP_FRAMECHANGED);
+        } else {
+            SetWindowPos(hwnd, HWND_BOTTOM, x, y, width, height, SWP_NOACTIVATE | SWP_SHOWWINDOW);
+        }
+
         monitor.handle = hwnd;
         windows_.push_back(std::move(monitor));
     }
@@ -167,6 +199,8 @@ LRESULT CALLBACK WindowHost::windowProc(HWND hwnd, UINT message, WPARAM wParam, 
         return 0;
     case WM_NCHITTEST:
         return HTTRANSPARENT;
+    case WM_SETCURSOR:
+        return 1;
     default:
         break;
     }
