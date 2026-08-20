@@ -51,7 +51,6 @@ export default function WallpaperSection({
         setFitMode,
         setEffect,
         setTransition,
-        setFps,
         setIntensity,
     } = useWallpaperPlugin();
 
@@ -74,13 +73,6 @@ export default function WallpaperSection({
             }
         } catch (err: unknown) {
             setErrorMsg(err instanceof Error ? err.message : String(err));
-        }
-    };
-
-    const handleFpsChange = async (fpsStr: string) => {
-        const val = parseFloat(fpsStr);
-        if (!isNaN(val) && val > 0) {
-            await setFps(val);
         }
     };
 
@@ -111,23 +103,7 @@ export default function WallpaperSection({
             {/* Live Engine Control Group */}
             <SettingGroup title={t(lang, 'wallpaper.group.controls')}>
                 <SettingRow
-                    title={
-                        <div className="flex items-center gap-2.5">
-                            <span className="font-semibold text-zinc-100">
-                                {t(lang, 'wallpaper.liveWallpaper.title')}
-                            </span>
-                            {isEngineRunning ? (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-xs">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                    {t(lang, 'wallpaper.engineState.running')} ({Math.round(engineState.fps)} FPS)
-                                </span>
-                            ) : (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-800 text-zinc-400 border border-zinc-700/60">
-                                    {t(lang, 'wallpaper.engineState.stopped')}
-                                </span>
-                            )}
-                        </div>
-                    }
+                    title={t(lang, 'wallpaper.liveWallpaper.title')}
                     description={t(lang, 'wallpaper.liveWallpaper.desc')}
                 >
                     <ToggleStub
@@ -193,25 +169,6 @@ export default function WallpaperSection({
                         ]}
                         value={wallpaperFitMode === 'span' ? 'fill' : wallpaperFitMode}
                         onChange={handleFitModeChange}
-                        accent={accent}
-                        accentColor={accentColor}
-                    />
-                </SettingRow>
-
-                {/* Target Frame Rate */}
-                <SettingRow
-                    title={t(lang, 'wallpaper.fps.title')}
-                    description={t(lang, 'wallpaper.fps.desc')}
-                >
-                    <SelectStub
-                        options={[
-                            ['15', '15 FPS (Ultra Power Saver)'],
-                            ['30', '30 FPS (Standard / Recommended)'],
-                            ['60', '60 FPS (Smooth Animation)'],
-                            ['120', '120 FPS (High Refresh Rate)'],
-                        ]}
-                        value={String(Math.round(engineState.fps || 30))}
-                        onChange={handleFpsChange}
                         accent={accent}
                         accentColor={accentColor}
                     />
