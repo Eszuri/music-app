@@ -378,7 +378,23 @@ pub fn start_wallpaper_engine(
     let tr = transition.or_else(|| {
         WALLPAPER_TRANSITION.lock().ok().and_then(|t| if t.is_empty() { None } else { Some(t.clone()) })
     });
-    crate::sidecar_wallpaper::start_engine(&app, fps, intensity, texture_path, mode, eff, tr)
+    let tex = texture_path
+        .filter(|p| !p.trim().is_empty())
+        .or_else(|| {
+            CURRENT_WALLPAPER_BMP_PATH
+                .lock()
+                .ok()
+                .and_then(|c| c.clone())
+                .filter(|p| Path::new(p).exists())
+        })
+        .or_else(|| {
+            DEFAULT_WALLPAPER_PATH
+                .lock()
+                .ok()
+                .and_then(|d| d.clone())
+                .filter(|p| Path::new(p).exists())
+        });
+    crate::sidecar_wallpaper::start_engine(&app, fps, intensity, tex, mode, eff, tr)
 }
 
 #[tauri::command]

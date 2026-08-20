@@ -552,6 +552,9 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
             if (!isMountedRef.current) return;
             if (!session) {
                 sessionRestoreAttemptedRef.current = true;
+                if (isBrowserTauri() && autoWallpaperRef.current) {
+                    getTauri().then(mod => mod.invoke("clear_wallpaper")).catch(() => {});
+                }
                 done();
                 return;
             }
@@ -629,7 +632,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 playlistRef.current = fileList.filter((f) => !f.is_dir);
                 playlistFolderRef.current = savedFile.path.replace(/[/\\][^/\\]+$/, "");
                 restoredPendingPlayRef.current = true;
-                await loadMetadata(savedFile.path, true);
+                await loadMetadata(savedFile.path, false);
 
                 const mins = Math.floor(sess.currentTime / 60);
                 const secs = Math.floor(sess.currentTime % 60)

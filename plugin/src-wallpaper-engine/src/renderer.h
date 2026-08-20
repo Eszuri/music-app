@@ -79,6 +79,7 @@ private:
     float transitionProgress_ = 1.0f;
     float transitionDuration_ = 0.8f;
     float lastFrameTime_ = 0.0f;
+    bool hasValidTexture_ = false;
 };
 
 } // namespace symvonia::wallpaper

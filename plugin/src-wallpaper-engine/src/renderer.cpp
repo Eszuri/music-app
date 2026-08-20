@@ -193,6 +193,7 @@ bool Renderer::initialize(const std::filesystem::path& shaderDirectory, std::str
     transitionType_ = 1; // Fade by default
     transitionProgress_ = 1.0f;
     lastFrameTime_ = 0.0f;
+    hasValidTexture_ = false;
 
     return true;
 }
@@ -515,10 +516,11 @@ bool Renderer::setTexture(const std::filesystem::path& path, std::string& error)
         return false;
     }
 
-    if (!currentTextureView_ || transitionType_ == 0) {
-        // Direct assignment without transition
+    if (!hasValidTexture_ || transitionType_ == 0) {
+        // Direct assignment without transition on initial startup or when transition is disabled
         bool ok = loadTextureWic(path, currentTextureView_, textureWidth_, textureHeight_, error);
         if (ok) {
+            hasValidTexture_ = true;
             prevTextureWidth_ = textureWidth_;
             prevTextureHeight_ = textureHeight_;
             transitionProgress_ = 1.0f;
