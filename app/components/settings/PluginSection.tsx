@@ -416,16 +416,19 @@ export default function PluginSection({
                 </SettingRow>
 
                 {bitInstalled && bitStatus?.path && (
-                    <SettingRow
-                        title={t(lang, 'audio.bitperfect.plugin.fileInfo')}
-                        description={bitStatus.path}
-                    >
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs font-semibold text-zinc-300 font-mono bg-zinc-900 border border-zinc-800 px-2.5 py-1 rounded-xl shadow-xs">
+                    <div className="p-3.5 border-b border-zinc-800/40 last:border-0 flex flex-col gap-2">
+                        <div className="flex items-center justify-between gap-3">
+                            <span className="text-xs font-semibold text-zinc-300">
+                                {t(lang, 'audio.bitperfect.plugin.fileInfo')}
+                            </span>
+                            <span className="text-[11px] font-semibold text-zinc-300 font-mono bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-lg shadow-xs shrink-0">
                                 📦 {bitSizeMB}
                             </span>
                         </div>
-                    </SettingRow>
+                        <p className="text-[11px] font-mono text-zinc-400 break-all leading-relaxed bg-zinc-950/40 px-2.5 py-1.5 rounded-lg border border-zinc-800/60 select-all">
+                            {bitStatus.path}
+                        </p>
+                    </div>
                 )}
 
                 {bitActionError && (
@@ -592,16 +595,19 @@ export default function PluginSection({
                 </SettingRow>
 
                 {aiInstalled && aiStatus?.path && (
-                    <SettingRow
-                        title={t(lang, 'audio.bitperfect.plugin.fileInfo')}
-                        description={aiStatus.path}
-                    >
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs font-semibold text-zinc-300 font-mono bg-zinc-900 border border-zinc-800 px-2.5 py-1 rounded-xl shadow-xs">
+                    <div className="p-3.5 border-b border-zinc-800/40 last:border-0 flex flex-col gap-2">
+                        <div className="flex items-center justify-between gap-3">
+                            <span className="text-xs font-semibold text-zinc-300">
+                                {t(lang, 'audio.bitperfect.plugin.fileInfo')}
+                            </span>
+                            <span className="text-[11px] font-semibold text-zinc-300 font-mono bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-lg shadow-xs shrink-0">
                                 📦 {aiSizeMB}
                             </span>
                         </div>
-                    </SettingRow>
+                        <p className="text-[11px] font-mono text-zinc-400 break-all leading-relaxed bg-zinc-950/40 px-2.5 py-1.5 rounded-lg border border-zinc-800/60 select-all">
+                            {aiStatus.path}
+                        </p>
+                    </div>
                 )}
 
                 {aiActionError && (
@@ -760,16 +766,19 @@ export default function PluginSection({
                 </SettingRow>
 
                 {wallpaperInstalled && wallpaperStatus?.path && (
-                    <SettingRow
-                        title={t(lang, 'audio.bitperfect.plugin.fileInfo')}
-                        description={wallpaperStatus.path}
-                    >
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs font-semibold text-zinc-300 font-mono bg-zinc-900 border border-zinc-800 px-2.5 py-1 rounded-xl shadow-xs">
+                    <div className="p-3.5 border-b border-zinc-800/40 last:border-0 flex flex-col gap-2">
+                        <div className="flex items-center justify-between gap-3">
+                            <span className="text-xs font-semibold text-zinc-300">
+                                {t(lang, 'audio.bitperfect.plugin.fileInfo')}
+                            </span>
+                            <span className="text-[11px] font-semibold text-zinc-300 font-mono bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-lg shadow-xs shrink-0">
                                 📦 {wallpaperSizeMB}
                             </span>
                         </div>
-                    </SettingRow>
+                        <p className="text-[11px] font-mono text-zinc-400 break-all leading-relaxed bg-zinc-950/40 px-2.5 py-1.5 rounded-lg border border-zinc-800/60 select-all">
+                            {wallpaperStatus.path}
+                        </p>
+                    </div>
                 )}
 
                 {wallpaperActionError && (

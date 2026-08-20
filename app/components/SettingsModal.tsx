@@ -145,7 +145,7 @@ export default function SettingsModal({
                         }
                         mouseDownOnBackdropRef.current = false;
                     }}
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm cursor-pointer"
+                    className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/70 backdrop-blur-sm cursor-pointer"
                 >
                     <motion.div
                         key="settings-modal"
@@ -153,11 +153,12 @@ export default function SettingsModal({
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="settings-dialog-title"
-                        className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl shadow-black/60 w-[min(900px,90vw)] h-[min(560px,80vh)] flex overflow-hidden overscroll-contain cursor-default"
+                        style={{ width: '1024px', height: '580px', maxWidth: '90vw', maxHeight: '82vh' }}
+                        className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl shadow-black/60 flex overflow-hidden cursor-default shrink-0"
                         onClick={(e) => e.stopPropagation()}
                     >
                     {/* Sidebar nav */}
-                    <nav className="w-36 lg:w-40 xl:w-44 border-r border-zinc-800 bg-zinc-950/60 p-2.5 md:p-3 flex flex-col gap-1 overflow-y-auto">
+                    <nav className="w-44 shrink-0 min-h-0 border-r border-zinc-800 bg-zinc-950/60 p-2.5 md:p-3 flex flex-col gap-1 overflow-y-auto">
                         <h3 className="px-3 py-2 text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
                             {t(lang, 'settings.title')}
                         </h3>
@@ -185,7 +186,7 @@ export default function SettingsModal({
                     </nav>
 
                     {/* Content */}
-                    <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+                    <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
                         <header className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-zinc-800 shrink-0">
                             <h2 id="settings-dialog-title" tabIndex={-1} className="text-lg font-semibold text-zinc-100">
                                 {sections.find((s) => s.id === effectiveActiveSection)?.label}
@@ -194,7 +195,7 @@ export default function SettingsModal({
                                 ×
                             </button>
                         </header>
-                        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 min-w-0">
+                        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 md:p-6 min-w-0">
                             {effectiveActiveSection === 'general' && (
                                 <GeneralSection
                                     lang={lang}
@@ -231,6 +232,7 @@ export default function SettingsModal({
                                     updateTotal={updateTotal}
                                     outputMode={outputMode}
                                     nativeOutputActive={audioRuntime.effectiveMode === 'wasapi_shared' || audioRuntime.effectiveMode === 'wasapi_exclusive'}
+                                    hideWallpaperGroup={isWallpaperPluginInstalled}
                                 />
                             )}
                             {effectiveActiveSection === 'storage' && (

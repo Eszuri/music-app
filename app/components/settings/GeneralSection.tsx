@@ -44,6 +44,7 @@ export default function GeneralSection({
     updateTotal,
     outputMode,
     nativeOutputActive = false,
+    hideWallpaperGroup = false,
 }: {
     lang: Lang;
     setLang: (v: Lang) => void;
@@ -79,6 +80,7 @@ export default function GeneralSection({
     updateTotal: number;
     outputMode?: OutputMode;
     nativeOutputActive?: boolean;
+    hideWallpaperGroup?: boolean;
 }) {
     const accent = getAccent(accentColor);
 
@@ -126,73 +128,75 @@ export default function GeneralSection({
                 </SettingRow>
             </SettingGroup>
 
-            <SettingGroup title={t(lang, 'general.group.wallpaper')}>
-                <SettingRow
-                    title={t(lang, 'general.autoWallpaper.title')}
-                    description={t(lang, 'general.autoWallpaper.desc')}
-                >
-                    <ToggleStub checked={autoWallpaper} onChange={setAutoWallpaper} accent={accent} />
-                </SettingRow>
-                <SettingRow
-                    title={t(lang, 'general.wallpaperDefault.title')}
-                    description={t(lang, 'general.wallpaperDefault.desc')}
-                >
-                    <div className="flex items-center gap-2 max-w-65">
-                        {defaultWallpaper ? (
-                            <div className="text-xs text-zinc-400 font-mono truncate flex-1" title={defaultWallpaper}>
-                                {defaultWallpaper.split('\\').pop()?.split('/').pop()}
-                            </div>
-                        ) : (
-                            <div className="text-xs text-zinc-600 flex-1" />
-                        )}
-                        <button
-                            {...wallpaperChangeBtnHover}
-                            onClick={onPickWallpaper}
-                            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-200 bg-zinc-800 hover:bg-zinc-700 hover:text-white border border-zinc-700/60 shadow-xs transition-all cursor-pointer shrink-0 active:scale-[0.98]"
-                        >
-                            {defaultWallpaper ? t(lang, 'general.wallpaperDefault.changeBtn') : t(lang, 'general.wallpaperDefault.setBtn')}
-                        </button>
-                        {defaultWallpaper && (
+            {!hideWallpaperGroup && (
+                <SettingGroup title={t(lang, 'general.group.wallpaper')}>
+                    <SettingRow
+                        title={t(lang, 'general.autoWallpaper.title')}
+                        description={t(lang, 'general.autoWallpaper.desc')}
+                    >
+                        <ToggleStub checked={autoWallpaper} onChange={setAutoWallpaper} accent={accent} />
+                    </SettingRow>
+                    <SettingRow
+                        title={t(lang, 'general.wallpaperDefault.title')}
+                        description={t(lang, 'general.wallpaperDefault.desc')}
+                    >
+                        <div className="flex items-center gap-2 max-w-65">
+                            {defaultWallpaper ? (
+                                <div className="text-xs text-zinc-400 font-mono truncate flex-1" title={defaultWallpaper}>
+                                    {defaultWallpaper.split('\\').pop()?.split('/').pop()}
+                                </div>
+                            ) : (
+                                <div className="text-xs text-zinc-600 flex-1" />
+                            )}
                             <button
-                                {...wallpaperDeleteBtnHover}
-                                onClick={onClearWallpaper}
-                                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 shadow-xs transition-all cursor-pointer shrink-0 active:scale-[0.98]"
+                                {...wallpaperChangeBtnHover}
+                                onClick={onPickWallpaper}
+                                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-200 bg-zinc-800 hover:bg-zinc-700 hover:text-white border border-zinc-700/60 shadow-xs transition-all cursor-pointer shrink-0 active:scale-[0.98]"
                             >
-                                {t(lang, 'general.wallpaperDefault.deleteBtn')}
+                                {defaultWallpaper ? t(lang, 'general.wallpaperDefault.changeBtn') : t(lang, 'general.wallpaperDefault.setBtn')}
                             </button>
-                        )}
-                    </div>
-                </SettingRow>
-                <SettingRow
-                    title={t(lang, 'general.wallpaperFit.title')}
-                    description={t(lang, 'general.wallpaperFit.desc')}
-                >
-                    <SelectStub
-                        value={wallpaperFitMode}
-                        onChange={(v) => setWallpaperFitMode?.(v as WallpaperFitMode)}
-                        options={[
-                            ['fill', t(lang, 'general.wallpaperFit.fill')],
-                            ['fit', t(lang, 'general.wallpaperFit.fit')],
-                            ['stretch', t(lang, 'general.wallpaperFit.stretch')],
-                            ['center', t(lang, 'general.wallpaperFit.center')],
-                            ['tile', t(lang, 'general.wallpaperFit.tile')],
-                            ['span', t(lang, 'general.wallpaperFit.span')],
-                        ]}
-                        accent={accent}
-                    />
-                </SettingRow>
-                <SettingRow
-                    title={t(lang, 'general.resetWallpaper.title')}
-                    description={t(lang, 'general.resetWallpaper.desc')}
-                >
-                    <div className="flex flex-col items-end gap-1">
-                        <ToggleStub checked={resetOnClose} onChange={setResetOnClose} disabled={!defaultWallpaper} accent={accent} />
-                        {!defaultWallpaper && (
-                            <span className="text-[10px] text-zinc-600 whitespace-nowrap">{t(lang, 'general.resetWallpaper.hint')}</span>
-                        )}
-                    </div>
-                </SettingRow>
-            </SettingGroup>
+                            {defaultWallpaper && (
+                                <button
+                                    {...wallpaperDeleteBtnHover}
+                                    onClick={onClearWallpaper}
+                                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 shadow-xs transition-all cursor-pointer shrink-0 active:scale-[0.98]"
+                                >
+                                    {t(lang, 'general.wallpaperDefault.deleteBtn')}
+                                </button>
+                            )}
+                        </div>
+                    </SettingRow>
+                    <SettingRow
+                        title={t(lang, 'general.wallpaperFit.title')}
+                        description={t(lang, 'general.wallpaperFit.desc')}
+                    >
+                        <SelectStub
+                            value={wallpaperFitMode}
+                            onChange={(v) => setWallpaperFitMode?.(v as WallpaperFitMode)}
+                            options={[
+                                ['fill', t(lang, 'general.wallpaperFit.fill')],
+                                ['fit', t(lang, 'general.wallpaperFit.fit')],
+                                ['stretch', t(lang, 'general.wallpaperFit.stretch')],
+                                ['center', t(lang, 'general.wallpaperFit.center')],
+                                ['tile', t(lang, 'general.wallpaperFit.tile')],
+                                ['span', t(lang, 'general.wallpaperFit.span')],
+                            ]}
+                            accent={accent}
+                        />
+                    </SettingRow>
+                    <SettingRow
+                        title={t(lang, 'general.resetWallpaper.title')}
+                        description={t(lang, 'general.resetWallpaper.desc')}
+                    >
+                        <div className="flex flex-col items-end gap-1">
+                            <ToggleStub checked={resetOnClose} onChange={setResetOnClose} disabled={!defaultWallpaper} accent={accent} />
+                            {!defaultWallpaper && (
+                                <span className="text-[10px] text-zinc-600 whitespace-nowrap">{t(lang, 'general.resetWallpaper.hint')}</span>
+                            )}
+                        </div>
+                    </SettingRow>
+                </SettingGroup>
+            )}
 
             <SettingGroup title={t(lang, 'general.group.volume')}>
                 <SettingRow

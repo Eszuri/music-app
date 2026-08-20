@@ -40,7 +40,7 @@ export function SettingRow({
         >
             <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-zinc-100">{title}</div>
-                <p className="text-xs text-zinc-500 mt-0.5">{description}</p>
+                <p className="text-xs text-zinc-500 mt-0.5 break-words leading-relaxed">{description}</p>
             </div>
             <div className="shrink-0 pt-0.5">{children}</div>
         </div>

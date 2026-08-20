@@ -57,14 +57,15 @@ export default function StorageSection({
     return (
         <div className="space-y-6">
             <SettingGroup title={t(lang, 'general.group.storage')}>
-                <SettingRow
-                    title={t(lang, 'general.storage.total')}
-                    description={t(lang, 'general.storage.desc')}
-                >
-                    <div className="flex flex-col items-end gap-2">
-                        <div className="flex items-center gap-3 text-xs text-zinc-300">
+                <div className="p-4 border-b border-zinc-800/40 flex flex-col gap-3">
+                    <div className="flex flex-wrap sm:flex-nowrap items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-zinc-100">{t(lang, 'general.storage.total')}</div>
+                            <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">{t(lang, 'general.storage.desc')}</p>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
                             {storageInfo ? (
-                                <span className="font-mono font-medium text-zinc-200">
+                                <span className="font-mono text-sm font-semibold text-zinc-200">
                                     {formatBytes(storageInfo.total_bytes)}
                                 </span>
                             ) : (
@@ -73,24 +74,24 @@ export default function StorageSection({
                             <button
                                 onClick={openConfigFolder}
                                 {...settingItemHover}
-                                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-200 bg-zinc-800 hover:bg-zinc-700 hover:text-white border border-zinc-700/60 shadow-xs transition-all cursor-pointer active:scale-[0.98]"
+                                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-200 bg-zinc-800 hover:bg-zinc-700 hover:text-white border border-zinc-700/60 shadow-xs transition-all cursor-pointer active:scale-[0.98] whitespace-nowrap"
                             >
                                 {t(lang, 'general.storage.openFolder')}
                             </button>
                         </div>
-                        {storageInfo && (
-                            <div className="flex flex-wrap items-center justify-end gap-2 text-[11px] text-zinc-400 font-mono">
-                                <span>Config: {formatBytes(storageInfo.config_bytes)}</span>
-                                <span>•</span>
-                                <span>Models: {formatBytes(storageInfo.models_bytes)}</span>
-                                <span>•</span>
-                                <span>Plugins: {formatBytes(storageInfo.plugins_bytes)}</span>
-                                <span>•</span>
-                                <span>Cache: {formatBytes(storageInfo.cache_bytes)}</span>
-                            </div>
-                        )}
                     </div>
-                </SettingRow>
+                    {storageInfo && (
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-2.5 border-t border-zinc-800/50 text-[11px] text-zinc-400 font-mono">
+                            <span>Config: <span className="text-zinc-300">{formatBytes(storageInfo.config_bytes)}</span></span>
+                            <span className="text-zinc-600">•</span>
+                            <span>Models: <span className="text-zinc-300">{formatBytes(storageInfo.models_bytes)}</span></span>
+                            <span className="text-zinc-600">•</span>
+                            <span>Plugins: <span className="text-zinc-300">{formatBytes(storageInfo.plugins_bytes)}</span></span>
+                            <span className="text-zinc-600">•</span>
+                            <span>Cache: <span className="text-zinc-300">{formatBytes(storageInfo.cache_bytes)}</span></span>
+                        </div>
+                    )}
+                </div>
 
                 <SettingRow
                     title={t(lang, 'general.storage.cleanCache')}
