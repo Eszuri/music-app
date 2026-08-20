@@ -6,83 +6,139 @@ cbuffer FrameConstants : register(b0)
     float screenHeight;
     float textureWidth;
     float textureHeight;
-    uint fitMode; // 0 = fill, 1 = fit, 2 = stretch, 3 = center, 4 = tile
-    uint effect;  // 0 = none/clean (default), 1 = reactive_glow, 2 = subtle_pulse, 3 = cinematic_vignette, 4 = grayscale, 5 = dimmed
+    uint fitMode;             // 0 = fill, 1 = fit, 2 = stretch, 3 = center, 4 = tile
+    uint effect;              // 0 = none/clean (default), 1 = reactive_glow, 2 = subtle_pulse, 3 = cinematic_vignette, 4 = grayscale, 5 = dimmed
+    uint transitionType;      // 0 = none, 1 = fade, 2 = zoom_in, 3 = zoom_out, 4 = slide
+    float transitionProgress; // 0.0 to 1.0 (1.0 = transition complete)
+    float prevTextureWidth;
+    float prevTextureHeight;
 };
 
-Texture2D coverTexture : register(t0);
+Texture2D currentTexture : register(t0);
+Texture2D nextTexture    : register(t1);
 SamplerState linearSampler : register(s0);
+
+float4 sampleFitted(Texture2D tex, float texW, float texH, float2 uv, float screenW, float screenH, uint mode, float2 offset, float zoomScale)
+{
+    float screenAspect = max(screenW / max(screenH, 1.0), 0.01);
+    float texAspect = max(texW / max(texH, 1.0), 0.01);
+
+    // Apply zoom scale around center (0.5, 0.5) and translation offset
+    float2 transformedUv = (uv - 0.5) / max(zoomScale, 0.001) + 0.5 - offset;
+
+    if (mode == 0) // Fill: crop to fill screen preserving aspect ratio
+    {
+        float2 scale = 1.0;
+        if (screenAspect > texAspect)
+        {
+            scale = float2(1.0, texAspect / screenAspect);
+        }
+        else
+        {
+            scale = float2(screenAspect / texAspect, 1.0);
+        }
+        float2 texUv = (transformedUv - 0.5) * scale + 0.5;
+        return tex.Sample(linearSampler, texUv);
+    }
+    else if (mode == 1) // Fit: letterbox / pillarbox preserving aspect ratio
+    {
+        float2 scale = 1.0;
+        if (screenAspect > texAspect)
+        {
+            scale = float2(screenAspect / texAspect, 1.0);
+        }
+        else
+        {
+            scale = float2(1.0, texAspect / screenAspect);
+        }
+        float2 texUv = (transformedUv - 0.5) * scale + 0.5;
+        if (texUv.x >= 0.0 && texUv.x <= 1.0 && texUv.y >= 0.0 && texUv.y <= 1.0)
+        {
+            return tex.Sample(linearSampler, texUv);
+        }
+        else
+        {
+            // Dimmed ambient background outside letterbox boundary
+            return tex.Sample(linearSampler, transformedUv) * 0.20;
+        }
+    }
+    else if (mode == 2) // Stretch: fill entire screen without preserving aspect ratio
+    {
+        return tex.Sample(linearSampler, transformedUv);
+    }
+    else if (mode == 3) // Center: 1:1 original pixel scale centered
+    {
+        float2 pixelOffset = (transformedUv - 0.5) * float2(screenW, screenH);
+        float2 texCoord = pixelOffset / float2(max(texW, 1.0), max(texH, 1.0)) + 0.5;
+        if (texCoord.x >= 0.0 && texCoord.x <= 1.0 && texCoord.y >= 0.0 && texCoord.y <= 1.0)
+        {
+            return tex.Sample(linearSampler, texCoord);
+        }
+        else
+        {
+            return tex.Sample(linearSampler, transformedUv) * 0.15;
+        }
+    }
+    else if (mode == 4) // Tile: tile texture across screen
+    {
+        float2 tileUv = frac(transformedUv * float2(screenW, screenH) / float2(max(texW, 1.0), max(texH, 1.0)));
+        return tex.Sample(linearSampler, tileUv);
+    }
+
+    return tex.Sample(linearSampler, transformedUv);
+}
 
 float4 main(float4 position : SV_POSITION, float2 uv : TEXCOORD0) : SV_TARGET
 {
     float2 centered = uv - 0.5;
     float screenAspect = max(screenWidth / max(screenHeight, 1.0), 0.01);
-    float texAspect = max(textureWidth / max(textureHeight, 1.0), 0.01);
     centered.x *= screenAspect;
 
     float4 cover = float4(0.0, 0.0, 0.0, 1.0);
 
-    if (fitMode == 0) // Fill: crop to fill screen preserving aspect ratio
+    if (transitionProgress >= 1.0 || transitionType == 0)
     {
-        float2 scale = 1.0;
-        if (screenAspect > texAspect)
+        // No active transition: sample current texture directly
+        cover = sampleFitted(currentTexture, textureWidth, textureHeight, uv, screenWidth, screenHeight, fitMode, float2(0.0, 0.0), 1.0);
+    }
+    else
+    {
+        float t = smoothstep(0.0, 1.0, clamp(transitionProgress, 0.0, 1.0));
+
+        if (transitionType == 1) // Crossfade / Fade
         {
-            scale = float2(1.0, texAspect / screenAspect);
+            float4 colorCurrent = sampleFitted(currentTexture, prevTextureWidth > 0.0 ? prevTextureWidth : textureWidth, prevTextureHeight > 0.0 ? prevTextureHeight : textureHeight, uv, screenWidth, screenHeight, fitMode, float2(0.0, 0.0), 1.0);
+            float4 colorNext = sampleFitted(nextTexture, textureWidth, textureHeight, uv, screenWidth, screenHeight, fitMode, float2(0.0, 0.0), 1.0);
+            cover = lerp(colorCurrent, colorNext, t);
+        }
+        else if (transitionType == 2) // Zoom In: old texture zooms slightly in while fading, new texture enters zooming in
+        {
+            float scaleOld = 1.0 + 0.12 * t;
+            float scaleNew = 0.90 + 0.10 * t;
+            float4 colorCurrent = sampleFitted(currentTexture, prevTextureWidth > 0.0 ? prevTextureWidth : textureWidth, prevTextureHeight > 0.0 ? prevTextureHeight : textureHeight, uv, screenWidth, screenHeight, fitMode, float2(0.0, 0.0), scaleOld);
+            float4 colorNext = sampleFitted(nextTexture, textureWidth, textureHeight, uv, screenWidth, screenHeight, fitMode, float2(0.0, 0.0), scaleNew);
+            cover = lerp(colorCurrent, colorNext, t);
+        }
+        else if (transitionType == 3) // Zoom Out: old texture zooms out, new texture enters zooming out from larger
+        {
+            float scaleOld = 1.0 - 0.10 * t;
+            float scaleNew = 1.12 - 0.12 * t;
+            float4 colorCurrent = sampleFitted(currentTexture, prevTextureWidth > 0.0 ? prevTextureWidth : textureWidth, prevTextureHeight > 0.0 ? prevTextureHeight : textureHeight, uv, screenWidth, screenHeight, fitMode, float2(0.0, 0.0), scaleOld);
+            float4 colorNext = sampleFitted(nextTexture, textureWidth, textureHeight, uv, screenWidth, screenHeight, fitMode, float2(0.0, 0.0), scaleNew);
+            cover = lerp(colorCurrent, colorNext, t);
+        }
+        else if (transitionType == 4) // Slide: smooth horizontal push slide
+        {
+            float2 offsetOld = float2(-0.25 * t, 0.0);
+            float2 offsetNew = float2(0.25 * (1.0 - t), 0.0);
+            float4 colorCurrent = sampleFitted(currentTexture, prevTextureWidth > 0.0 ? prevTextureWidth : textureWidth, prevTextureHeight > 0.0 ? prevTextureHeight : textureHeight, uv, screenWidth, screenHeight, fitMode, offsetOld, 1.0);
+            float4 colorNext = sampleFitted(nextTexture, textureWidth, textureHeight, uv, screenWidth, screenHeight, fitMode, offsetNew, 1.0);
+            cover = lerp(colorCurrent, colorNext, t);
         }
         else
         {
-            scale = float2(screenAspect / texAspect, 1.0);
+            cover = sampleFitted(currentTexture, textureWidth, textureHeight, uv, screenWidth, screenHeight, fitMode, float2(0.0, 0.0), 1.0);
         }
-        float2 texUv = (uv - 0.5) * scale + 0.5;
-        cover = coverTexture.Sample(linearSampler, texUv);
-    }
-    else if (fitMode == 1) // Fit: letterbox / pillarbox preserving aspect ratio
-    {
-        float2 scale = 1.0;
-        if (screenAspect > texAspect)
-        {
-            scale = float2(screenAspect / texAspect, 1.0);
-        }
-        else
-        {
-            scale = float2(1.0, texAspect / screenAspect);
-        }
-        float2 texUv = (uv - 0.5) * scale + 0.5;
-        if (texUv.x >= 0.0 && texUv.x <= 1.0 && texUv.y >= 0.0 && texUv.y <= 1.0)
-        {
-            cover = coverTexture.Sample(linearSampler, texUv);
-        }
-        else
-        {
-            // Clean dark neutral background outside letterbox (or soft dim ambient)
-            cover = coverTexture.Sample(linearSampler, uv) * 0.20;
-        }
-    }
-    else if (fitMode == 2) // Stretch: fill entire screen without preserving aspect ratio
-    {
-        cover = coverTexture.Sample(linearSampler, uv);
-    }
-    else if (fitMode == 3) // Center: 1:1 original pixel scale centered
-    {
-        float2 pixelOffset = (uv - 0.5) * float2(screenWidth, screenHeight);
-        float2 texCoord = pixelOffset / float2(max(textureWidth, 1.0), max(textureHeight, 1.0)) + 0.5;
-        if (texCoord.x >= 0.0 && texCoord.x <= 1.0 && texCoord.y >= 0.0 && texCoord.y <= 1.0)
-        {
-            cover = coverTexture.Sample(linearSampler, texCoord);
-        }
-        else
-        {
-            cover = coverTexture.Sample(linearSampler, uv) * 0.15;
-        }
-    }
-    else if (fitMode == 4) // Tile: tile texture across screen
-    {
-        float2 tileUv = frac(uv * float2(screenWidth, screenHeight) / float2(max(textureWidth, 1.0), max(textureHeight, 1.0)));
-        cover = coverTexture.Sample(linearSampler, tileUv);
-    }
-    else // Default fallback
-    {
-        cover = coverTexture.Sample(linearSampler, uv);
     }
 
     // ─── Visual Effects ────────────────────────────────────────────────────────

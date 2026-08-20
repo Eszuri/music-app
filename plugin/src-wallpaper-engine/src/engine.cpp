@@ -18,6 +18,7 @@ bool WallpaperEngine::initialize(const std::filesystem::path& shaderDirectory, s
     state_.scene = "cover-reactive";
     state_.fitMode = renderer_.fitMode();
     state_.effect = renderer_.effect();
+    state_.transition = renderer_.transition();
     state_.fps = 30.0;
     state_.monitorCount = static_cast<int>(windowHost_.windows().size());
     initialized_ = true;
@@ -111,6 +112,12 @@ bool WallpaperEngine::handleCommand(const Command& command, std::string& error) 
         const std::string eff = !command.effect.empty() ? command.effect : "none";
         renderer_.setEffect(eff);
         state_.effect = renderer_.effect();
+        return true;
+    }
+    if (command.name == "set_transition") {
+        const std::string tr = !command.transition.empty() ? command.transition : "fade";
+        renderer_.setTransition(tr);
+        state_.transition = renderer_.transition();
         return true;
     }
     if (command.name == "set_fps") {

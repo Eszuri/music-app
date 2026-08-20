@@ -16,6 +16,7 @@ pub struct WallpaperEngineState {
     pub texture_path: Option<String>,
     pub fit_mode: String,
     pub effect: String,
+    pub transition: String,
     pub fps: f64,
     pub intensity: f64,
     pub monitor_count: i32,
@@ -31,6 +32,7 @@ impl Default for WallpaperEngineState {
             texture_path: None,
             fit_mode: "fill".to_string(),
             effect: "none".to_string(),
+            transition: "fade".to_string(),
             fps: 30.0,
             intensity: 1.0,
             monitor_count: 0,
@@ -46,6 +48,7 @@ static WALLPAPER_STATE: Mutex<WallpaperEngineState> = Mutex::new(WallpaperEngine
     texture_path: None,
     fit_mode: String::new(),
     effect: String::new(),
+    transition: String::new(),
     fps: 30.0,
     intensity: 1.0,
     monitor_count: 0,
@@ -90,6 +93,7 @@ pub fn start_engine(
     texture_path: Option<String>,
     fit_mode: Option<String>,
     effect: Option<String>,
+    transition: Option<String>,
 ) -> Result<WallpaperEngineState, String> {
     stop_engine();
 
@@ -107,6 +111,7 @@ pub fn start_engine(
     let target_intensity = intensity.unwrap_or(1.0).clamp(0.0, 2.0);
     let target_fit = fit_mode.unwrap_or_else(|| "fill".to_string());
     let target_effect = effect.unwrap_or_else(|| "none".to_string());
+    let target_transition = transition.unwrap_or_else(|| "fade".to_string());
 
     let mut cmd = Command::new(&exe);
     cmd.arg("--stdio");
@@ -116,6 +121,7 @@ pub fn start_engine(
     cmd.arg("--fps").arg(target_fps.to_string());
     cmd.arg("--fit").arg(&target_fit);
     cmd.arg("--effect").arg(&target_effect);
+    cmd.arg("--transition").arg(&target_transition);
     if let Some(ref tex) = texture_path {
         if std::path::Path::new(tex).exists() {
             cmd.arg("--texture").arg(tex);
@@ -154,6 +160,7 @@ pub fn start_engine(
         state.texture_path = texture_path.clone();
         state.fit_mode = target_fit.clone();
         state.effect = target_effect.clone();
+        state.transition = target_transition.clone();
         state.last_error = None;
     }
 
@@ -182,6 +189,9 @@ pub fn start_engine(
                                         }
                                         if let Some(eff) = parsed.get("effect").and_then(|v| v.as_str()) {
                                             state.effect = eff.to_string();
+                                        }
+                                        if let Some(tr) = parsed.get("transition").and_then(|v| v.as_str()) {
+                                            state.transition = tr.to_string();
                                         }
                                         if let Some(fps_val) = parsed.get("fps").and_then(|v| v.as_f64()) {
                                             state.fps = fps_val;
@@ -277,6 +287,13 @@ pub fn set_effect(effect: &str) -> Result<(), String> {
         state.effect = effect.to_string();
     }
     send_command(&json!({ "command": "set_effect", "effect": effect }).to_string())
+}
+
+pub fn set_transition(transition: &str) -> Result<(), String> {
+    if let Ok(mut state) = WALLPAPER_STATE.lock() {
+        state.transition = transition.to_string();
+    }
+    send_command(&json!({ "command": "set_transition", "transition": transition }).to_string())
 }
 
 pub fn set_fps(fps: f64) -> Result<(), String> {

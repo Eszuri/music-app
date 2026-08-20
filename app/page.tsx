@@ -569,6 +569,8 @@ function HomeContent() {
                 setWallpaperFitMode={settings.setWallpaperFitMode}
                 wallpaperEffect={settings.wallpaperEffect}
                 setWallpaperEffect={settings.setWallpaperEffect}
+                wallpaperTransition={settings.wallpaperTransition}
+                setWallpaperTransition={settings.setWallpaperTransition}
                 outputDevice={settings.outputDevice}
                 setOutputDevice={settings.setOutputDeviceState}
                 outputMode={settings.outputMode}

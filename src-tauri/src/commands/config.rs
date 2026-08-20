@@ -55,6 +55,7 @@ pub struct SymvoniaConfig {
     pub wallpaper_engine_enabled: bool,
     pub wallpaper_fit_mode: String,
     pub wallpaper_effect: String,
+    pub wallpaper_transition: String,
     pub wallpaper_engine_fps: f64,
     pub wallpaper_engine_intensity: f64,
     pub volume_mode: String,
@@ -111,6 +112,7 @@ impl Default for SymvoniaConfig {
             wallpaper_engine_enabled: false,
             wallpaper_fit_mode: "fill".to_string(),
             wallpaper_effect: "none".to_string(),
+            wallpaper_transition: "fade".to_string(),
             wallpaper_engine_fps: 30.0,
             wallpaper_engine_intensity: 1.0,
             volume_mode: "app".to_string(),
@@ -270,6 +272,16 @@ impl SymvoniaConfig {
             self.wallpaper_effect = "none".to_string();
         }
 
+        // Wallpaper transition validation
+        if self.wallpaper_transition != "fade"
+            && self.wallpaper_transition != "zoom_in"
+            && self.wallpaper_transition != "zoom_out"
+            && self.wallpaper_transition != "slide"
+            && self.wallpaper_transition != "none"
+        {
+            self.wallpaper_transition = "fade".to_string();
+        }
+
         // Wallpaper engine FPS and intensity clamping
         self.wallpaper_engine_fps = self.wallpaper_engine_fps.clamp(1.0, 120.0);
         self.wallpaper_engine_intensity = self.wallpaper_engine_intensity.clamp(0.0, 2.0);
@@ -321,6 +333,9 @@ pub fn load_config(app: &AppHandle) -> SymvoniaConfig {
                 }
                 if let Ok(mut guard) = crate::commands::wallpaper::WALLPAPER_EFFECT.lock() {
                     *guard = config.wallpaper_effect.clone();
+                }
+                if let Ok(mut guard) = crate::commands::wallpaper::WALLPAPER_TRANSITION.lock() {
+                    *guard = config.wallpaper_transition.clone();
                 }
                 if let Ok(mut guard) = crate::commands::wallpaper::DEFAULT_WALLPAPER_PATH.lock() {
                     *guard = config.default_wallpaper.clone();

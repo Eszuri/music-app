@@ -44,6 +44,7 @@ int wmain(int argc, wchar_t* argv[]) {
     std::filesystem::path initialTexture;
     std::string initialFit = "fill";
     std::string initialEffect = "none";
+    std::string initialTransition = "fade";
     double initialFps = 30.0;
 
     wchar_t executablePath[MAX_PATH]{};
@@ -82,6 +83,13 @@ int wmain(int argc, wchar_t* argv[]) {
             else if (effArg == L"grayscale" || effArg == L"black_white") initialEffect = "grayscale";
             else if (effArg == L"dimmed" || effArg == L"dim") initialEffect = "dimmed";
             else initialEffect = "none";
+        } else if (argument == L"--transition" && index + 1 < argc) {
+            std::wstring trArg = argv[++index];
+            if (trArg == L"zoom_in" || trArg == L"zoom-in" || trArg == L"zoomin") initialTransition = "zoom_in";
+            else if (trArg == L"zoom_out" || trArg == L"zoom-out" || trArg == L"zoomout") initialTransition = "zoom_out";
+            else if (trArg == L"slide" || trArg == L"push") initialTransition = "slide";
+            else if (trArg == L"none" || trArg == L"instant") initialTransition = "none";
+            else initialTransition = "fade";
         } else if (argument == L"--help") {
             std::wcout << L"Symvonia Wallpaper Engine 0.1.0\n"
                        << L"  --standalone             Keep rendering after stdin closes\n"
@@ -90,6 +98,7 @@ int wmain(int argc, wchar_t* argv[]) {
                        << L"  --texture <file>         Initial PNG/JPEG/BMP texture\n"
                        << L"  --fit <mode>             Fit mode (fill, fit, stretch, center, tile)\n"
                        << L"  --effect <mode>          Visual effect (none, reactive_glow, subtle_pulse, cinematic_vignette, grayscale, dimmed)\n"
+                       << L"  --transition <mode>      Transition effect (fade, zoom_in, zoom_out, slide, none)\n"
                        << L"  --fps <number>           Target frame rate\n";
             return 0;
         }
@@ -120,6 +129,13 @@ int wmain(int argc, wchar_t* argv[]) {
         effCmd.name = "set_effect";
         effCmd.effect = initialEffect;
         engine.handleCommand(effCmd, error);
+    }
+
+    if (initialTransition != "fade") {
+        Command trCmd;
+        trCmd.name = "set_transition";
+        trCmd.transition = initialTransition;
+        engine.handleCommand(trCmd, error);
     }
 
     if (!initialTexture.empty()) {

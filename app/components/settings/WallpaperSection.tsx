@@ -5,7 +5,7 @@ import { SettingGroup, SettingRow, ToggleStub, SelectStub } from './controls';
 import { t, type Lang } from '../../lib/translations';
 import { getAccent } from '../../lib/colors';
 import { useWallpaperPlugin } from '../../hooks/useWallpaperPlugin';
-import type { WallpaperFitMode, WallpaperEffect } from '../../lib/storage';
+import type { WallpaperFitMode, WallpaperEffect, WallpaperTransition } from '../../lib/storage';
 
 interface WallpaperSectionProps {
     lang: Lang;
@@ -21,6 +21,8 @@ interface WallpaperSectionProps {
     setWallpaperFitMode?: (v: WallpaperFitMode) => void;
     wallpaperEffect?: WallpaperEffect;
     setWallpaperEffect?: (v: WallpaperEffect) => void;
+    wallpaperTransition?: WallpaperTransition;
+    setWallpaperTransition?: (v: WallpaperTransition) => void;
 }
 
 export default function WallpaperSection({
@@ -37,6 +39,8 @@ export default function WallpaperSection({
     setWallpaperFitMode,
     wallpaperEffect = 'none',
     setWallpaperEffect,
+    wallpaperTransition = 'fade',
+    setWallpaperTransition,
 }: WallpaperSectionProps) {
     const accent = getAccent(accentColor);
     const {
@@ -46,6 +50,7 @@ export default function WallpaperSection({
         stopEngine,
         setFitMode,
         setEffect,
+        setTransition,
         setFps,
         setIntensity,
     } = useWallpaperPlugin();
@@ -62,6 +67,7 @@ export default function WallpaperSection({
                     texturePath: defaultWallpaper || undefined,
                     fitMode: wallpaperFitMode,
                     effect: wallpaperEffect,
+                    transition: wallpaperTransition,
                 });
             } else {
                 await stopEngine();
@@ -88,6 +94,12 @@ export default function WallpaperSection({
         const eff = effectStr as WallpaperEffect;
         setWallpaperEffect?.(eff);
         await setEffect(effectStr);
+    };
+
+    const handleTransitionChange = async (trStr: string) => {
+        const tr = trStr as WallpaperTransition;
+        setWallpaperTransition?.(tr);
+        await setTransition(trStr);
     };
 
     const handleIntensityChange = async (val: number) => {
@@ -122,6 +134,26 @@ export default function WallpaperSection({
                         checked={isEngineRunning}
                         onChange={handleToggleEngine}
                         accent={accent}
+                    />
+                </SettingRow>
+
+                {/* Transition Effect (Pergantian Gambar) */}
+                <SettingRow
+                    title={t(lang, 'wallpaper.transition.title')}
+                    description={t(lang, 'wallpaper.transition.desc')}
+                >
+                    <SelectStub
+                        options={[
+                            ['fade', t(lang, 'wallpaper.transition.fade')],
+                            ['zoom_in', t(lang, 'wallpaper.transition.zoom_in')],
+                            ['zoom_out', t(lang, 'wallpaper.transition.zoom_out')],
+                            ['slide', t(lang, 'wallpaper.transition.slide')],
+                            ['none', t(lang, 'wallpaper.transition.none')],
+                        ]}
+                        value={wallpaperTransition}
+                        onChange={handleTransitionChange}
+                        accent={accent}
+                        accentColor={accentColor}
                     />
                 </SettingRow>
 

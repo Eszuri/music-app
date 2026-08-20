@@ -9,11 +9,13 @@ import {
 import {
     getInitialConfig,
     normalizeOutputMode,
+    normalizeWallpaperTransition,
     setStoredValue,
     syncConfigFromBackend,
     type OutputMode,
     type WallpaperFitMode,
     type WallpaperEffect,
+    type WallpaperTransition,
     type SymvoniaConfig,
 } from '../lib/storage';
 import type {Lang} from '../lib/translations';
@@ -30,6 +32,9 @@ export function usePlayerSettings() {
     );
     const [wallpaperEffect, setWallpaperEffectStateInternal] = useState<WallpaperEffect>(
         init.wallpaper_effect ?? 'none'
+    );
+    const [wallpaperTransition, setWallpaperTransitionStateInternal] = useState<WallpaperTransition>(
+        init.wallpaper_transition ?? 'fade'
     );
     const [folderSort, setFolderSortStateInternal] = useState(init.folder_sort);
     const [fileSort, setFileSortStateInternal] = useState(init.file_sort);
@@ -127,6 +132,14 @@ export function usePlayerSettings() {
         setStoredValue('wallpaper_effect', v);
         if (isBrowserTauri()) {
             getTauri().then(mod => mod.invoke('set_wallpaper_effect', {effect: v})).catch(() => {});
+        }
+    }, []);
+
+    const setWallpaperTransition = useCallback((v: WallpaperTransition) => {
+        setWallpaperTransitionStateInternal(v);
+        setStoredValue('wallpaper_transition', v);
+        if (isBrowserTauri()) {
+            getTauri().then(mod => mod.invoke('set_wallpaper_transition', {transition: v})).catch(() => {});
         }
     }, []);
 
@@ -527,6 +540,8 @@ export function usePlayerSettings() {
         setWallpaperFitMode,
         wallpaperEffect,
         setWallpaperEffect,
+        wallpaperTransition,
+        setWallpaperTransition,
         outputDevice,
         setOutputDeviceState,
         outputMode,

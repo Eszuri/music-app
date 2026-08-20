@@ -39,6 +39,8 @@ export type WallpaperFitMode = 'fill' | 'fit' | 'stretch' | 'center' | 'tile' | 
 
 export type WallpaperEffect = 'none' | 'reactive_glow' | 'subtle_pulse' | 'cinematic_vignette' | 'grayscale' | 'dimmed';
 
+export type WallpaperTransition = 'fade' | 'zoom_in' | 'zoom_out' | 'slide' | 'none';
+
 export function normalizeOutputMode(value: unknown): OutputMode {
     if (value === 'wasapi_shared') return 'wasapi_shared';
     if (value === 'wasapi_exclusive' || value === 'bitperfect') return 'wasapi_exclusive';
@@ -59,6 +61,13 @@ export function normalizeWallpaperEffect(value: unknown): WallpaperEffect {
     return 'none';
 }
 
+export function normalizeWallpaperTransition(value: unknown): WallpaperTransition {
+    if (value === 'zoom_in' || value === 'zoom_out' || value === 'slide' || value === 'none') {
+        return value;
+    }
+    return 'fade';
+}
+
 export interface SymvoniaConfig {
     music_folder: string | null;
     language: 'id' | 'en';
@@ -71,6 +80,7 @@ export interface SymvoniaConfig {
     wallpaper_engine_enabled: boolean;
     wallpaper_fit_mode: WallpaperFitMode;
     wallpaper_effect: WallpaperEffect;
+    wallpaper_transition: WallpaperTransition;
     wallpaper_engine_fps: number;
     wallpaper_engine_intensity: number;
     volume_mode: 'app' | 'system';
@@ -118,6 +128,7 @@ export const DEFAULT_CONFIG: SymvoniaConfig = {
     wallpaper_engine_enabled: false,
     wallpaper_fit_mode: 'fill',
     wallpaper_effect: 'none',
+    wallpaper_transition: 'fade',
     wallpaper_engine_fps: 30,
     wallpaper_engine_intensity: 1.0,
     volume_mode: 'app',

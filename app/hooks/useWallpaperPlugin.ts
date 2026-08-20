@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getTauri, isBrowserTauri } from '../lib/homeState';
-import { getStoredValue, setStoredValue, type WallpaperFitMode, type WallpaperEffect } from '../lib/storage';
+import { getStoredValue, setStoredValue, type WallpaperFitMode, type WallpaperEffect, type WallpaperTransition } from '../lib/storage';
 
 export interface WallpaperPluginStatus {
     installed: boolean;
@@ -23,6 +23,7 @@ export interface WallpaperEngineState {
     texture_path?: string | null;
     fit_mode: string;
     effect: string;
+    transition: string;
     fps: number;
     intensity: number;
     monitor_count: number;
@@ -37,6 +38,7 @@ let globalEngineState: WallpaperEngineState = {
     texture_path: null,
     fit_mode: 'fill',
     effect: 'none',
+    transition: 'fade',
     fps: 30,
     intensity: 1.0,
     monitor_count: 0,
@@ -51,6 +53,7 @@ export function useWallpaperPlugin() {
         ...globalEngineState,
         fit_mode: getStoredValue('wallpaper_fit_mode', 'fill'),
         effect: getStoredValue('wallpaper_effect', 'none'),
+        transition: getStoredValue('wallpaper_transition', 'fade'),
         fps: getStoredValue('wallpaper_engine_fps', 30),
         intensity: getStoredValue('wallpaper_engine_intensity', 1.0),
     }));
@@ -128,6 +131,7 @@ export function useWallpaperPlugin() {
                                 texture_path: parsed.texturePath !== undefined ? parsed.texturePath : prev.texture_path,
                                 fit_mode: parsed.fitMode || prev.fit_mode || 'fill',
                                 effect: parsed.effect || prev.effect || 'none',
+                                transition: parsed.transition || prev.transition || 'fade',
                                 fps: typeof parsed.fps === 'number' ? parsed.fps : prev.fps,
                                 monitor_count: typeof parsed.monitorCount === 'number' ? parsed.monitorCount : prev.monitor_count,
                                 last_error: parsed.error || null,
@@ -236,6 +240,7 @@ export function useWallpaperPlugin() {
                 texture_path: null,
                 fit_mode: 'fill',
                 effect: 'none',
+                transition: 'fade',
                 fps: 30,
                 intensity: 1.0,
                 monitor_count: 0,
@@ -250,7 +255,7 @@ export function useWallpaperPlugin() {
         }
     }, []);
 
-    const startEngine = useCallback(async (options?: { fps?: number; intensity?: number; texturePath?: string; fitMode?: string; effect?: string }) => {
+    const startEngine = useCallback(async (options?: { fps?: number; intensity?: number; texturePath?: string; fitMode?: string; effect?: string; transition?: string }) => {
         if (!isBrowserTauri()) return;
         setErrorMsg(null);
         try {
@@ -258,6 +263,7 @@ export function useWallpaperPlugin() {
             const targetIntensity = options?.intensity ?? getStoredValue('wallpaper_engine_intensity', 1.0);
             const targetFit = options?.fitMode ?? getStoredValue('wallpaper_fit_mode', 'fill');
             const targetEffect = options?.effect ?? getStoredValue('wallpaper_effect', 'none');
+            const targetTransition = options?.transition ?? getStoredValue('wallpaper_transition', 'fade');
 
             const mod = await getTauri();
             const res = await mod.invoke<WallpaperEngineState>('start_wallpaper_engine', {
@@ -266,6 +272,7 @@ export function useWallpaperPlugin() {
                 texturePath: options?.texturePath ?? null,
                 fitMode: targetFit,
                 effect: targetEffect,
+                transition: targetTransition,
             });
             globalEngineState = res;
             setEngineState(res);
@@ -276,6 +283,7 @@ export function useWallpaperPlugin() {
             if (options?.intensity !== undefined) setStoredValue('wallpaper_engine_intensity', options.intensity);
             if (options?.fitMode !== undefined) setStoredValue('wallpaper_fit_mode', options.fitMode as WallpaperFitMode);
             if (options?.effect !== undefined) setStoredValue('wallpaper_effect', options.effect as WallpaperEffect);
+            if (options?.transition !== undefined) setStoredValue('wallpaper_transition', options.transition as WallpaperTransition);
 
             return res;
         } catch (err: unknown) {
@@ -355,6 +363,18 @@ export function useWallpaperPlugin() {
         }
     }, []);
 
+    const setTransition = useCallback(async (transition: string) => {
+        if (!isBrowserTauri()) return;
+        try {
+            const mod = await getTauri();
+            await mod.invoke('set_wallpaper_engine_transition', { transition });
+            setEngineState((prev) => ({ ...prev, transition }));
+            setStoredValue('wallpaper_transition', transition as WallpaperTransition);
+        } catch {
+            // Ignore
+        }
+    }, []);
+
     const setFps = useCallback(async (fps: number) => {
         if (!isBrowserTauri()) return;
         try {
@@ -390,6 +410,7 @@ export function useWallpaperPlugin() {
                     intensity: getStoredValue('wallpaper_engine_intensity', 1.0),
                     fitMode: getStoredValue('wallpaper_fit_mode', 'fill'),
                     effect: getStoredValue('wallpaper_effect', 'none'),
+                    transition: getStoredValue('wallpaper_transition', 'fade'),
                     texturePath: getStoredValue('default_wallpaper', null) || undefined,
                 }).catch(() => {});
             }
@@ -416,6 +437,7 @@ export function useWallpaperPlugin() {
         setTexture,
         setFitMode,
         setEffect,
+        setTransition,
         setFps,
         setIntensity,
     };

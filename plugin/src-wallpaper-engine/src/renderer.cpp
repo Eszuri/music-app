@@ -22,6 +22,10 @@ struct FrameConstants {
     float textureHeight = 1.0f;
     uint32_t fitMode = 0;
     uint32_t effect = 0;
+    uint32_t transitionType = 1;
+    float transitionProgress = 1.0f;
+    float prevTextureWidth = 1.0f;
+    float prevTextureHeight = 1.0f;
 };
 
 static_assert(sizeof(FrameConstants) % 16 == 0);
@@ -174,7 +178,7 @@ bool Renderer::initialize(const std::filesystem::path& shaderDirectory, std::str
         error = hresultMessage("CreateTexture2D(default)", result);
         return false;
     }
-    result = device_->CreateShaderResourceView(defaultTex.Get(), nullptr, &textureView_);
+    result = device_->CreateShaderResourceView(defaultTex.Get(), nullptr, &currentTextureView_);
     if (FAILED(result)) {
         error = hresultMessage("CreateShaderResourceView(default)", result);
         return false;
@@ -182,8 +186,13 @@ bool Renderer::initialize(const std::filesystem::path& shaderDirectory, std::str
 
     textureWidth_ = 1.0f;
     textureHeight_ = 1.0f;
-    fitMode_ = 0; // Fill by default
-    effect_ = 0;  // Clean/None by default
+    prevTextureWidth_ = 1.0f;
+    prevTextureHeight_ = 1.0f;
+    fitMode_ = 0;        // Fill by default
+    effect_ = 0;         // Clean/None by default
+    transitionType_ = 1; // Fade by default
+    transitionProgress_ = 1.0f;
+    lastFrameTime_ = 0.0f;
 
     return true;
 }
@@ -314,9 +323,48 @@ std::string Renderer::effect() const {
     }
 }
 
+bool Renderer::setTransition(const std::string& transition) {
+    if (transition == "fade" || transition == "crossfade") transitionType_ = 1;
+    else if (transition == "zoom_in" || transition == "zoom-in" || transition == "zoomin") transitionType_ = 2;
+    else if (transition == "zoom_out" || transition == "zoom-out" || transition == "zoomout") transitionType_ = 3;
+    else if (transition == "slide" || transition == "push") transitionType_ = 4;
+    else if (transition == "none" || transition == "instant" || transition == "cut") transitionType_ = 0;
+    else transitionType_ = 1; // fade by default
+    return true;
+}
+
+std::string Renderer::transition() const {
+    switch (transitionType_) {
+    case 1: return "fade";
+    case 2: return "zoom_in";
+    case 3: return "zoom_out";
+    case 4: return "slide";
+    case 0: return "none";
+    default: return "fade";
+    }
+}
+
 bool Renderer::render(HWND window, float elapsedSeconds, float intensity, std::string& error) {
     auto* surface = findSurface(window);
     if (!surface || !surface->renderTarget) return false;
+
+    // Delta time calculation for smooth animated transitions
+    float deltaTime = 0.016f;
+    if (lastFrameTime_ > 0.0f && elapsedSeconds > lastFrameTime_) {
+        deltaTime = std::min(elapsedSeconds - lastFrameTime_, 0.1f);
+    }
+    lastFrameTime_ = elapsedSeconds;
+
+    if (transitionProgress_ < 1.0f) {
+        transitionProgress_ += deltaTime / std::max(transitionDuration_, 0.05f);
+        if (transitionProgress_ >= 1.0f) {
+            transitionProgress_ = 1.0f;
+            if (nextTextureView_) {
+                currentTextureView_ = nextTextureView_;
+                nextTextureView_.Reset();
+            }
+        }
+    }
 
     FrameConstants constants;
     constants.time = elapsedSeconds;
@@ -327,6 +375,10 @@ bool Renderer::render(HWND window, float elapsedSeconds, float intensity, std::s
     constants.textureHeight = textureHeight_ > 0.0f ? textureHeight_ : static_cast<float>(surface->height);
     constants.fitMode = fitMode_;
     constants.effect = effect_;
+    constants.transitionType = transitionType_;
+    constants.transitionProgress = transitionProgress_;
+    constants.prevTextureWidth = prevTextureWidth_ > 0.0f ? prevTextureWidth_ : constants.textureWidth;
+    constants.prevTextureHeight = prevTextureHeight_ > 0.0f ? prevTextureHeight_ : constants.textureHeight;
     context_->UpdateSubresource(frameConstants_.Get(), 0, nullptr, &constants, 0, 0);
 
     const float clear[] = {0.005f, 0.007f, 0.012f, 1.0f};
@@ -341,7 +393,12 @@ bool Renderer::render(HWND window, float elapsedSeconds, float intensity, std::s
     context_->VSSetShader(vertexShader_.Get(), nullptr, 0);
     context_->PSSetShader(pixelShader_.Get(), nullptr, 0);
     context_->PSSetConstantBuffers(0, 1, frameConstants_.GetAddressOf());
-    context_->PSSetShaderResources(0, 1, textureView_.GetAddressOf());
+
+    ID3D11ShaderResourceView* views[2] = {
+        currentTextureView_.Get(),
+        nextTextureView_ ? nextTextureView_.Get() : currentTextureView_.Get()
+    };
+    context_->PSSetShaderResources(0, 2, views);
     context_->PSSetSamplers(0, 1, sampler_.GetAddressOf());
     context_->Draw(3, 0);
 
@@ -353,7 +410,13 @@ bool Renderer::render(HWND window, float elapsedSeconds, float intensity, std::s
     return true;
 }
 
-bool Renderer::loadTextureWic(const std::filesystem::path& path, std::string& error) {
+bool Renderer::loadTextureWic(
+    const std::filesystem::path& path,
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& outView,
+    float& outWidth,
+    float& outHeight,
+    std::string& error
+) {
     ComPtr<IWICImagingFactory> imagingFactory;
     HRESULT result = CoCreateInstance(
         CLSID_WICImagingFactory,
@@ -440,9 +503,9 @@ bool Renderer::loadTextureWic(const std::filesystem::path& path, std::string& er
         error = hresultMessage("CreateShaderResourceView(texture)", result);
         return false;
     }
-    textureView_ = std::move(view);
-    textureWidth_ = static_cast<float>(width);
-    textureHeight_ = static_cast<float>(height);
+    outView = std::move(view);
+    outWidth = static_cast<float>(width);
+    outHeight = static_cast<float>(height);
     return true;
 }
 
@@ -451,7 +514,29 @@ bool Renderer::setTexture(const std::filesystem::path& path, std::string& error)
         error = "Texture file does not exist: " + path.string();
         return false;
     }
-    return loadTextureWic(path, error);
+
+    if (!currentTextureView_ || transitionType_ == 0) {
+        // Direct assignment without transition
+        bool ok = loadTextureWic(path, currentTextureView_, textureWidth_, textureHeight_, error);
+        if (ok) {
+            prevTextureWidth_ = textureWidth_;
+            prevTextureHeight_ = textureHeight_;
+            transitionProgress_ = 1.0f;
+            nextTextureView_.Reset();
+        }
+        return ok;
+    }
+
+    // Prepare animated transition from current texture to next texture
+    prevTextureWidth_ = textureWidth_;
+    prevTextureHeight_ = textureHeight_;
+    bool ok = loadTextureWic(path, nextTextureView_, nextTextureWidth_, nextTextureHeight_, error);
+    if (ok) {
+        textureWidth_ = nextTextureWidth_;
+        textureHeight_ = nextTextureHeight_;
+        transitionProgress_ = 0.0f;
+    }
+    return ok;
 }
 
 } // namespace symvonia::wallpaper
