@@ -13,6 +13,7 @@ import HomeHeader from "./components/home/HomeHeader";
 import HomeModals from "./components/home/HomeModals";
 import EqualizerModal from "./components/EqualizerModal";
 import MetadataEditModal from "./components/MetadataEditModal";
+import ToolbarEditModal from "./components/ToolbarEditModal";
 import HomePlayerArea from "./components/home/HomePlayerArea";
 import ContextMenu from "./components/ContextMenu";
 import {FullInitSkeleton} from "./components/Skeleton";
@@ -135,6 +136,7 @@ function HomeContent() {
         metadataEditOpen,
         lyricsSearchOpen,
         aiLyricsModalOpen,
+        toolbarEditOpen,
         editingTargetFile,
         openEqualizer,
         closeEqualizer,
@@ -148,6 +150,8 @@ function HomeContent() {
         closeLyricsSearch,
         openAiLyricsModal,
         closeAiLyricsModal,
+        openToolbarEdit,
+        closeToolbarEdit,
     } = useModalRouter();
 
 
@@ -157,6 +161,7 @@ function HomeContent() {
     const equalizerOpenRef = useRef(false);
     const metadataEditOpenRef = useRef(false);
     const lyricsSearchOpenRef = useRef(false);
+    const toolbarEditOpenRef = useRef(false);
 
     useEffect(() => {
         settingsOpenRef.current = settingsOpen;
@@ -165,7 +170,8 @@ function HomeContent() {
         equalizerOpenRef.current = equalizerOpen;
         metadataEditOpenRef.current = metadataEditOpen;
         lyricsSearchOpenRef.current = lyricsSearchOpen;
-    }, [settingsOpen, streamingOpen, pendingFolderChange, equalizerOpen, metadataEditOpen, lyricsSearchOpen]);
+        toolbarEditOpenRef.current = toolbarEditOpen;
+    }, [settingsOpen, streamingOpen, pendingFolderChange, equalizerOpen, metadataEditOpen, lyricsSearchOpen, toolbarEditOpen]);
 
     const settings = usePlayerSettings();
     const lang = settings.language;
@@ -358,13 +364,14 @@ function HomeContent() {
         equalizerOpenRef,
         metadataEditOpenRef,
         lyricsSearchOpenRef,
+        toolbarEditOpenRef,
     });
 
     useEffect(() => {
-        if (settingsOpen || streamingOpen || equalizerOpen || metadataEditOpen || lyricsSearchOpen) {
+        if (settingsOpen || streamingOpen || equalizerOpen || metadataEditOpen || lyricsSearchOpen || toolbarEditOpen) {
             hideGlobalContextMenu();
         }
-    }, [settingsOpen, streamingOpen, equalizerOpen, metadataEditOpen, lyricsSearchOpen, hideGlobalContextMenu]);
+    }, [settingsOpen, streamingOpen, equalizerOpen, metadataEditOpen, lyricsSearchOpen, toolbarEditOpen, hideGlobalContextMenu]);
 
     // M1: Destructure specific stable functions to avoid regenerating callback on every currentTime update
     const doPickFolder = useCallback(async () => {
@@ -520,6 +527,8 @@ function HomeContent() {
                 aiLyricsModalOpen={aiLyricsModalOpen}
                 onOpenAiLyricsModal={openAiLyricsModal}
                 onCloseAiLyricsModal={closeAiLyricsModal}
+                toolbarColumns={settings.toolbarColumns}
+                onOpenToolbarEdit={openToolbarEdit}
             />
 
 
@@ -624,6 +633,15 @@ function HomeContent() {
                     }
                     showStatusNotif('metadata-saved');
                 }}
+            />
+
+            <ToolbarEditModal
+                isOpen={toolbarEditOpen}
+                onClose={closeToolbarEdit}
+                toolbarColumns={settings.toolbarColumns}
+                setToolbarColumns={settings.setToolbarColumns}
+                accentColor={settings.accentColor}
+                lang={lang}
             />
 
             <HomeAlerts

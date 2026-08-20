@@ -80,6 +80,7 @@ export interface SymvoniaConfig {
     stream_history: StreamEntryConfig[];
     fullscreen: boolean;
     skipped_update_version: string | null;
+    toolbar_columns: string[];
 }
 
 export const DEFAULT_CONFIG: SymvoniaConfig = {
@@ -103,6 +104,7 @@ export const DEFAULT_CONFIG: SymvoniaConfig = {
     sort_dir: 'asc',
     name_source: 'filename',
     formats: ['mp3', 'flac', 'ogg', 'wav', 'm4a', 'wma'],
+    toolbar_columns: ['name', 'artist', 'album', 'year', 'duration', 'ext', 'size', 'mtime'],
     shuffle: false,
     repeat: 'off',
     shortcuts: {

@@ -1,6 +1,9 @@
 'use client';
 
-import {useEffect, useRef} from 'react';
+import {useEffect, useLayoutEffect, useRef, useState} from 'react';
+import {createPortal} from 'react-dom';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 interface ContextMenuActionItem {
     label: string;
@@ -30,6 +33,7 @@ interface ContextMenuProps {
 
 export default function ContextMenu({x, y, items, onClose}: ContextMenuProps) {
     const menuRef = useRef<HTMLDivElement>(null);
+    const [pos, setPos] = useState({left: x, top: y});
 
     useEffect(() => {
         const el = menuRef.current;
@@ -52,23 +56,28 @@ export default function ContextMenu({x, y, items, onClose}: ContextMenuProps) {
         };
     }, [onClose]);
 
-    useEffect(() => {
+    useIsomorphicLayoutEffect(() => {
         const el = menuRef.current;
         if (!el) return;
         const rect = el.getBoundingClientRect();
+        let newLeft = x;
+        let newTop = y;
         if (rect.right > window.innerWidth) {
-            el.style.left = `${Math.max(0, window.innerWidth - rect.width - 8)}px`;
+            newLeft = Math.max(8, window.innerWidth - rect.width - 8);
         }
         if (rect.bottom > window.innerHeight) {
-            el.style.top = `${Math.max(0, window.innerHeight - rect.height - 8)}px`;
+            newTop = Math.max(8, window.innerHeight - rect.height - 8);
         }
+        setPos({left: newLeft, top: newTop});
     }, [x, y]);
 
-    return (
+    if (typeof document === 'undefined') return null;
+
+    return createPortal(
         <div
             ref={menuRef}
-            style={{left: x, top: y, position: 'fixed', width: 'max-content', minWidth: '180px', maxWidth: 'calc(100vw - 32px)'}}
-            className="z-9999 py-1 rounded-xl bg-zinc-900/98 border border-zinc-700/60 shadow-2xl shadow-black/60 backdrop-blur-md"
+            style={{left: pos.left, top: pos.top, position: 'fixed', width: 'max-content', minWidth: '180px', maxWidth: 'calc(100vw - 32px)'}}
+            className="z-[99999] py-1 rounded-xl bg-zinc-900/98 border border-zinc-700/60 shadow-2xl shadow-black/80 backdrop-blur-md select-none"
         >
             {items.map((item, idx) => {
                 if ('separator' in item && item.separator) {
@@ -123,6 +132,7 @@ export default function ContextMenu({x, y, items, onClose}: ContextMenuProps) {
                     </button>
                 );
             })}
-        </div>
+        </div>,
+        document.body,
     );
 }

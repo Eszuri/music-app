@@ -14,7 +14,20 @@ export function useModalRouter() {
     const [metadataEditOpen, setMetadataEditOpen] = useState(false);
     const [lyricsSearchOpen, setLyricsSearchOpen] = useState(false);
     const [aiLyricsModalOpen, setAiLyricsModalOpen] = useState(false);
+    const [toolbarEditOpen, setToolbarEditOpen] = useState(false);
     const [editingTargetFile, setEditingTargetFile] = useState<FileEntry | null>(null);
+
+    const openToolbarEdit = useCallback(() => {
+        setToolbarEditOpen(true);
+        if (typeof window !== 'undefined' && window.location.pathname !== '/toolbar-edit') {
+            window.history.pushState({modal: 'toolbar-edit'}, '', '/toolbar-edit');
+        }
+    }, []);
+
+    const closeToolbarEdit = useCallback(() => {
+        setToolbarEditOpen(false);
+        closeModalPath('/toolbar-edit');
+    }, []);
 
     const openEqualizer = useCallback(() => {
         setEqualizerOpen(true);
@@ -93,8 +106,17 @@ export function useModalRouter() {
     useEffect(() => {
         const syncModalFromUrl = () => {
             const path = window.location.pathname.toLowerCase();
-            if (path.includes('/equalizer')) {
+            if (path.includes('/toolbar-edit')) {
+                setToolbarEditOpen(true);
+                setEqualizerOpen(false);
+                setSettingsOpen(false);
+                setStreamingOpen(false);
+                setMetadataEditOpen(false);
+                setLyricsSearchOpen(false);
+                setAiLyricsModalOpen(false);
+            } else if (path.includes('/equalizer')) {
                 setEqualizerOpen(true);
+                setToolbarEditOpen(false);
                 setSettingsOpen(false);
                 setStreamingOpen(false);
                 setMetadataEditOpen(false);
@@ -102,6 +124,7 @@ export function useModalRouter() {
                 setAiLyricsModalOpen(false);
             } else if (path.includes('/setting')) {
                 setSettingsOpen(true);
+                setToolbarEditOpen(false);
                 setEqualizerOpen(false);
                 setStreamingOpen(false);
                 setMetadataEditOpen(false);
@@ -109,6 +132,7 @@ export function useModalRouter() {
                 setAiLyricsModalOpen(false);
             } else if (path.includes('/streaming')) {
                 setStreamingOpen(true);
+                setToolbarEditOpen(false);
                 setEqualizerOpen(false);
                 setSettingsOpen(false);
                 setMetadataEditOpen(false);
@@ -116,6 +140,7 @@ export function useModalRouter() {
                 setAiLyricsModalOpen(false);
             } else if (path.includes('/metadata')) {
                 setMetadataEditOpen(true);
+                setToolbarEditOpen(false);
                 setEqualizerOpen(false);
                 setSettingsOpen(false);
                 setStreamingOpen(false);
@@ -123,6 +148,7 @@ export function useModalRouter() {
                 setAiLyricsModalOpen(false);
             } else if (path.includes('/lyrics-search')) {
                 setLyricsSearchOpen(true);
+                setToolbarEditOpen(false);
                 setEqualizerOpen(false);
                 setSettingsOpen(false);
                 setStreamingOpen(false);
@@ -130,12 +156,14 @@ export function useModalRouter() {
                 setAiLyricsModalOpen(false);
             } else if (path.includes('/ai-lyrics')) {
                 setAiLyricsModalOpen(true);
+                setToolbarEditOpen(false);
                 setEqualizerOpen(false);
                 setSettingsOpen(false);
                 setStreamingOpen(false);
                 setMetadataEditOpen(false);
                 setLyricsSearchOpen(false);
             } else if (path === '/' || path === '') {
+                setToolbarEditOpen(false);
                 setEqualizerOpen(false);
                 setSettingsOpen(false);
                 setStreamingOpen(false);
@@ -164,8 +192,12 @@ export function useModalRouter() {
         setLyricsSearchOpen,
         aiLyricsModalOpen,
         setAiLyricsModalOpen,
+        toolbarEditOpen,
+        setToolbarEditOpen,
         editingTargetFile,
         setEditingTargetFile,
+        openToolbarEdit,
+        closeToolbarEdit,
         openEqualizer,
         closeEqualizer,
         openSettings,

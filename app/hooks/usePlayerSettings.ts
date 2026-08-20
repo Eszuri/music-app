@@ -53,6 +53,9 @@ export function usePlayerSettings() {
     const [pauseIfMuted, setPauseIfMutedState] = useState(init.pause_if_muted);
     const [fadeAudio, setFadeAudioStateInternal] = useState(init.fade_audio);
     const [fadeDuration, setFadeDurationStateInternal] = useState(init.fade_duration);
+    const [toolbarColumns, setToolbarColumnsStateInternal] = useState<string[]>(
+        init.toolbar_columns ?? ['name', 'artist', 'album', 'year', 'duration', 'ext', 'size', 'mtime']
+    );
 
     const shortcutsRef = useRef<Record<ShortcutAction, string>>({
         ...DEFAULT_SHORTCUTS,
@@ -189,6 +192,11 @@ export function usePlayerSettings() {
     const setMusicFolder = useCallback((folder: string | null) => {
         setMusicFolderState(folder);
         setStoredValue('music_folder', folder);
+    }, []);
+
+    const setToolbarColumns = useCallback((cols: string[]) => {
+        setToolbarColumnsStateInternal(cols);
+        setStoredValue('toolbar_columns', cols);
     }, []);
 
     const setDefaultWallpaper = useCallback((path: string | null) => {
@@ -514,5 +522,7 @@ export function usePlayerSettings() {
         setFadeDuration,
         fadeAudioRef,
         fadeDurationRef,
+        toolbarColumns,
+        setToolbarColumns,
     };
 }

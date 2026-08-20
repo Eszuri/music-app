@@ -86,6 +86,8 @@ interface HomePlayerAreaProps {
     aiLyricsModalOpen?: boolean;
     onOpenAiLyricsModal?: () => void;
     onCloseAiLyricsModal?: () => void;
+    toolbarColumns?: string[];
+    onOpenToolbarEdit?: () => void;
 }
 
 
@@ -185,6 +187,8 @@ function HomePlayerArea({
     aiLyricsModalOpen,
     onOpenAiLyricsModal,
     onCloseAiLyricsModal,
+    toolbarColumns,
+    onOpenToolbarEdit,
     layoutMode = 'default',
 }: HomePlayerAreaProps) {
     const leftVisible = showLeftSidebar || !isCompact;
@@ -517,6 +521,8 @@ function HomePlayerArea({
                                         setFileSort={setFileSort}
                                         sortDir={sortDir}
                                         setSortDir={setSortDir}
+                                        toolbarColumns={toolbarColumns}
+                                        onOpenToolbarEdit={onOpenToolbarEdit}
                                         onContextDir={showFolderMenu}
                                         onContextFile={showFileMenu}
                                         onGlobalContextMenu={onGlobalContextMenu}

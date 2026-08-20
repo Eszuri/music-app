@@ -42,6 +42,7 @@ interface UseGlobalContextMenuProps {
     equalizerOpenRef?: React.MutableRefObject<boolean>;
     metadataEditOpenRef?: React.MutableRefObject<boolean>;
     lyricsSearchOpenRef?: React.MutableRefObject<boolean>;
+    toolbarEditOpenRef?: React.MutableRefObject<boolean>;
 }
 
 export function useGlobalContextMenu({
@@ -55,6 +56,7 @@ export function useGlobalContextMenu({
     equalizerOpenRef,
     metadataEditOpenRef,
     lyricsSearchOpenRef,
+    toolbarEditOpenRef,
 }: UseGlobalContextMenuProps) {
     const [globalContextMenu, setGlobalContextMenu] = useState<{
         x: number;
@@ -71,7 +73,8 @@ export function useGlobalContextMenu({
                 streamingOpenRef.current ||
                 equalizerOpenRef?.current ||
                 metadataEditOpenRef?.current ||
-                lyricsSearchOpenRef?.current
+                lyricsSearchOpenRef?.current ||
+                toolbarEditOpenRef?.current
             ) return;
 
             e.preventDefault();
