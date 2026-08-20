@@ -1,0 +1,24 @@
+{
+  "id": "wallpaper-engine",
+  "name": "Symvonia Wallpaper Engine",
+  "version": "0.1.0",
+  "platform": "windows-x64",
+  "entrypoint": "symvonia-wallpaper-engine.exe",
+  "renderer": "direct3d11",
+  "shaderModel": "5_0",
+  "apiVersion": 1,
+  "standalone": true,
+  "tauriDependency": false,
+  "supportedCommands": [
+    "start",
+    "pause",
+    "resume",
+    "stop",
+    "set_texture",
+    "set_param",
+    "set_fps",
+    "get_state",
+    "quit"
+  ]
+}
+

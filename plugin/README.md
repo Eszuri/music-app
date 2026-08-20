@@ -51,6 +51,27 @@ dotnet publish plugin/src-ai-lyrics/AiLyricsPlugin.csproj -c Release -r win-x64 
 ```
 *Atau gunakan skrip otomatis:* `.\build-plugin-lyrics.bat`
 
+### 3. `src-wallpaper-engine` — Standalone Direct3D11/HLSL Wallpaper Renderer
+Engine wallpaper desktop mandiri untuk Windows yang tidak bergantung pada Tauri atau audio engine.
+
+- **Teknologi**: C++20, Win32, Direct3D 11, HLSL Shader Model 5
+- **Nama Executable**: `symvonia-wallpaper-engine.exe`
+- **Fitur MVP**:
+  - Satu render window per monitor di belakang ikon desktop (`WorkerW`/`Progman`)
+  - Fullscreen triangle shader dengan parameter waktu, resolusi, dan intensitas
+  - Texture cover PNG/JPEG/BMP melalui Windows Imaging Component
+  - Kontrol pause/resume/stop, FPS, shader parameter, dan `get_state`
+  - Line-delimited JSON IPC melalui `stdin`/`stdout`
+- **Tidak bergantung pada**: Tauri, `AppHandle`, atau runtime audio
+
+#### Build Wallpaper Engine
+
+```powershell
+.\build-plugin-wallpaper.bat
+```
+
+Output berada di `plugin/src-wallpaper-engine/publish/` bersama folder `shaders/` dan `manifest.json`.
+
 ---
 
 ## 📡 Protokol Komunikasi (Stdio JSON IPC)
@@ -85,6 +106,7 @@ Setiap plugin berjalan sebagai *standalone headless console application* yang me
 Saat diunduh atau diimpor oleh Symvonia Player, plugin dipasang pada direktori `AppData` pengguna:
 - **Audio Engine**: `%APPDATA%\com.symvonia.player\plugins\audio-engine\`
 - **AI Lyrics Plugin**: `%APPDATA%\com.symvonia.player\plugins\ai-lyrics\`
+- **Wallpaper Engine**: `%APPDATA%\com.symvonia.player\plugins\wallpaper-engine\`
 
 ---
 
@@ -136,4 +158,3 @@ Invoke-WebRequest -Uri "https://huggingface.co/ggerganov/whisper.cpp/resolve/mai
 ```powershell
 $m = "$env:APPDATA\com.symvonia.player\plugins\ai-lyrics\models"; New-Item -ItemType Directory -Path $m -Force; @("tiny","base","small","medium","large-v3-turbo","large-v3") | ForEach-Object { Write-Host "Downloading ggml-$_.bin..."; Invoke-WebRequest -Uri "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-$_.bin" -OutFile "$m\ggml-$_.bin" }
 ```
-
