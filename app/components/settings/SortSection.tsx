@@ -67,7 +67,19 @@ export default function SortSection({
                 description={t(lang, 'sort.fileSort.desc')}
             >
                 <SelectStub
-                    options={[['name', t(lang, 'sort.file.name')], ['mtime', t(lang, 'sort.file.mtime')], ['size', t(lang, 'sort.file.size')], ['ext', t(lang, 'sort.file.ext')], ['ctime', t(lang, 'sort.file.ctime')]]}
+                    options={[
+                        ['name', t(lang, 'sort.file.name')],
+                        ['artist', t(lang, 'sort.file.artist')],
+                        ['album', t(lang, 'sort.file.album')],
+                        ['track', t(lang, 'sort.file.track')],
+                        ['year', t(lang, 'sort.file.year')],
+                        ['genre', t(lang, 'sort.file.genre')],
+                        ['duration', t(lang, 'sort.file.duration')],
+                        ['size', t(lang, 'sort.file.size')],
+                        ['ext', t(lang, 'sort.file.ext')],
+                        ['mtime', t(lang, 'sort.file.mtime')],
+                        ['ctime', t(lang, 'sort.file.ctime')],
+                    ]}
                     value={fileSort}
                     onChange={setFileSort}
                     accentColor={accentColor}

@@ -20,6 +20,12 @@ export interface FileEntry {
     ctime: number;
     display_name: string;
     sort_key: string;
+    artist?: string | null;
+    album?: string | null;
+    track_number?: number | null;
+    year?: number | null;
+    genre?: string | null;
+    duration?: number | null;
 }
 
 interface FolderExplorerProps {

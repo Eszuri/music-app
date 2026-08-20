@@ -36,6 +36,12 @@ pub struct FileEntry {
     pub ctime: u64,
     pub display_name: String,
     pub sort_key: String,
+    pub artist: Option<String>,
+    pub album: Option<String>,
+    pub track_number: Option<u32>,
+    pub year: Option<u32>,
+    pub genre: Option<String>,
+    pub duration: Option<f64>,
 }
 
 #[derive(Serialize)]
@@ -59,14 +65,69 @@ pub struct SongMetadata {
     pub bit_depth: Option<u8>,
 }
 
-fn file_title(path: &Path) -> Option<String> {
-    let tagged_file = read_from_path(path).ok()?;
-    let tag = tagged_file
-        .primary_tag()
-        .or_else(|| tagged_file.first_tag())?;
-    let title = tag.title()?;
-    let title = title.trim();
-    (!title.is_empty()).then(|| title.to_string())
+struct PartialAudioMeta {
+    title: Option<String>,
+    artist: Option<String>,
+    album: Option<String>,
+    track_number: Option<u32>,
+    year: Option<u32>,
+    genre: Option<String>,
+    duration: Option<f64>,
+}
+
+fn extract_audio_meta(path: &Path) -> PartialAudioMeta {
+    let tagged_file = match read_from_path(path) {
+        Ok(t) => Some(t),
+        Err(_) => {
+            if let Ok(probe) = lofty::probe::Probe::open(path) {
+                let probe = probe.options(
+                    lofty::config::ParseOptions::new()
+                        .parsing_mode(lofty::config::ParsingMode::Relaxed),
+                );
+                probe.read().ok()
+            } else {
+                None
+            }
+        }
+    };
+
+    if let Some(t) = tagged_file {
+        let tag = t.primary_tag().or_else(|| t.first_tag());
+        let title = tag
+            .and_then(|tag| tag.title().map(|s| s.trim().to_string()))
+            .filter(|s| !s.is_empty());
+        let artist = tag
+            .and_then(|tag| tag.artist().map(|s| s.trim().to_string()))
+            .filter(|s| !s.is_empty());
+        let album = tag
+            .and_then(|tag| tag.album().map(|s| s.trim().to_string()))
+            .filter(|s| !s.is_empty());
+        let track_number = tag.and_then(|tag| tag.track());
+        let year = tag.and_then(|tag| tag.year());
+        let genre = tag
+            .and_then(|tag| tag.genre().map(|s| s.trim().to_string()))
+            .filter(|s| !s.is_empty());
+        let duration = Some(t.properties().duration().as_secs_f64()).filter(|d| *d > 0.0);
+        PartialAudioMeta {
+            title,
+            artist,
+            album,
+            track_number,
+            year,
+            genre,
+            duration,
+        }
+    } else {
+        PartialAudioMeta {
+            title: None,
+            artist: None,
+            album: None,
+            track_number: None,
+            year: None,
+            genre: None,
+            duration: None,
+        }
+    }
 }
 
 fn filename_display_name(filename: &str) -> String {
@@ -118,7 +179,14 @@ fn scan_directory(root_path: &str, directory_path: &str) -> Result<DirectorySnap
                 size: metadata.len(),
                 ctime,
                 title: None,
+                artist: None,
+                album: None,
+                track_number: None,
+                year: None,
+                genre: None,
+                duration: None,
                 title_loaded: is_dir,
+                meta_loaded: is_dir,
             })
         })
         .collect();
@@ -134,6 +202,12 @@ fn project_snapshot(
     name_source: &str,
     formats: &[String],
 ) -> Vec<FileEntry> {
+    let needs_meta = matches!(
+        file_sort,
+        "artist" | "album" | "track" | "track_no" | "year" | "genre" | "duration"
+    );
+    let needs_title = name_source == "title" || needs_meta;
+
     let mut files: Vec<FileEntry> = snapshot
         .entries
         .iter_mut()
@@ -141,10 +215,23 @@ fn project_snapshot(
             if !entry.is_dir && !formats.iter().any(|format| format == &entry.ext) {
                 return None;
             }
-            if !entry.is_dir && name_source == "title" && !entry.title_loaded {
-                entry.title = file_title(Path::new(&entry.path));
+            if !entry.is_dir && needs_meta && !entry.meta_loaded {
+                let meta = extract_audio_meta(Path::new(&entry.path));
+                entry.title = meta.title;
+                entry.artist = meta.artist;
+                entry.album = meta.album;
+                entry.track_number = meta.track_number;
+                entry.year = meta.year;
+                entry.genre = meta.genre;
+                entry.duration = meta.duration;
+                entry.title_loaded = true;
+                entry.meta_loaded = true;
+            } else if !entry.is_dir && needs_title && !entry.title_loaded {
+                let meta = extract_audio_meta(Path::new(&entry.path));
+                entry.title = meta.title;
                 entry.title_loaded = true;
             }
+
             let display_name = if entry.is_dir {
                 entry.name.clone()
             } else if name_source == "title" {
@@ -155,6 +242,7 @@ fn project_snapshot(
             } else {
                 filename_display_name(&entry.name)
             };
+
             Some(FileEntry {
                 name: entry.name.clone(),
                 path: entry.path.clone(),
@@ -165,6 +253,12 @@ fn project_snapshot(
                 ctime: entry.ctime,
                 sort_key: display_name.to_lowercase(),
                 display_name,
+                artist: entry.artist.clone(),
+                album: entry.album.clone(),
+                track_number: entry.track_number,
+                year: entry.year,
+                genre: entry.genre.clone(),
+                duration: entry.duration,
             })
         })
         .collect();
@@ -177,10 +271,73 @@ fn project_snapshot(
             let key = if a.is_dir { folder_sort } else { file_sort };
             let cmp = match key {
                 "name" => a.sort_key.cmp(&b.sort_key),
-                "size" => a.size.cmp(&b.size),
-                "ext" => a.ext.cmp(&b.ext),
-                "ctime" => a.ctime.cmp(&b.ctime),
-                _ => a.mtime.cmp(&b.mtime),
+                "artist" => {
+                    let a_val = a.artist.as_deref().unwrap_or("").to_lowercase();
+                    let b_val = b.artist.as_deref().unwrap_or("").to_lowercase();
+                    match (a_val.is_empty(), b_val.is_empty()) {
+                        (false, false) => a_val.cmp(&b_val).then_with(|| a.sort_key.cmp(&b.sort_key)),
+                        (true, false) => std::cmp::Ordering::Greater,
+                        (false, true) => std::cmp::Ordering::Less,
+                        (true, true) => a.sort_key.cmp(&b.sort_key),
+                    }
+                }
+                "album" => {
+                    let a_val = a.album.as_deref().unwrap_or("").to_lowercase();
+                    let b_val = b.album.as_deref().unwrap_or("").to_lowercase();
+                    match (a_val.is_empty(), b_val.is_empty()) {
+                        (false, false) => a_val.cmp(&b_val).then_with(|| a.sort_key.cmp(&b.sort_key)),
+                        (true, false) => std::cmp::Ordering::Greater,
+                        (false, true) => std::cmp::Ordering::Less,
+                        (true, true) => a.sort_key.cmp(&b.sort_key),
+                    }
+                }
+                "track" | "track_no" => {
+                    let a_t = a.track_number;
+                    let b_t = b.track_number;
+                    match (a_t, b_t) {
+                        (Some(x), Some(y)) => x.cmp(&y).then_with(|| a.sort_key.cmp(&b.sort_key)),
+                        (None, Some(_)) => std::cmp::Ordering::Greater,
+                        (Some(_), None) => std::cmp::Ordering::Less,
+                        (None, None) => a.sort_key.cmp(&b.sort_key),
+                    }
+                }
+                "year" => {
+                    let a_y = a.year;
+                    let b_y = b.year;
+                    match (a_y, b_y) {
+                        (Some(x), Some(y)) => x.cmp(&y).then_with(|| a.sort_key.cmp(&b.sort_key)),
+                        (None, Some(_)) => std::cmp::Ordering::Greater,
+                        (Some(_), None) => std::cmp::Ordering::Less,
+                        (None, None) => a.sort_key.cmp(&b.sort_key),
+                    }
+                }
+                "genre" => {
+                    let a_val = a.genre.as_deref().unwrap_or("").to_lowercase();
+                    let b_val = b.genre.as_deref().unwrap_or("").to_lowercase();
+                    match (a_val.is_empty(), b_val.is_empty()) {
+                        (false, false) => a_val.cmp(&b_val).then_with(|| a.sort_key.cmp(&b.sort_key)),
+                        (true, false) => std::cmp::Ordering::Greater,
+                        (false, true) => std::cmp::Ordering::Less,
+                        (true, true) => a.sort_key.cmp(&b.sort_key),
+                    }
+                }
+                "duration" => {
+                    let a_d = a.duration.unwrap_or(0.0);
+                    let b_d = b.duration.unwrap_or(0.0);
+                    match (a_d > 0.0, b_d > 0.0) {
+                        (true, true) => a_d
+                            .partial_cmp(&b_d)
+                            .unwrap_or(std::cmp::Ordering::Equal)
+                            .then_with(|| a.sort_key.cmp(&b.sort_key)),
+                        (false, true) => std::cmp::Ordering::Greater,
+                        (true, false) => std::cmp::Ordering::Less,
+                        (false, false) => a.sort_key.cmp(&b.sort_key),
+                    }
+                }
+                "size" => a.size.cmp(&b.size).then_with(|| a.sort_key.cmp(&b.sort_key)),
+                "ext" => a.ext.cmp(&b.ext).then_with(|| a.sort_key.cmp(&b.sort_key)),
+                "ctime" => a.ctime.cmp(&b.ctime).then_with(|| a.sort_key.cmp(&b.sort_key)),
+                _ => a.mtime.cmp(&b.mtime).then_with(|| a.sort_key.cmp(&b.sort_key)),
             };
             if desc {
                 cmp.reverse()

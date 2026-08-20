@@ -9,7 +9,7 @@ use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter, Manager, State};
 
-const CACHE_SCHEMA_VERSION: u32 = 1;
+const CACHE_SCHEMA_VERSION: u32 = 2;
 const CACHE_DIR_NAME: &str = "library-cache";
 const INVALIDATION_EVENT: &str = "library-cache-invalidated";
 
@@ -23,7 +23,14 @@ pub struct CachedEntry {
     pub size: u64,
     pub ctime: u64,
     pub title: Option<String>,
+    pub artist: Option<String>,
+    pub album: Option<String>,
+    pub track_number: Option<u32>,
+    pub year: Option<u32>,
+    pub genre: Option<String>,
+    pub duration: Option<f64>,
     pub title_loaded: bool,
+    pub meta_loaded: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
