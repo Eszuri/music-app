@@ -1,6 +1,6 @@
 import type {LogEntry} from '../../types/log';
 import type {Lang} from '../../lib/translations';
-import type {OutputMode, WallpaperFitMode} from '../../lib/storage';
+import type {OutputMode, WallpaperFitMode, WallpaperEffect} from '../../lib/storage';
 import type {PlaybackRuntimeInfo} from '../../hooks/audio/playbackTypes';
 
 export type SectionId = 'general' | 'storage' | 'sort' | 'shortcut' | 'style' | 'plugin' | 'audio' | 'lyrics' | 'wallpaper' | 'changelog' | 'about' | 'debug';
@@ -35,6 +35,8 @@ export interface SettingsModalProps {
     onClearWallpaper: () => void;
     wallpaperFitMode: WallpaperFitMode;
     setWallpaperFitMode: (v: WallpaperFitMode) => void;
+    wallpaperEffect: WallpaperEffect;
+    setWallpaperEffect: (v: WallpaperEffect) => void;
 
     folderSort: string;
     setFolderSort: (v: string) => void;

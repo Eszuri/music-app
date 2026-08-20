@@ -567,6 +567,8 @@ function HomeContent() {
                 onClearWallpaper={() => settings.setDefaultWallpaper(null)}
                 wallpaperFitMode={settings.wallpaperFitMode}
                 setWallpaperFitMode={settings.setWallpaperFitMode}
+                wallpaperEffect={settings.wallpaperEffect}
+                setWallpaperEffect={settings.setWallpaperEffect}
                 outputDevice={settings.outputDevice}
                 setOutputDevice={settings.setOutputDeviceState}
                 outputMode={settings.outputMode}

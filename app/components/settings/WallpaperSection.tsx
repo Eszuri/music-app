@@ -5,7 +5,7 @@ import { SettingGroup, SettingRow, ToggleStub, SelectStub } from './controls';
 import { t, type Lang } from '../../lib/translations';
 import { getAccent } from '../../lib/colors';
 import { useWallpaperPlugin } from '../../hooks/useWallpaperPlugin';
-import type { WallpaperFitMode } from '../../lib/storage';
+import type { WallpaperFitMode, WallpaperEffect } from '../../lib/storage';
 
 interface WallpaperSectionProps {
     lang: Lang;
@@ -19,6 +19,8 @@ interface WallpaperSectionProps {
     onClearWallpaper?: () => void;
     wallpaperFitMode?: WallpaperFitMode;
     setWallpaperFitMode?: (v: WallpaperFitMode) => void;
+    wallpaperEffect?: WallpaperEffect;
+    setWallpaperEffect?: (v: WallpaperEffect) => void;
 }
 
 export default function WallpaperSection({
@@ -33,15 +35,17 @@ export default function WallpaperSection({
     onClearWallpaper,
     wallpaperFitMode = 'fill',
     setWallpaperFitMode,
+    wallpaperEffect = 'none',
+    setWallpaperEffect,
 }: WallpaperSectionProps) {
     const accent = getAccent(accentColor);
     const {
-        pluginStatus,
         engineState,
         isEngineRunning,
         startEngine,
         stopEngine,
         setFitMode,
+        setEffect,
         setFps,
         setIntensity,
     } = useWallpaperPlugin();
@@ -54,9 +58,10 @@ export default function WallpaperSection({
             if (enabled) {
                 await startEngine({
                     fps: engineState.fps || 30,
-                    intensity: engineState.intensity || 0.8,
+                    intensity: engineState.intensity ?? 1.0,
                     texturePath: defaultWallpaper || undefined,
                     fitMode: wallpaperFitMode,
+                    effect: wallpaperEffect,
                 });
             } else {
                 await stopEngine();
@@ -76,9 +81,13 @@ export default function WallpaperSection({
     const handleFitModeChange = async (mode: string) => {
         const fit = mode as WallpaperFitMode;
         setWallpaperFitMode?.(fit);
-        if (isEngineRunning) {
-            await setFitMode(mode);
-        }
+        await setFitMode(mode);
+    };
+
+    const handleEffectChange = async (effectStr: string) => {
+        const eff = effectStr as WallpaperEffect;
+        setWallpaperEffect?.(eff);
+        await setEffect(effectStr);
     };
 
     const handleIntensityChange = async (val: number) => {
@@ -113,6 +122,27 @@ export default function WallpaperSection({
                         checked={isEngineRunning}
                         onChange={handleToggleEngine}
                         accent={accent}
+                    />
+                </SettingRow>
+
+                {/* Wallpaper Effect */}
+                <SettingRow
+                    title={t(lang, 'wallpaper.effect.title')}
+                    description={t(lang, 'wallpaper.effect.desc')}
+                >
+                    <SelectStub
+                        options={[
+                            ['none', t(lang, 'wallpaper.effect.none')],
+                            ['reactive_glow', t(lang, 'wallpaper.effect.reactive_glow')],
+                            ['subtle_pulse', t(lang, 'wallpaper.effect.subtle_pulse')],
+                            ['cinematic_vignette', t(lang, 'wallpaper.effect.cinematic_vignette')],
+                            ['grayscale', t(lang, 'wallpaper.effect.grayscale')],
+                            ['dimmed', t(lang, 'wallpaper.effect.dimmed')],
+                        ]}
+                        value={wallpaperEffect}
+                        onChange={handleEffectChange}
+                        accent={accent}
+                        accentColor={accentColor}
                     />
                 </SettingRow>
 
@@ -156,25 +186,27 @@ export default function WallpaperSection({
                 </SettingRow>
 
                 {/* Shader Intensity */}
-                <SettingRow
-                    title={t(lang, 'wallpaper.intensity.title')}
-                    description={t(lang, 'wallpaper.intensity.desc')}
-                >
-                    <div className="flex items-center gap-3 min-w-48">
-                        <input
-                            type="range"
-                            min="0"
-                            max="2"
-                            step="0.1"
-                            value={engineState.intensity ?? 0.8}
-                            onChange={(e) => handleIntensityChange(parseFloat(e.target.value))}
-                            className={`w-32 h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-${accentColor}-500`}
-                        />
-                        <span className="text-xs font-mono text-zinc-300 w-10 text-right">
-                            {((engineState.intensity ?? 0.8) * 100).toFixed(0)}%
-                        </span>
-                    </div>
-                </SettingRow>
+                {wallpaperEffect !== 'none' && (
+                    <SettingRow
+                        title={t(lang, 'wallpaper.intensity.title')}
+                        description={t(lang, 'wallpaper.intensity.desc')}
+                    >
+                        <div className="flex items-center gap-3 min-w-48">
+                            <input
+                                type="range"
+                                min="0"
+                                max="2"
+                                step="0.1"
+                                value={engineState.intensity ?? 1.0}
+                                onChange={(e) => handleIntensityChange(parseFloat(e.target.value))}
+                                className={`w-32 h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-${accentColor}-500`}
+                            />
+                            <span className="text-xs font-mono text-zinc-300 w-10 text-right">
+                                {((engineState.intensity ?? 1.0) * 100).toFixed(0)}%
+                            </span>
+                        </div>
+                    </SettingRow>
+                )}
             </SettingGroup>
 
             {/* General Wallpaper Preferences */}

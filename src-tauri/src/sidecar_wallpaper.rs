@@ -15,6 +15,7 @@ pub struct WallpaperEngineState {
     pub scene: String,
     pub texture_path: Option<String>,
     pub fit_mode: String,
+    pub effect: String,
     pub fps: f64,
     pub intensity: f64,
     pub monitor_count: i32,
@@ -29,8 +30,9 @@ impl Default for WallpaperEngineState {
             scene: "cover-reactive".to_string(),
             texture_path: None,
             fit_mode: "fill".to_string(),
+            effect: "none".to_string(),
             fps: 30.0,
-            intensity: 0.8,
+            intensity: 1.0,
             monitor_count: 0,
             last_error: None,
         }
@@ -43,8 +45,9 @@ static WALLPAPER_STATE: Mutex<WallpaperEngineState> = Mutex::new(WallpaperEngine
     scene: String::new(),
     texture_path: None,
     fit_mode: String::new(),
+    effect: String::new(),
     fps: 30.0,
-    intensity: 0.8,
+    intensity: 1.0,
     monitor_count: 0,
     last_error: None,
 });
@@ -86,6 +89,7 @@ pub fn start_engine(
     intensity: Option<f64>,
     texture_path: Option<String>,
     fit_mode: Option<String>,
+    effect: Option<String>,
 ) -> Result<WallpaperEngineState, String> {
     stop_engine();
 
@@ -100,8 +104,9 @@ pub fn start_engine(
 
     let shaders_dir = wallpaper_plugin_manager::plugin_shaders_dir(app)?;
     let target_fps = fps.unwrap_or(30.0).clamp(1.0, 120.0);
-    let target_intensity = intensity.unwrap_or(0.8).clamp(0.0, 2.0);
+    let target_intensity = intensity.unwrap_or(1.0).clamp(0.0, 2.0);
     let target_fit = fit_mode.unwrap_or_else(|| "fill".to_string());
+    let target_effect = effect.unwrap_or_else(|| "none".to_string());
 
     let mut cmd = Command::new(&exe);
     cmd.arg("--stdio");
@@ -110,6 +115,7 @@ pub fn start_engine(
     }
     cmd.arg("--fps").arg(target_fps.to_string());
     cmd.arg("--fit").arg(&target_fit);
+    cmd.arg("--effect").arg(&target_effect);
     if let Some(ref tex) = texture_path {
         if std::path::Path::new(tex).exists() {
             cmd.arg("--texture").arg(tex);
@@ -147,6 +153,7 @@ pub fn start_engine(
         state.intensity = target_intensity;
         state.texture_path = texture_path.clone();
         state.fit_mode = target_fit.clone();
+        state.effect = target_effect.clone();
         state.last_error = None;
     }
 
@@ -172,6 +179,9 @@ pub fn start_engine(
                                         }
                                         if let Some(fm) = parsed.get("fitMode").and_then(|v| v.as_str()) {
                                             state.fit_mode = fm.to_string();
+                                        }
+                                        if let Some(eff) = parsed.get("effect").and_then(|v| v.as_str()) {
+                                            state.effect = eff.to_string();
                                         }
                                         if let Some(fps_val) = parsed.get("fps").and_then(|v| v.as_f64()) {
                                             state.fps = fps_val;
@@ -208,7 +218,7 @@ pub fn start_engine(
     });
 
     let mut process = WallpaperEngineProcess { child, stdin };
-    if (target_intensity - 0.8).abs() > 0.001 {
+    if (target_intensity - 1.0).abs() > 0.001 {
         let set_param_cmd = json!({
             "command": "set_param",
             "name": "intensity",
@@ -260,6 +270,13 @@ pub fn set_fit_mode(mode: &str) -> Result<(), String> {
         state.fit_mode = mode.to_string();
     }
     send_command(&json!({ "command": "set_fit_mode", "mode": mode }).to_string())
+}
+
+pub fn set_effect(effect: &str) -> Result<(), String> {
+    if let Ok(mut state) = WALLPAPER_STATE.lock() {
+        state.effect = effect.to_string();
+    }
+    send_command(&json!({ "command": "set_effect", "effect": effect }).to_string())
 }
 
 pub fn set_fps(fps: f64) -> Result<(), String> {

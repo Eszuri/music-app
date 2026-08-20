@@ -21,6 +21,7 @@ extern "system" {
 pub static RESET_ON_CLOSE: AtomicBool = AtomicBool::new(true);
 pub static DEFAULT_WALLPAPER_PATH: Mutex<Option<String>> = Mutex::new(None);
 pub static WALLPAPER_FIT_MODE: Mutex<String> = Mutex::new(String::new());
+pub static WALLPAPER_EFFECT: Mutex<String> = Mutex::new(String::new());
 pub static CURRENT_WALLPAPER_BMP_PATH: Mutex<Option<String>> = Mutex::new(None);
 
 #[tauri::command]
@@ -84,6 +85,38 @@ pub fn get_wallpaper_fit_mode() -> Result<String, String> {
     let guard = WALLPAPER_FIT_MODE.lock().map_err(|e| e.to_string())?;
     if guard.is_empty() {
         Ok("fill".to_string())
+    } else {
+        Ok(guard.clone())
+    }
+}
+
+#[tauri::command]
+pub fn set_wallpaper_effect(effect: String) -> Result<(), String> {
+    let normalized = match effect.to_lowercase().as_str() {
+        "reactive_glow" | "glow" => "reactive_glow",
+        "subtle_pulse" | "pulse" | "breathing" => "subtle_pulse",
+        "cinematic_vignette" | "vignette" => "cinematic_vignette",
+        "grayscale" | "black_white" => "grayscale",
+        "dimmed" | "dim" => "dimmed",
+        _ => "none",
+    };
+
+    if let Ok(mut guard) = WALLPAPER_EFFECT.lock() {
+        *guard = normalized.to_string();
+    }
+
+    if crate::sidecar_wallpaper::is_running() {
+        let _ = crate::sidecar_wallpaper::set_effect(normalized);
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_wallpaper_effect() -> Result<String, String> {
+    let guard = WALLPAPER_EFFECT.lock().map_err(|e| e.to_string())?;
+    if guard.is_empty() {
+        Ok("none".to_string())
     } else {
         Ok(guard.clone())
     }
@@ -301,11 +334,15 @@ pub fn start_wallpaper_engine(
     intensity: Option<f64>,
     texture_path: Option<String>,
     fit_mode: Option<String>,
+    effect: Option<String>,
 ) -> Result<crate::sidecar_wallpaper::WallpaperEngineState, String> {
     let mode = fit_mode.or_else(|| {
         WALLPAPER_FIT_MODE.lock().ok().and_then(|m| if m.is_empty() { None } else { Some(m.clone()) })
     });
-    crate::sidecar_wallpaper::start_engine(&app, fps, intensity, texture_path, mode)
+    let eff = effect.or_else(|| {
+        WALLPAPER_EFFECT.lock().ok().and_then(|e| if e.is_empty() { None } else { Some(e.clone()) })
+    });
+    crate::sidecar_wallpaper::start_engine(&app, fps, intensity, texture_path, mode, eff)
 }
 
 #[tauri::command]
@@ -335,6 +372,14 @@ pub fn set_wallpaper_engine_fit_mode(mode: String) -> Result<(), String> {
         *guard = mode.clone();
     }
     crate::sidecar_wallpaper::set_fit_mode(&mode)
+}
+
+#[tauri::command]
+pub fn set_wallpaper_engine_effect(effect: String) -> Result<(), String> {
+    if let Ok(mut guard) = WALLPAPER_EFFECT.lock() {
+        *guard = effect.clone();
+    }
+    crate::sidecar_wallpaper::set_effect(&effect)
 }
 
 #[tauri::command]

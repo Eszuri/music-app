@@ -53,6 +53,8 @@ export default function SettingsModal({
     onClearWallpaper,
     wallpaperFitMode,
     setWallpaperFitMode,
+    wallpaperEffect,
+    setWallpaperEffect,
     folderSort,
     setFolderSort,
     fileSort,
@@ -316,6 +318,8 @@ export default function SettingsModal({
                                     onClearWallpaper={onClearWallpaper}
                                     wallpaperFitMode={wallpaperFitMode}
                                     setWallpaperFitMode={setWallpaperFitMode}
+                                    wallpaperEffect={wallpaperEffect}
+                                    setWallpaperEffect={setWallpaperEffect}
                                 />
                             )}
                             {effectiveActiveSection === 'changelog' && <ChangelogSection lang={lang} />}

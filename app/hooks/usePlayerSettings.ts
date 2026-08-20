@@ -13,6 +13,7 @@ import {
     syncConfigFromBackend,
     type OutputMode,
     type WallpaperFitMode,
+    type WallpaperEffect,
     type SymvoniaConfig,
 } from '../lib/storage';
 import type {Lang} from '../lib/translations';
@@ -26,6 +27,9 @@ export function usePlayerSettings() {
     const [resetOnClose, setResetOnCloseStateInternal] = useState(init.reset_on_close);
     const [wallpaperFitMode, setWallpaperFitModeStateInternal] = useState<WallpaperFitMode>(
         init.wallpaper_fit_mode ?? 'fill'
+    );
+    const [wallpaperEffect, setWallpaperEffectStateInternal] = useState<WallpaperEffect>(
+        init.wallpaper_effect ?? 'none'
     );
     const [folderSort, setFolderSortStateInternal] = useState(init.folder_sort);
     const [fileSort, setFileSortStateInternal] = useState(init.file_sort);
@@ -115,6 +119,14 @@ export function usePlayerSettings() {
         setStoredValue('wallpaper_fit_mode', v);
         if (isBrowserTauri()) {
             getTauri().then(mod => mod.invoke('set_wallpaper_fit_mode', {mode: v})).catch(() => {});
+        }
+    }, []);
+
+    const setWallpaperEffect = useCallback((v: WallpaperEffect) => {
+        setWallpaperEffectStateInternal(v);
+        setStoredValue('wallpaper_effect', v);
+        if (isBrowserTauri()) {
+            getTauri().then(mod => mod.invoke('set_wallpaper_effect', {effect: v})).catch(() => {});
         }
     }, []);
 
@@ -513,6 +525,8 @@ export function usePlayerSettings() {
         setDefaultWallpaper,
         wallpaperFitMode,
         setWallpaperFitMode,
+        wallpaperEffect,
+        setWallpaperEffect,
         outputDevice,
         setOutputDeviceState,
         outputMode,

@@ -11,6 +11,7 @@ struct Command {
     std::string texturePath;
     std::string parameter;
     std::string fitMode;
+    std::string effect;
     double value = 0.0;
     double fps = 30.0;
 };
@@ -20,6 +21,7 @@ struct State {
     std::string scene = "cover-reactive";
     std::string texturePath;
     std::string fitMode = "fill";
+    std::string effect = "none";
     double fps = 30.0;
     int monitorCount = 0;
     std::string error;

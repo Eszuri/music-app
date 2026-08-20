@@ -15,13 +15,13 @@ using Microsoft::WRL::ComPtr;
 
 struct FrameConstants {
     float time = 0.0f;
-    float intensity = 0.8f;
+    float intensity = 1.0f;
     float screenWidth = 1.0f;
     float screenHeight = 1.0f;
     float textureWidth = 1.0f;
     float textureHeight = 1.0f;
     uint32_t fitMode = 0;
-    float padding = 0.0f;
+    uint32_t effect = 0;
 };
 
 static_assert(sizeof(FrameConstants) % 16 == 0);
@@ -164,7 +164,7 @@ bool Renderer::initialize(const std::filesystem::path& shaderDirectory, std::str
     defaultTexDesc.SampleDesc.Count = 1;
     defaultTexDesc.Usage = D3D11_USAGE_DEFAULT;
     defaultTexDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-    const uint32_t fallbackPixel = 0xFF141A28;
+    const uint32_t fallbackPixel = 0xFF0B0F19;
     D3D11_SUBRESOURCE_DATA defaultData{};
     defaultData.pSysMem = &fallbackPixel;
     defaultData.SysMemPitch = sizeof(fallbackPixel);
@@ -183,6 +183,7 @@ bool Renderer::initialize(const std::filesystem::path& shaderDirectory, std::str
     textureWidth_ = 1.0f;
     textureHeight_ = 1.0f;
     fitMode_ = 0; // Fill by default
+    effect_ = 0;  // Clean/None by default
 
     return true;
 }
@@ -291,6 +292,28 @@ std::string Renderer::fitMode() const {
     }
 }
 
+bool Renderer::setEffect(const std::string& effect) {
+    if (effect == "reactive_glow" || effect == "glow" || effect == "reactive") effect_ = 1;
+    else if (effect == "subtle_pulse" || effect == "pulse" || effect == "breathing") effect_ = 2;
+    else if (effect == "cinematic_vignette" || effect == "vignette") effect_ = 3;
+    else if (effect == "grayscale" || effect == "black_white" || effect == "monochrome") effect_ = 4;
+    else if (effect == "dimmed" || effect == "dim") effect_ = 5;
+    else effect_ = 0; // none / clean by default
+    return true;
+}
+
+std::string Renderer::effect() const {
+    switch (effect_) {
+    case 1: return "reactive_glow";
+    case 2: return "subtle_pulse";
+    case 3: return "cinematic_vignette";
+    case 4: return "grayscale";
+    case 5: return "dimmed";
+    case 0:
+    default: return "none";
+    }
+}
+
 bool Renderer::render(HWND window, float elapsedSeconds, float intensity, std::string& error) {
     auto* surface = findSurface(window);
     if (!surface || !surface->renderTarget) return false;
@@ -303,7 +326,7 @@ bool Renderer::render(HWND window, float elapsedSeconds, float intensity, std::s
     constants.textureWidth = textureWidth_ > 0.0f ? textureWidth_ : static_cast<float>(surface->width);
     constants.textureHeight = textureHeight_ > 0.0f ? textureHeight_ : static_cast<float>(surface->height);
     constants.fitMode = fitMode_;
-    constants.padding = 0.0f;
+    constants.effect = effect_;
     context_->UpdateSubresource(frameConstants_.Get(), 0, nullptr, &constants, 0, 0);
 
     const float clear[] = {0.005f, 0.007f, 0.012f, 1.0f};

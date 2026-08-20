@@ -16,6 +16,8 @@ bool WallpaperEngine::initialize(const std::filesystem::path& shaderDirectory, s
 
     state_.state = "playing";
     state_.scene = "cover-reactive";
+    state_.fitMode = renderer_.fitMode();
+    state_.effect = renderer_.effect();
     state_.fps = 30.0;
     state_.monitorCount = static_cast<int>(windowHost_.windows().size());
     initialized_ = true;
@@ -90,6 +92,12 @@ bool WallpaperEngine::handleCommand(const Command& command, std::string& error) 
             state_.fitMode = renderer_.fitMode();
             return true;
         }
+        if (command.parameter == "effect") {
+            const std::string eff = !command.effect.empty() ? command.effect : "none";
+            renderer_.setEffect(eff);
+            state_.effect = renderer_.effect();
+            return true;
+        }
         error = "Unsupported shader parameter: " + command.parameter;
         return false;
     }
@@ -97,6 +105,12 @@ bool WallpaperEngine::handleCommand(const Command& command, std::string& error) 
         const std::string mode = !command.fitMode.empty() ? command.fitMode : "fill";
         renderer_.setFitMode(mode);
         state_.fitMode = renderer_.fitMode();
+        return true;
+    }
+    if (command.name == "set_effect") {
+        const std::string eff = !command.effect.empty() ? command.effect : "none";
+        renderer_.setEffect(eff);
+        state_.effect = renderer_.effect();
         return true;
     }
     if (command.name == "set_fps") {

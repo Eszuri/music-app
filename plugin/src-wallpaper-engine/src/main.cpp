@@ -43,6 +43,7 @@ int wmain(int argc, wchar_t* argv[]) {
     std::filesystem::path shaderDirectory;
     std::filesystem::path initialTexture;
     std::string initialFit = "fill";
+    std::string initialEffect = "none";
     double initialFps = 30.0;
 
     wchar_t executablePath[MAX_PATH]{};
@@ -73,6 +74,14 @@ int wmain(int argc, wchar_t* argv[]) {
             else if (fitArg == L"center") initialFit = "center";
             else if (fitArg == L"tile") initialFit = "tile";
             else initialFit = "fill";
+        } else if (argument == L"--effect" && index + 1 < argc) {
+            std::wstring effArg = argv[++index];
+            if (effArg == L"reactive_glow" || effArg == L"glow") initialEffect = "reactive_glow";
+            else if (effArg == L"subtle_pulse" || effArg == L"pulse" || effArg == L"breathing") initialEffect = "subtle_pulse";
+            else if (effArg == L"cinematic_vignette" || effArg == L"vignette") initialEffect = "cinematic_vignette";
+            else if (effArg == L"grayscale" || effArg == L"black_white") initialEffect = "grayscale";
+            else if (effArg == L"dimmed" || effArg == L"dim") initialEffect = "dimmed";
+            else initialEffect = "none";
         } else if (argument == L"--help") {
             std::wcout << L"Symvonia Wallpaper Engine 0.1.0\n"
                        << L"  --standalone             Keep rendering after stdin closes\n"
@@ -80,6 +89,7 @@ int wmain(int argc, wchar_t* argv[]) {
                        << L"  --shader-dir <directory> HLSL shader directory\n"
                        << L"  --texture <file>         Initial PNG/JPEG/BMP texture\n"
                        << L"  --fit <mode>             Fit mode (fill, fit, stretch, center, tile)\n"
+                       << L"  --effect <mode>          Visual effect (none, reactive_glow, subtle_pulse, cinematic_vignette, grayscale, dimmed)\n"
                        << L"  --fps <number>           Target frame rate\n";
             return 0;
         }
@@ -103,6 +113,13 @@ int wmain(int argc, wchar_t* argv[]) {
         fitCmd.name = "set_fit_mode";
         fitCmd.fitMode = initialFit;
         engine.handleCommand(fitCmd, error);
+    }
+
+    if (initialEffect != "none") {
+        Command effCmd;
+        effCmd.name = "set_effect";
+        effCmd.effect = initialEffect;
+        engine.handleCommand(effCmd, error);
     }
 
     if (!initialTexture.empty()) {

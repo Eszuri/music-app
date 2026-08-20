@@ -27,6 +27,8 @@ public:
     bool setTexture(const std::filesystem::path& path, std::string& error);
     bool setFitMode(const std::string& mode);
     std::string fitMode() const;
+    bool setEffect(const std::string& effect);
+    std::string effect() const;
 
 private:
     using Device = Microsoft::WRL::ComPtr<ID3D11Device>;
@@ -58,6 +60,7 @@ private:
     float textureWidth_ = 0.0f;
     float textureHeight_ = 0.0f;
     uint32_t fitMode_ = 0; // 0 = fill, 1 = fit, 2 = stretch, 3 = center, 4 = tile
+    uint32_t effect_ = 0;  // 0 = none, 1 = reactive_glow, 2 = subtle_pulse, 3 = cinematic_vignette, 4 = grayscale, 5 = dimmed
 };
 
 } // namespace symvonia::wallpaper
