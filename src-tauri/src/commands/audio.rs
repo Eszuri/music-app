@@ -170,6 +170,21 @@ fn scan_directory(root_path: &str, directory_path: &str) -> Result<DirectorySnap
                 .unwrap_or_default()
                 .as_secs();
 
+            let (title, artist, album, track_number, year, genre, duration) = if is_dir {
+                (None, None, None, None, None, None, None)
+            } else {
+                let meta = extract_audio_meta(&path_buf);
+                (
+                    meta.title,
+                    meta.artist,
+                    meta.album,
+                    meta.track_number,
+                    meta.year,
+                    meta.genre,
+                    meta.duration,
+                )
+            };
+
             Some(CachedEntry {
                 name,
                 path: path_buf.to_string_lossy().to_string(),
@@ -178,15 +193,15 @@ fn scan_directory(root_path: &str, directory_path: &str) -> Result<DirectorySnap
                 mtime,
                 size: metadata.len(),
                 ctime,
-                title: None,
-                artist: None,
-                album: None,
-                track_number: None,
-                year: None,
-                genre: None,
-                duration: None,
-                title_loaded: is_dir,
-                meta_loaded: is_dir,
+                title,
+                artist,
+                album,
+                track_number,
+                year,
+                genre,
+                duration,
+                title_loaded: true,
+                meta_loaded: true,
             })
         })
         .collect();
@@ -202,12 +217,6 @@ fn project_snapshot(
     name_source: &str,
     formats: &[String],
 ) -> Vec<FileEntry> {
-    let needs_meta = matches!(
-        file_sort,
-        "artist" | "album" | "track" | "track_no" | "year" | "genre" | "duration"
-    );
-    let needs_title = name_source == "title" || needs_meta;
-
     let mut files: Vec<FileEntry> = snapshot
         .entries
         .iter_mut()
@@ -215,7 +224,7 @@ fn project_snapshot(
             if !entry.is_dir && !formats.iter().any(|format| format == &entry.ext) {
                 return None;
             }
-            if !entry.is_dir && needs_meta && !entry.meta_loaded {
+            if !entry.is_dir && !entry.meta_loaded {
                 let meta = extract_audio_meta(Path::new(&entry.path));
                 entry.title = meta.title;
                 entry.artist = meta.artist;
@@ -226,10 +235,6 @@ fn project_snapshot(
                 entry.duration = meta.duration;
                 entry.title_loaded = true;
                 entry.meta_loaded = true;
-            } else if !entry.is_dir && needs_title && !entry.title_loaded {
-                let meta = extract_audio_meta(Path::new(&entry.path));
-                entry.title = meta.title;
-                entry.title_loaded = true;
             }
 
             let display_name = if entry.is_dir {
@@ -363,10 +368,10 @@ fn list_files_inner(
     let mut snapshot = cache.load_or_scan(&app, &root_path, &path, || {
         scan_directory(&root_path, &path)
     })?;
-    let before_titles: Vec<_> = snapshot
+    let before_meta: Vec<_> = snapshot
         .entries
         .iter()
-        .map(|entry| (entry.path.clone(), entry.title_loaded, entry.title.clone()))
+        .map(|entry| (entry.path.clone(), entry.meta_loaded))
         .collect();
     let files = project_snapshot(
         &mut snapshot,
@@ -376,13 +381,13 @@ fn list_files_inner(
         &name_source,
         &formats,
     );
-    let titles_changed = before_titles
+    let meta_changed = before_meta
         != snapshot
             .entries
             .iter()
-            .map(|entry| (entry.path.clone(), entry.title_loaded, entry.title.clone()))
+            .map(|entry| (entry.path.clone(), entry.meta_loaded))
             .collect::<Vec<_>>();
-    if titles_changed {
+    if meta_changed {
         let _ = library_cache::write_snapshot(&app, &snapshot);
         cache.update_snapshot(snapshot)?;
     }
