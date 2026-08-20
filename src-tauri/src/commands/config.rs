@@ -82,6 +82,7 @@ pub struct SymvoniaConfig {
     pub stream_history: Vec<StreamEntryConfig>,
     pub fullscreen: bool,
     pub skipped_update_version: Option<String>,
+    pub toolbar_columns: Vec<String>,
 }
 
 impl Default for SymvoniaConfig {
@@ -120,6 +121,16 @@ impl Default for SymvoniaConfig {
                 "wav".to_string(),
                 "m4a".to_string(),
                 "wma".to_string(),
+            ],
+            toolbar_columns: vec![
+                "name".to_string(),
+                "artist".to_string(),
+                "album".to_string(),
+                "year".to_string(),
+                "duration".to_string(),
+                "ext".to_string(),
+                "size".to_string(),
+                "mtime".to_string(),
             ],
             shuffle: false,
             repeat: "off".to_string(),
@@ -215,6 +226,13 @@ impl SymvoniaConfig {
             *band = band.clamp(-12.0, 12.0);
         }
         self.equalizer.pre_amp = self.equalizer.pre_amp.clamp(-12.0, 12.0);
+
+        // Ensure default toolbar columns exist if empty, and ensure 'name' is always included
+        if self.toolbar_columns.is_empty() {
+            self.toolbar_columns = SymvoniaConfig::default().toolbar_columns;
+        } else if !self.toolbar_columns.contains(&"name".to_string()) {
+            self.toolbar_columns.insert(0, "name".to_string());
+        }
 
         // Gain boost is a linear ratio: 100% to 300%.
         self.gain_boost = self.gain_boost.clamp(1.0, 3.0);

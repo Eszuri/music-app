@@ -264,6 +264,9 @@ export function usePlayerSettings() {
             if (backendConfig.pause_if_muted !== undefined) setPauseIfMutedState(backendConfig.pause_if_muted);
             if (backendConfig.fade_audio !== undefined) setFadeAudioStateInternal(backendConfig.fade_audio);
             if (backendConfig.fade_duration !== undefined) setFadeDurationStateInternal(backendConfig.fade_duration);
+            if (backendConfig.toolbar_columns && backendConfig.toolbar_columns.length > 0) {
+                setToolbarColumnsStateInternal(backendConfig.toolbar_columns);
+            }
         }).catch(err => {
             console.error('[Symvonia Settings] Failed to load config from backend:', err);
         });
