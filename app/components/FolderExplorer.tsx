@@ -283,26 +283,8 @@ function FolderExplorer({
         [fileSort, sortDir, setFileSort, setSortDir],
     );
 
-    // Responsive column breakpoints with active sort priority
-    const showArtistColumn = width >= 470 || fileSort === 'artist';
-    const showAlbumColumn = width >= 580 || fileSort === 'album';
-    const showYearColumn = width >= 680 || fileSort === 'year';
-    const showDurationColumn = true;
-    const showTypeColumn = width >= 380 || fileSort === 'ext';
-    const showDateColumn = width >= 380 || fileSort === 'mtime' || fileSort === 'ctime';
-
-    const minTableWidth = useMemo(() => {
-        let w = 130;
-        if (showArtistColumn) w += 112;
-        if (showAlbumColumn) w += 112;
-        if (showYearColumn) w += 48;
-        if (showDurationColumn) w += 48;
-        if (showTypeColumn) w += 48;
-        w += 64;
-        if (showDateColumn) w += 80;
-        w += 32;
-        return w;
-    }, [showArtistColumn, showAlbumColumn, showYearColumn, showDurationColumn, showTypeColumn, showDateColumn]);
+    // Always display all metadata columns without hiding on resize; scroll horizontally instead
+    const minTableWidth = 740;
 
     const onHeaderContextMenu = useCallback(
         (e: React.MouseEvent) => {
@@ -539,12 +521,12 @@ function FolderExplorer({
                     {/* Sticky Table Toolbar / Column Headers */}
                     <div
                         onContextMenu={onHeaderContextMenu}
-                        className="sticky top-0 z-20 flex items-center px-3 py-1.5 bg-zinc-900 border-b border-zinc-800/60 text-[11px] font-semibold text-zinc-400 select-none shrink-0 uppercase tracking-wider gap-1 w-full"
+                        className="sticky top-0 z-20 flex items-center px-3 py-1.5 bg-zinc-900 border-b border-zinc-800/60 text-[11px] font-semibold text-zinc-400 select-none shrink-0 uppercase tracking-wider gap-1 w-full whitespace-nowrap"
                     >
                         {/* 1. Name Col (Sortable, flex-1) */}
                         <button
                             onClick={() => handleSortColumn('name')}
-                            className={`flex-1 min-w-[120px] flex items-center gap-1.5 text-left py-0.5 rounded hover:text-zinc-200 transition-colors cursor-pointer min-w-0 ${
+                            className={`flex-1 min-w-[120px] flex items-center gap-1.5 text-left py-0.5 rounded hover:text-zinc-200 transition-colors cursor-pointer min-w-0 whitespace-nowrap ${
                                 fileSort === 'name' ? `${accent.text400} font-bold` : ''
                             }`}
                             title={t(lang, 'toolbar.name')}
@@ -557,105 +539,95 @@ function FolderExplorer({
                             )}
                         </button>
 
-                        {/* 2. Artist Col (Sortable, responsive) */}
-                        {showArtistColumn && (
-                            <button
-                                onClick={() => handleSortColumn('artist')}
-                                className={`w-24 sm:w-28 text-left shrink-0 flex items-center gap-1 px-1 py-0.5 rounded hover:text-zinc-200 transition-colors cursor-pointer min-w-0 ${
-                                    fileSort === 'artist' ? `${accent.text400} font-bold` : ''
-                                }`}
-                                title={t(lang, 'toolbar.artist')}
-                            >
-                                <span className="truncate">{t(lang, 'toolbar.artist')}</span>
-                                {fileSort === 'artist' && (
-                                    <span className="text-[10px] shrink-0">
-                                        {sortDir === 'asc' ? '▲' : '▼'}
-                                    </span>
-                                )}
-                            </button>
-                        )}
+                        {/* 2. Artist Col (Sortable) */}
+                        <button
+                            onClick={() => handleSortColumn('artist')}
+                            className={`w-28 text-left shrink-0 flex items-center gap-1 px-1 py-0.5 rounded hover:text-zinc-200 transition-colors cursor-pointer min-w-0 whitespace-nowrap ${
+                                fileSort === 'artist' ? `${accent.text400} font-bold` : ''
+                            }`}
+                            title={t(lang, 'toolbar.artist')}
+                        >
+                            <span className="truncate">{t(lang, 'toolbar.artist')}</span>
+                            {fileSort === 'artist' && (
+                                <span className="text-[10px] shrink-0">
+                                    {sortDir === 'asc' ? '▲' : '▼'}
+                                </span>
+                            )}
+                        </button>
 
-                        {/* 3. Album Col (Sortable, responsive) */}
-                        {showAlbumColumn && (
-                            <button
-                                onClick={() => handleSortColumn('album')}
-                                className={`w-24 sm:w-28 text-left shrink-0 flex items-center gap-1 px-1 py-0.5 rounded hover:text-zinc-200 transition-colors cursor-pointer min-w-0 ${
-                                    fileSort === 'album' ? `${accent.text400} font-bold` : ''
-                                }`}
-                                title={t(lang, 'toolbar.album')}
-                            >
-                                <span className="truncate">{t(lang, 'toolbar.album')}</span>
-                                {fileSort === 'album' && (
-                                    <span className="text-[10px] shrink-0">
-                                        {sortDir === 'asc' ? '▲' : '▼'}
-                                    </span>
-                                )}
-                            </button>
-                        )}
+                        {/* 3. Album Col (Sortable) */}
+                        <button
+                            onClick={() => handleSortColumn('album')}
+                            className={`w-28 text-left shrink-0 flex items-center gap-1 px-1 py-0.5 rounded hover:text-zinc-200 transition-colors cursor-pointer min-w-0 whitespace-nowrap ${
+                                fileSort === 'album' ? `${accent.text400} font-bold` : ''
+                            }`}
+                            title={t(lang, 'toolbar.album')}
+                        >
+                            <span className="truncate">{t(lang, 'toolbar.album')}</span>
+                            {fileSort === 'album' && (
+                                <span className="text-[10px] shrink-0">
+                                    {sortDir === 'asc' ? '▲' : '▼'}
+                                </span>
+                            )}
+                        </button>
 
-                        {/* 4. Year Col (Sortable, responsive) */}
-                        {showYearColumn && (
-                            <button
-                                onClick={() => handleSortColumn('year')}
-                                className={`w-12 text-center shrink-0 flex items-center justify-center gap-0.5 px-0.5 py-0.5 rounded hover:text-zinc-200 transition-colors cursor-pointer ${
-                                    fileSort === 'year' ? `${accent.text400} font-bold` : ''
-                                }`}
-                                title={t(lang, 'toolbar.year')}
-                            >
-                                <span>{t(lang, 'toolbar.year')}</span>
-                                {fileSort === 'year' && (
-                                    <span className="text-[10px] shrink-0">
-                                        {sortDir === 'asc' ? '▲' : '▼'}
-                                    </span>
-                                )}
-                            </button>
-                        )}
+                        {/* 4. Year Col (Sortable) */}
+                        <button
+                            onClick={() => handleSortColumn('year')}
+                            className={`w-12 text-center shrink-0 flex items-center justify-center gap-0.5 px-0.5 py-0.5 rounded hover:text-zinc-200 transition-colors cursor-pointer whitespace-nowrap ${
+                                fileSort === 'year' ? `${accent.text400} font-bold` : ''
+                            }`}
+                            title={t(lang, 'toolbar.year')}
+                        >
+                            <span className="whitespace-nowrap">{t(lang, 'toolbar.year')}</span>
+                            {fileSort === 'year' && (
+                                <span className="text-[10px] shrink-0">
+                                    {sortDir === 'asc' ? '▲' : '▼'}
+                                </span>
+                            )}
+                        </button>
 
                         {/* 5. Duration Col (Sortable) */}
-                        {showDurationColumn && (
-                            <button
-                                onClick={() => handleSortColumn('duration')}
-                                className={`w-12 text-right shrink-0 flex items-center justify-end gap-0.5 px-1 py-0.5 rounded hover:text-zinc-200 transition-colors cursor-pointer ${
-                                    fileSort === 'duration' ? `${accent.text400} font-bold` : ''
-                                }`}
-                                title={t(lang, 'toolbar.duration')}
-                            >
-                                <span>{t(lang, 'toolbar.duration')}</span>
-                                {fileSort === 'duration' && (
-                                    <span className="text-[10px] shrink-0">
-                                        {sortDir === 'asc' ? '▲' : '▼'}
-                                    </span>
-                                )}
-                            </button>
-                        )}
+                        <button
+                            onClick={() => handleSortColumn('duration')}
+                            className={`w-16 text-right shrink-0 flex items-center justify-end gap-0.5 px-1 py-0.5 rounded hover:text-zinc-200 transition-colors cursor-pointer whitespace-nowrap ${
+                                fileSort === 'duration' ? `${accent.text400} font-bold` : ''
+                            }`}
+                            title={t(lang, 'toolbar.duration')}
+                        >
+                            <span className="whitespace-nowrap">{t(lang, 'toolbar.duration')}</span>
+                            {fileSort === 'duration' && (
+                                <span className="text-[10px] shrink-0">
+                                    {sortDir === 'asc' ? '▲' : '▼'}
+                                </span>
+                            )}
+                        </button>
 
-                        {/* 6. Type/Ext Col (Sortable, responsive) */}
-                        {showTypeColumn && (
-                            <button
-                                onClick={() => handleSortColumn('ext')}
-                                className={`w-12 text-center shrink-0 flex items-center justify-center gap-0.5 px-0.5 py-0.5 rounded hover:text-zinc-200 transition-colors cursor-pointer ${
-                                    fileSort === 'ext' ? `${accent.text400} font-bold` : ''
-                                }`}
-                                title={t(lang, 'toolbar.type')}
-                            >
-                                <span>{t(lang, 'toolbar.type')}</span>
-                                {fileSort === 'ext' && (
-                                    <span className="text-[10px] shrink-0">
-                                        {sortDir === 'asc' ? '▲' : '▼'}
-                                    </span>
-                                )}
-                            </button>
-                        )}
+                        {/* 6. Type/Ext Col (Sortable) */}
+                        <button
+                            onClick={() => handleSortColumn('ext')}
+                            className={`w-12 text-center shrink-0 flex items-center justify-center gap-0.5 px-0.5 py-0.5 rounded hover:text-zinc-200 transition-colors cursor-pointer whitespace-nowrap ${
+                                fileSort === 'ext' ? `${accent.text400} font-bold` : ''
+                            }`}
+                            title={t(lang, 'toolbar.type')}
+                        >
+                            <span className="whitespace-nowrap">{t(lang, 'toolbar.type')}</span>
+                            {fileSort === 'ext' && (
+                                <span className="text-[10px] shrink-0">
+                                    {sortDir === 'asc' ? '▲' : '▼'}
+                                </span>
+                            )}
+                        </button>
 
                         {/* 7. Size Col (Sortable) */}
                         <button
                             onClick={() => handleSortColumn('size')}
-                            className={`w-16 text-right shrink-0 flex items-center justify-end gap-0.5 px-1 py-0.5 rounded hover:text-zinc-200 transition-colors cursor-pointer ${
+                            className={`w-16 text-right shrink-0 flex items-center justify-end gap-0.5 px-1 py-0.5 rounded hover:text-zinc-200 transition-colors cursor-pointer whitespace-nowrap ${
                                 fileSort === 'size' ? `${accent.text400} font-bold` : ''
                             }`}
                             title={t(lang, 'toolbar.size')}
                         >
-                            <span>{t(lang, 'toolbar.size')}</span>
+                            <span className="whitespace-nowrap">{t(lang, 'toolbar.size')}</span>
                             {fileSort === 'size' && (
                                 <span className="text-[10px] shrink-0">
                                     {sortDir === 'asc' ? '▲' : '▼'}
@@ -663,23 +635,21 @@ function FolderExplorer({
                             )}
                         </button>
 
-                        {/* 8. Date Col (Sortable, responsive) */}
-                        {showDateColumn && (
-                            <button
-                                onClick={() => handleSortColumn('mtime')}
-                                className={`w-20 text-right shrink-0 flex items-center justify-end gap-0.5 px-1 py-0.5 rounded hover:text-zinc-200 transition-colors cursor-pointer ${
-                                    fileSort === 'mtime' || fileSort === 'ctime' ? `${accent.text400} font-bold` : ''
-                                }`}
-                                title={t(lang, 'toolbar.date')}
-                            >
-                                <span>{t(lang, 'toolbar.date')}</span>
-                                {(fileSort === 'mtime' || fileSort === 'ctime') && (
-                                    <span className="text-[10px] shrink-0">
-                                        {sortDir === 'asc' ? '▲' : '▼'}
-                                    </span>
-                                )}
-                            </button>
-                        )}
+                        {/* 8. Date Col (Sortable) */}
+                        <button
+                            onClick={() => handleSortColumn('mtime')}
+                            className={`w-[120px] text-right shrink-0 flex items-center justify-end gap-1 px-1 py-0.5 rounded hover:text-zinc-200 transition-colors cursor-pointer whitespace-nowrap ${
+                                fileSort === 'mtime' || fileSort === 'ctime' ? `${accent.text400} font-bold` : ''
+                            }`}
+                            title={t(lang, 'toolbar.date')}
+                        >
+                            <span className="whitespace-nowrap">{t(lang, 'toolbar.date')}</span>
+                            {(fileSort === 'mtime' || fileSort === 'ctime') && (
+                                <span className="text-[10px] shrink-0">
+                                    {sortDir === 'asc' ? '▲' : '▼'}
+                                </span>
+                            )}
+                        </button>
                     </div>
 
                     {/* Content List / Skeleton / Empty State */}
@@ -721,12 +691,6 @@ function FolderExplorer({
                                 onEnterDir={setCurrentPath}
                                 onContextDir={onContextDir}
                                 onContextFile={onContextFile}
-                                showArtistColumn={showArtistColumn}
-                                showAlbumColumn={showAlbumColumn}
-                                showYearColumn={showYearColumn}
-                                showDurationColumn={showDurationColumn}
-                                showTypeColumn={showTypeColumn}
-                                showDateColumn={showDateColumn}
                                 accentBg10={accent.bg10}
                                 accentText400={accent.text400}
                                 accentBorder500={accent.border500}
@@ -787,12 +751,6 @@ const VirtualList = memo(function VirtualList({
     onEnterDir,
     onContextDir,
     onContextFile,
-    showArtistColumn,
-    showAlbumColumn,
-    showYearColumn,
-    showDurationColumn,
-    showTypeColumn,
-    showDateColumn,
     accentBg10,
     accentText400,
     accentBorder500,
@@ -808,12 +766,6 @@ const VirtualList = memo(function VirtualList({
     onEnterDir: (path: string) => void;
     onContextDir?: (e: React.MouseEvent, file: FileEntry) => void;
     onContextFile?: (e: React.MouseEvent, file: FileEntry) => void;
-    showArtistColumn: boolean;
-    showAlbumColumn: boolean;
-    showYearColumn: boolean;
-    showDurationColumn: boolean;
-    showTypeColumn: boolean;
-    showDateColumn: boolean;
     accentBg10: string;
     accentText400: string;
     accentBorder500: string;
@@ -897,66 +849,54 @@ const VirtualList = memo(function VirtualList({
                             <span className="truncate">{file.display_name}</span>
                         </div>
 
-                        {/* 2. Artist Column (Responsive) */}
-                        {showArtistColumn && (
-                            <div className="w-24 sm:w-28 text-left shrink-0 px-1 truncate text-[11px] text-zinc-400">
-                                {file.is_dir ? '—' : (file.artist || '—')}
-                            </div>
-                        )}
+                        {/* 2. Artist Column */}
+                        <div className="w-28 text-left shrink-0 px-1 truncate text-[11px] text-zinc-400 whitespace-nowrap">
+                            {file.is_dir ? '—' : (file.artist || '—')}
+                        </div>
 
-                        {/* 3. Album Column (Responsive) */}
-                        {showAlbumColumn && (
-                            <div className="w-24 sm:w-28 text-left shrink-0 px-1 truncate text-[11px] text-zinc-500">
-                                {file.is_dir ? '—' : (file.album || '—')}
-                            </div>
-                        )}
+                        {/* 3. Album Column */}
+                        <div className="w-28 text-left shrink-0 px-1 truncate text-[11px] text-zinc-500 whitespace-nowrap">
+                            {file.is_dir ? '—' : (file.album || '—')}
+                        </div>
 
-                        {/* 4. Year Column (Responsive) */}
-                        {showYearColumn && (
-                            <div className="w-12 text-center shrink-0 px-0.5 text-[11px] text-zinc-500">
-                                {file.is_dir ? '—' : (file.year ? String(file.year) : '—')}
-                            </div>
-                        )}
+                        {/* 4. Year Column */}
+                        <div className="w-12 text-center shrink-0 px-0.5 text-[11px] text-zinc-500 whitespace-nowrap">
+                            {file.is_dir ? '—' : (file.year ? String(file.year) : '—')}
+                        </div>
 
                         {/* 5. Duration Column */}
-                        {showDurationColumn && (
-                            <div className="w-12 text-right shrink-0 px-1 text-[11px] text-zinc-400">
-                                {file.is_dir ? '—' : formatDuration(file.duration)}
-                            </div>
-                        )}
+                        <div className="w-16 text-right shrink-0 px-1 text-[11px] text-zinc-400 whitespace-nowrap">
+                            {file.is_dir ? '—' : formatDuration(file.duration)}
+                        </div>
 
-                        {/* 6. Type / Ext Badge (Responsive) */}
-                        {showTypeColumn && (
-                            <div className="w-12 text-center shrink-0 flex items-center justify-center">
-                                {file.is_dir ? (
-                                    <span className="text-[9px] px-1 py-0.5 rounded bg-zinc-800/80 text-zinc-400 font-medium">
-                                        DIR
-                                    </span>
-                                ) : (
-                                    <span
-                                        className={`text-[9px] px-1.5 py-0.5 rounded uppercase font-semibold tracking-wider ${
-                                            isLossless
-                                                ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/40'
-                                                : 'bg-zinc-850/80 text-zinc-400 border border-zinc-800/50'
-                                        }`}
-                                    >
-                                        {file.ext || 'FILE'}
-                                    </span>
-                                )}
-                            </div>
-                        )}
+                        {/* 6. Type / Ext Badge */}
+                        <div className="w-12 text-center shrink-0 flex items-center justify-center">
+                            {file.is_dir ? (
+                                <span className="text-[9px] px-1 py-0.5 rounded bg-zinc-800/80 text-zinc-400 font-medium">
+                                    DIR
+                                </span>
+                            ) : (
+                                <span
+                                    className={`text-[9px] px-1.5 py-0.5 rounded uppercase font-semibold tracking-wider ${
+                                        isLossless
+                                            ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/40'
+                                            : 'bg-zinc-850/80 text-zinc-400 border border-zinc-800/50'
+                                    }`}
+                                >
+                                    {file.ext || 'FILE'}
+                                </span>
+                            )}
+                        </div>
 
                         {/* 7. Size */}
-                        <div className="w-16 text-right shrink-0 px-1 text-[11px] text-zinc-400">
+                        <div className="w-16 text-right shrink-0 px-1 text-[11px] text-zinc-400 whitespace-nowrap">
                             {file.is_dir ? '—' : formatSize(file.size)}
                         </div>
 
-                        {/* 8. Date Modified (Responsive) */}
-                        {showDateColumn && (
-                            <div className="w-20 text-right shrink-0 px-1 text-[10px] text-zinc-500">
-                                {file.is_dir ? '—' : formatDate(file.mtime)}
-                            </div>
-                        )}
+                        {/* 8. Date Modified */}
+                        <div className="w-[120px] text-right shrink-0 px-1 text-[10px] text-zinc-500 whitespace-nowrap">
+                            {file.is_dir ? '—' : formatDate(file.mtime)}
+                        </div>
                     </button>
                 );
             })}
