@@ -113,8 +113,8 @@ export default function SettingsModal({
         };
     }, [open, onClose]);
 
-    const { pluginStatus: aiPluginStatus } = useAiLyricsPlugin();
-    const { pluginStatus: wallpaperPluginStatus } = useWallpaperPlugin();
+    const {pluginStatus: aiPluginStatus} = useAiLyricsPlugin();
+    const {pluginStatus: wallpaperPluginStatus} = useWallpaperPlugin();
     const isAiPluginInstalled = aiPluginStatus?.installed === true;
     const isWallpaperPluginInstalled = wallpaperPluginStatus?.installed === true;
 
@@ -122,8 +122,8 @@ export default function SettingsModal({
         (activeSection === 'lyrics' && !isAiPluginInstalled)
             ? 'plugin'
             : (activeSection === 'wallpaper' && !isWallpaperPluginInstalled)
-            ? 'plugin'
-            : activeSection;
+                ? 'plugin'
+                : activeSection;
 
     const sections = getSections(lang).filter(s =>
         (s.id !== 'lyrics' || isAiPluginInstalled) &&
@@ -153,186 +153,186 @@ export default function SettingsModal({
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="settings-dialog-title"
-                        style={{ width: '1024px', height: '580px', maxWidth: '90vw', maxHeight: '82vh' }}
+                        style={{width: '1024px', height: '640px', maxWidth: '90vw', maxHeight: '85vh'}}
                         className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl shadow-black/60 flex overflow-hidden cursor-default shrink-0"
                         onClick={(e) => e.stopPropagation()}
                     >
-                    {/* Sidebar nav */}
-                    <nav className="w-44 shrink-0 min-h-0 border-r border-zinc-800 bg-zinc-950/60 p-2.5 md:p-3 flex flex-col gap-1 overflow-y-auto">
-                        <h3 className="px-3 py-2 text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
-                            {t(lang, 'settings.title')}
-                        </h3>
-                        {sections.map((s) => {
-                            const isActive = s.id === effectiveActiveSection;
-                            const a = getAccent(accentColor);
-                            return (
-                                <div key={s.id}>
-                                    {s.isDivider && <div className="my-1.5 mx-3 border-t border-zinc-800/80" />}
-                                    <button
-                                        {...settingItemHover}
-                                        onClick={() => setActiveSection(s.id)}
-                                        aria-current={isActive ? 'page' : undefined}
-                                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left cursor-pointer ${isActive
-                                            ? `${a.bg15} ${a.text400} border ${a.border500_20}`
-                                            : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100 border border-transparent'
-                                            }`}
-                                    >
-                                        {s.icon}
-                                        <span>{s.label}</span>
-                                    </button>
-                                </div>
-                            );
-                        })}
-                    </nav>
+                        {/* Sidebar nav */}
+                        <nav className="w-52 shrink-0 min-h-0 border-r border-zinc-800 bg-zinc-950/60 p-2.5 md:p-3 flex flex-col gap-1 overflow-y-auto">
+                            <h3 className="px-3 py-2 text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
+                                {t(lang, 'settings.title')}
+                            </h3>
+                            {sections.map((s) => {
+                                const isActive = s.id === effectiveActiveSection;
+                                const a = getAccent(accentColor);
+                                return (
+                                    <div key={s.id}>
+                                        {s.isDivider && <div className="my-1.5 mx-3 border-t border-zinc-800/80" />}
+                                        <button
+                                            {...settingItemHover}
+                                            onClick={() => setActiveSection(s.id)}
+                                            aria-current={isActive ? 'page' : undefined}
+                                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left cursor-pointer ${isActive
+                                                ? `${a.bg15} ${a.text400} border ${a.border500_20}`
+                                                : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100 border border-transparent'
+                                                }`}
+                                        >
+                                            {s.icon}
+                                            <span>{s.label}</span>
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </nav>
 
-                    {/* Content */}
-                    <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
-                        <header className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-zinc-800 shrink-0">
-                            <h2 id="settings-dialog-title" tabIndex={-1} className="text-lg font-semibold text-zinc-100">
-                                {sections.find((s) => s.id === effectiveActiveSection)?.label}
-                            </h2>
-                            <button type="button" onClick={onClose} aria-label={t(lang, 'settings.close')} className="min-h-10 min-w-10 rounded-lg text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2">
-                                ×
-                            </button>
-                        </header>
-                        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 md:p-6 pb-20 md:pb-24 min-w-0">
-                            {effectiveActiveSection === 'general' && (
-                                <GeneralSection
-                                    lang={lang}
-                                    setLang={setLang}
-                                    musicFolder={musicFolder}
-                                    onChangeFolder={onChangeFolder}
-                                    autoWallpaper={autoWallpaper}
-                                    setAutoWallpaper={setAutoWallpaper}
-                                    resetOnClose={resetOnClose}
-                                    setResetOnClose={setResetOnClose}
-                                    volumeStep={volumeStep}
-                                    setVolumeStep={setVolumeStep}
-                                    volumeMode={volumeMode}
-                                    setVolumeMode={setVolumeMode}
-                                    volumeLimit={volumeLimit}
-                                    setVolumeLimit={setVolumeLimit}
-                                    pauseIfMuted={pauseIfMuted}
-                                    setPauseIfMuted={setPauseIfMuted}
-                                    fadeAudio={fadeAudio}
-                                    setFadeAudio={setFadeAudio}
-                                    fadeDuration={fadeDuration}
-                                    setFadeDuration={setFadeDuration}
-                                    volume={volume}
-                                    defaultWallpaper={defaultWallpaper}
-                                    onPickWallpaper={onPickWallpaper}
-                                    onClearWallpaper={onClearWallpaper}
-                                    wallpaperFitMode={wallpaperFitMode}
-                                    setWallpaperFitMode={setWallpaperFitMode}
-                                    accentColor={accentColor}
-                                    onCheckUpdate={onCheckUpdate}
-                                    updateStatus={updateStatus}
-                                    updateChecking={updateChecking}
-                                    updateDownloaded={updateDownloaded}
-                                    updateTotal={updateTotal}
-                                    outputMode={outputMode}
-                                    nativeOutputActive={audioRuntime.effectiveMode === 'wasapi_shared' || audioRuntime.effectiveMode === 'wasapi_exclusive'}
-                                    hideWallpaperGroup={isWallpaperPluginInstalled}
-                                />
-                            )}
-                            {effectiveActiveSection === 'storage' && (
-                                <StorageSection
-                                    lang={lang}
-                                    accentColor={accentColor}
-                                    onResetAllSettings={onResetAllSettings}
-                                />
-                            )}
-                            {effectiveActiveSection === 'sort' && (
-                                <SortSection
-                                    lang={lang}
-                                    folderSort={folderSort}
-                                    setFolderSort={setFolderSort}
-                                    fileSort={fileSort}
-                                    setFileSort={setFileSort}
-                                    sortDir={sortDir}
-                                    setSortDir={setSortDir}
-                                    nameSource={nameSource}
-                                    setNameSource={setNameSource}
-                                    formats={formats}
-                                    setFormats={setFormats}
-                                    accentColor={accentColor}
-                                />
-                            )}
-                            {effectiveActiveSection === 'shortcut' && (
-                                <ShortcutSection
-                                    lang={lang}
-                                    shortcuts={shortcuts}
-                                    updateShortcut={updateShortcut}
-                                    resetShortcuts={resetShortcuts}
-                                    accentColor={accentColor}
-                                />
-                            )}
-                            {effectiveActiveSection === 'style' && (
-                                <StyleSection
-                                    lang={lang}
-                                    accentColor={accentColor}
-                                    setAccentColor={setAccentColor}
-                                    customAccentHex={customAccentHex}
-                                    setCustomAccentHex={setCustomAccentHex}
-                                    layoutMode={layoutMode}
-                                    setLayoutMode={setLayoutMode}
-                                    onResetSidebarWidth={onResetSidebarWidth}
-                                />
-                            )}
-                            {effectiveActiveSection === 'plugin' && (
-                                <PluginSection
-                                    lang={lang}
-                                    accentColor={accentColor}
-                                    isPlaying={isPlaying}
-                                    setOutputMode={setOutputMode}
-                                    setOutputDevice={setOutputDevice}
-                                />
-                            )}
-                            {effectiveActiveSection === 'audio' && (
-                                <AudioSection
-                                    lang={lang}
-                                    outputDevice={outputDevice}
-                                    setOutputDevice={setOutputDevice}
-                                    outputMode={outputMode}
-                                    setOutputMode={setOutputMode}
-                                    autoFallbackHtmlAudio={autoFallbackHtmlAudio}
-                                    setAutoFallbackHtmlAudio={setAutoFallbackHtmlAudio}
-                                    audioRuntime={audioRuntime}
-                                    onResetPlayer={onResetPlayer}
-                                    onRetryNativeAudio={onRetryNativeAudio}
-                                    accentColor={accentColor}
-                                />
-                            )}
-                            {effectiveActiveSection === 'lyrics' && isAiPluginInstalled && (
-                                <LyricsSection
-                                    lang={lang}
-                                    accentColor={accentColor}
-                                />
-                            )}
-                            {effectiveActiveSection === 'wallpaper' && isWallpaperPluginInstalled && (
-                                <WallpaperSection
-                                    lang={lang}
-                                    accentColor={accentColor}
-                                    autoWallpaper={autoWallpaper}
-                                    setAutoWallpaper={setAutoWallpaper}
-                                    resetOnClose={resetOnClose}
-                                    setResetOnClose={setResetOnClose}
-                                    defaultWallpaper={defaultWallpaper}
-                                    onPickWallpaper={onPickWallpaper}
-                                    onClearWallpaper={onClearWallpaper}
-                                    wallpaperFitMode={wallpaperFitMode}
-                                    setWallpaperFitMode={setWallpaperFitMode}
-                                    wallpaperEffect={wallpaperEffect}
-                                    setWallpaperEffect={setWallpaperEffect}
-                                    wallpaperTransition={wallpaperTransition}
-                                    setWallpaperTransition={setWallpaperTransition}
-                                />
-                            )}
-                            {effectiveActiveSection === 'changelog' && <ChangelogSection lang={lang} />}
-                            {effectiveActiveSection === 'about' && <AboutSection lang={lang} />}
-                            {effectiveActiveSection === 'debug' && <DebugSection lang={lang} logs={logs} />}
+                        {/* Content */}
+                        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
+                            <header className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-zinc-800 shrink-0">
+                                <h2 id="settings-dialog-title" tabIndex={-1} className="text-lg font-semibold text-zinc-100">
+                                    {sections.find((s) => s.id === effectiveActiveSection)?.label}
+                                </h2>
+                                <button type="button" onClick={onClose} aria-label={t(lang, 'settings.close')} className="min-h-10 min-w-10 rounded-lg text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2">
+                                    ×
+                                </button>
+                            </header>
+                            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 md:p-6 pb-20 md:pb-24 min-w-0">
+                                {effectiveActiveSection === 'general' && (
+                                    <GeneralSection
+                                        lang={lang}
+                                        setLang={setLang}
+                                        musicFolder={musicFolder}
+                                        onChangeFolder={onChangeFolder}
+                                        autoWallpaper={autoWallpaper}
+                                        setAutoWallpaper={setAutoWallpaper}
+                                        resetOnClose={resetOnClose}
+                                        setResetOnClose={setResetOnClose}
+                                        volumeStep={volumeStep}
+                                        setVolumeStep={setVolumeStep}
+                                        volumeMode={volumeMode}
+                                        setVolumeMode={setVolumeMode}
+                                        volumeLimit={volumeLimit}
+                                        setVolumeLimit={setVolumeLimit}
+                                        pauseIfMuted={pauseIfMuted}
+                                        setPauseIfMuted={setPauseIfMuted}
+                                        fadeAudio={fadeAudio}
+                                        setFadeAudio={setFadeAudio}
+                                        fadeDuration={fadeDuration}
+                                        setFadeDuration={setFadeDuration}
+                                        volume={volume}
+                                        defaultWallpaper={defaultWallpaper}
+                                        onPickWallpaper={onPickWallpaper}
+                                        onClearWallpaper={onClearWallpaper}
+                                        wallpaperFitMode={wallpaperFitMode}
+                                        setWallpaperFitMode={setWallpaperFitMode}
+                                        accentColor={accentColor}
+                                        onCheckUpdate={onCheckUpdate}
+                                        updateStatus={updateStatus}
+                                        updateChecking={updateChecking}
+                                        updateDownloaded={updateDownloaded}
+                                        updateTotal={updateTotal}
+                                        outputMode={outputMode}
+                                        nativeOutputActive={audioRuntime.effectiveMode === 'wasapi_shared' || audioRuntime.effectiveMode === 'wasapi_exclusive'}
+                                        hideWallpaperGroup={isWallpaperPluginInstalled}
+                                    />
+                                )}
+                                {effectiveActiveSection === 'storage' && (
+                                    <StorageSection
+                                        lang={lang}
+                                        accentColor={accentColor}
+                                        onResetAllSettings={onResetAllSettings}
+                                    />
+                                )}
+                                {effectiveActiveSection === 'sort' && (
+                                    <SortSection
+                                        lang={lang}
+                                        folderSort={folderSort}
+                                        setFolderSort={setFolderSort}
+                                        fileSort={fileSort}
+                                        setFileSort={setFileSort}
+                                        sortDir={sortDir}
+                                        setSortDir={setSortDir}
+                                        nameSource={nameSource}
+                                        setNameSource={setNameSource}
+                                        formats={formats}
+                                        setFormats={setFormats}
+                                        accentColor={accentColor}
+                                    />
+                                )}
+                                {effectiveActiveSection === 'shortcut' && (
+                                    <ShortcutSection
+                                        lang={lang}
+                                        shortcuts={shortcuts}
+                                        updateShortcut={updateShortcut}
+                                        resetShortcuts={resetShortcuts}
+                                        accentColor={accentColor}
+                                    />
+                                )}
+                                {effectiveActiveSection === 'style' && (
+                                    <StyleSection
+                                        lang={lang}
+                                        accentColor={accentColor}
+                                        setAccentColor={setAccentColor}
+                                        customAccentHex={customAccentHex}
+                                        setCustomAccentHex={setCustomAccentHex}
+                                        layoutMode={layoutMode}
+                                        setLayoutMode={setLayoutMode}
+                                        onResetSidebarWidth={onResetSidebarWidth}
+                                    />
+                                )}
+                                {effectiveActiveSection === 'plugin' && (
+                                    <PluginSection
+                                        lang={lang}
+                                        accentColor={accentColor}
+                                        isPlaying={isPlaying}
+                                        setOutputMode={setOutputMode}
+                                        setOutputDevice={setOutputDevice}
+                                    />
+                                )}
+                                {effectiveActiveSection === 'audio' && (
+                                    <AudioSection
+                                        lang={lang}
+                                        outputDevice={outputDevice}
+                                        setOutputDevice={setOutputDevice}
+                                        outputMode={outputMode}
+                                        setOutputMode={setOutputMode}
+                                        autoFallbackHtmlAudio={autoFallbackHtmlAudio}
+                                        setAutoFallbackHtmlAudio={setAutoFallbackHtmlAudio}
+                                        audioRuntime={audioRuntime}
+                                        onResetPlayer={onResetPlayer}
+                                        onRetryNativeAudio={onRetryNativeAudio}
+                                        accentColor={accentColor}
+                                    />
+                                )}
+                                {effectiveActiveSection === 'lyrics' && isAiPluginInstalled && (
+                                    <LyricsSection
+                                        lang={lang}
+                                        accentColor={accentColor}
+                                    />
+                                )}
+                                {effectiveActiveSection === 'wallpaper' && isWallpaperPluginInstalled && (
+                                    <WallpaperSection
+                                        lang={lang}
+                                        accentColor={accentColor}
+                                        autoWallpaper={autoWallpaper}
+                                        setAutoWallpaper={setAutoWallpaper}
+                                        resetOnClose={resetOnClose}
+                                        setResetOnClose={setResetOnClose}
+                                        defaultWallpaper={defaultWallpaper}
+                                        onPickWallpaper={onPickWallpaper}
+                                        onClearWallpaper={onClearWallpaper}
+                                        wallpaperFitMode={wallpaperFitMode}
+                                        setWallpaperFitMode={setWallpaperFitMode}
+                                        wallpaperEffect={wallpaperEffect}
+                                        setWallpaperEffect={setWallpaperEffect}
+                                        wallpaperTransition={wallpaperTransition}
+                                        setWallpaperTransition={setWallpaperTransition}
+                                    />
+                                )}
+                                {effectiveActiveSection === 'changelog' && <ChangelogSection lang={lang} />}
+                                {effectiveActiveSection === 'about' && <AboutSection lang={lang} />}
+                                {effectiveActiveSection === 'debug' && <DebugSection lang={lang} logs={logs} />}
+                            </div>
                         </div>
-                    </div>
                     </motion.div>
                 </motion.div>
             )}

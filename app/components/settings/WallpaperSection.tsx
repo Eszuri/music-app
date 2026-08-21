@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { SettingGroup, SettingRow, ToggleStub, SelectStub } from './controls';
-import { t, type Lang } from '../../lib/translations';
-import { getAccent } from '../../lib/colors';
-import { useWallpaperPlugin } from '../../hooks/useWallpaperPlugin';
-import type { WallpaperFitMode, WallpaperEffect, WallpaperTransition } from '../../lib/storage';
+import {useState} from 'react';
+import {SettingGroup, SettingRow, ToggleStub, SelectStub} from './controls';
+import {t, type Lang} from '../../lib/translations';
+import {getAccent} from '../../lib/colors';
+import {useWallpaperPlugin} from '../../hooks/useWallpaperPlugin';
+import type {WallpaperFitMode, WallpaperEffect, WallpaperTransition} from '../../lib/storage';
 
 interface WallpaperSectionProps {
     lang: Lang;
@@ -55,6 +55,7 @@ export default function WallpaperSection({
     } = useWallpaperPlugin();
 
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [wallpaperMode, setWallpaperMode] = useState<'system' | 'direct3d' | 'both'>('system');
 
     const handleToggleEngine = async (enabled: boolean) => {
         setErrorMsg(null);
@@ -100,194 +101,231 @@ export default function WallpaperSection({
 
     return (
         <div className="space-y-6">
-            {/* 1. Section Utama: Wallpaper Sistem (Urutan Pertama) */}
-            <div className="space-y-0">
-                <div className="text-[11px] font-semibold tracking-wider text-zinc-500 uppercase mb-3 px-0.5">
-                    {t(lang, 'wallpaper.group.system')}
-                </div>
-                <div className="rounded-xl bg-zinc-900/60 border border-zinc-800">
-                    {setAutoWallpaper && (
-                        <SettingRow
-                            title={t(lang, 'general.autoWallpaper.title')}
-                            description={t(lang, 'general.autoWallpaper.desc')}
-                        >
-                            <ToggleStub checked={autoWallpaper} onChange={setAutoWallpaper} accent={accent} />
-                        </SettingRow>
-                    )}
+            {/* Dropdown Selector Mode Wallpaper Plugin */}
+            <SettingGroup title={t(lang, 'wallpaper.mode.groupTitle')}>
+                <SettingRow
+                    title={t(lang, 'wallpaper.mode.title')}
+                    description={t(lang, 'wallpaper.mode.desc')}
+                >
+                    <SelectStub
+                        options={[
+                            ['system', t(lang, 'wallpaper.mode.system')],
+                            ['direct3d', t(lang, 'wallpaper.mode.direct3d')],
+                            ['both', t(lang, 'wallpaper.mode.both')],
+                        ]}
+                        value={wallpaperMode}
+                        onChange={(v) => setWallpaperMode(v as 'system' | 'direct3d' | 'both')}
+                        accent={accent}
+                        accentColor={accentColor}
+                        className="w-52"
+                    />
+                </SettingRow>
+            </SettingGroup>
 
-                    {onPickWallpaper && (
-                        <SettingRow
-                            title={t(lang, 'general.wallpaperDefault.title')}
-                            description={t(lang, 'general.wallpaperDefault.desc')}
-                        >
-                            <div className="flex items-center gap-2 max-w-65">
-                                {defaultWallpaper ? (
-                                    <div
-                                        className="text-xs text-zinc-400 font-mono truncate flex-1"
-                                        title={defaultWallpaper}
-                                    >
-                                        {defaultWallpaper.split('\\').pop()?.split('/').pop()}
-                                    </div>
-                                ) : (
-                                    <div className="text-xs text-zinc-600 flex-1" />
-                                )}
-                                <button
-                                    type="button"
-                                    onClick={onPickWallpaper}
-                                    className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-200 bg-zinc-800 hover:bg-zinc-700 hover:text-white border border-zinc-700/60 shadow-xs transition-all cursor-pointer shrink-0 active:scale-[0.98]"
-                                >
-                                    {defaultWallpaper ? t(lang, 'general.wallpaperDefault.changeBtn') : t(lang, 'general.wallpaperDefault.setBtn')}
-                                </button>
-                                {defaultWallpaper && onClearWallpaper && (
+            {/* 1. Mode: Wallpaper Sistem */}
+            {wallpaperMode === 'system' && (
+                <div className="space-y-0 animate-in fade-in duration-200">
+                    <div className="text-[11px] font-semibold tracking-wider text-zinc-500 uppercase mb-3 px-0.5">
+                        {t(lang, 'wallpaper.group.system')}
+                    </div>
+                    <div className="rounded-xl bg-zinc-900/60 border border-zinc-800">
+                        {setAutoWallpaper && (
+                            <SettingRow
+                                title={t(lang, 'general.autoWallpaper.title')}
+                                description={t(lang, 'general.autoWallpaper.desc')}
+                            >
+                                <ToggleStub checked={autoWallpaper} onChange={setAutoWallpaper} accent={accent} />
+                            </SettingRow>
+                        )}
+
+                        {onPickWallpaper && (
+                            <SettingRow
+                                title={t(lang, 'general.wallpaperDefault.title')}
+                                description={t(lang, 'general.wallpaperDefault.desc')}
+                            >
+                                <div className="flex items-center gap-2 max-w-65">
+                                    {defaultWallpaper ? (
+                                        <div
+                                            className="text-xs text-zinc-400 font-mono truncate flex-1"
+                                            title={defaultWallpaper}
+                                        >
+                                            {defaultWallpaper.split('\\').pop()?.split('/').pop()}
+                                        </div>
+                                    ) : (
+                                        <div className="text-xs text-zinc-600 flex-1" />
+                                    )}
                                     <button
                                         type="button"
-                                        onClick={onClearWallpaper}
-                                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 shadow-xs transition-all cursor-pointer shrink-0 active:scale-[0.98]"
+                                        onClick={onPickWallpaper}
+                                        className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-200 bg-zinc-800 hover:bg-zinc-700 hover:text-white border border-zinc-700/60 shadow-xs transition-all cursor-pointer shrink-0 active:scale-[0.98]"
                                     >
-                                        {t(lang, 'general.wallpaperDefault.deleteBtn')}
+                                        {defaultWallpaper ? t(lang, 'general.wallpaperDefault.changeBtn') : t(lang, 'general.wallpaperDefault.setBtn')}
                                     </button>
-                                )}
-                            </div>
-                        </SettingRow>
-                    )}
+                                    {defaultWallpaper && onClearWallpaper && (
+                                        <button
+                                            type="button"
+                                            onClick={onClearWallpaper}
+                                            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 shadow-xs transition-all cursor-pointer shrink-0 active:scale-[0.98]"
+                                        >
+                                            {t(lang, 'general.wallpaperDefault.deleteBtn')}
+                                        </button>
+                                    )}
+                                </div>
+                            </SettingRow>
+                        )}
 
-                    {setResetOnClose && (
-                        <SettingRow
-                            title={t(lang, 'general.resetWallpaper.title')}
-                            description={t(lang, 'general.resetWallpaper.desc')}
-                        >
-                            <div className="flex flex-col items-end gap-1">
-                                <ToggleStub checked={resetOnClose} onChange={setResetOnClose} disabled={!defaultWallpaper} accent={accent} />
-                                {!defaultWallpaper && (
-                                    <span className="text-[10px] text-zinc-600 whitespace-nowrap">{t(lang, 'general.resetWallpaper.hint')}</span>
-                                )}
-                            </div>
-                        </SettingRow>
-                    )}
+                        {setResetOnClose && (
+                            <SettingRow
+                                title={t(lang, 'general.resetWallpaper.title')}
+                                description={t(lang, 'general.resetWallpaper.desc')}
+                            >
+                                <div className="flex flex-col items-end gap-1">
+                                    <ToggleStub checked={resetOnClose} onChange={setResetOnClose} disabled={!defaultWallpaper} accent={accent} />
+                                    {!defaultWallpaper && (
+                                        <span className="text-[10px] text-zinc-600 whitespace-nowrap">{t(lang, 'general.resetWallpaper.hint')}</span>
+                                    )}
+                                </div>
+                            </SettingRow>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
 
-            {/* 2. Section Utama: Enhancement Wallpaper (Urutan Kedua - Style Spesial pada Section Utama, Content Standard) */}
-            <div className="space-y-0">
-                <div className="text-[11px] font-semibold tracking-wider uppercase mb-3 px-0.5 text-zinc-400">
-                    {t(lang, 'wallpaper.group.enhancement')}
-                </div>
+            {/* 2. Mode: Direct3D 11 Live Wallpaper (Enhancement) */}
+            {wallpaperMode === 'direct3d' && (
+                <div className="space-y-0 animate-in fade-in duration-200">
+                    <div className="text-[11px] font-semibold tracking-wider uppercase mb-3 px-0.5 text-zinc-400">
+                        {t(lang, 'wallpaper.group.enhancement')}
+                    </div>
 
-                <div
-                    className="relative rounded-xl bg-gradient-to-b from-zinc-900/95 via-zinc-900/70 to-zinc-950/90 border shadow-lg transition-all"
-                    style={{
-                        borderColor: accent.hex500 ? `${accent.hex500}55` : '#52525b',
-                        boxShadow: accent.hex500 ? `0 10px 30px -10px ${accent.hex500}20` : undefined,
-                    }}
-                >
-                    {/* Glowing top accent line */}
                     <div
-                        className="h-[2px] w-full rounded-t-xl"
+                        className="relative rounded-xl bg-gradient-to-b from-zinc-900/95 via-zinc-900/70 to-zinc-950/90 border shadow-lg transition-all"
                         style={{
-                            background: `linear-gradient(90deg, transparent 0%, ${accent.hex500 || '#6366f1'} 50%, transparent 100%)`,
+                            borderColor: accent.hex500 ? `${accent.hex500}55` : '#52525b',
+                            boxShadow: accent.hex500 ? `0 10px 30px -10px ${accent.hex500}20` : undefined,
                         }}
-                    />
-
-                    {/* Master Switch: Wallpaper Dinamis Aktif */}
-                    <SettingRow
-                        title={t(lang, 'wallpaper.liveWallpaper.title')}
-                        description={t(lang, 'wallpaper.liveWallpaper.desc')}
                     >
-                        <ToggleStub
-                            checked={isEngineRunning}
-                            onChange={handleToggleEngine}
-                            accent={accent}
+                        {/* Glowing top accent line */}
+                        <div
+                            className="h-[2px] w-full rounded-t-xl"
+                            style={{
+                                background: `linear-gradient(90deg, transparent 0%, ${accent.hex500 || '#6366f1'} 50%, transparent 100%)`,
+                            }}
                         />
-                    </SettingRow>
 
-                    {/* Transisi Pergantian Gambar */}
-                    <SettingRow
-                        title={t(lang, 'wallpaper.transition.title')}
-                        description={t(lang, 'wallpaper.transition.desc')}
-                    >
-                        <SelectStub
-                            options={[
-                                ['fade', t(lang, 'wallpaper.transition.fade')],
-                                ['zoom_in', t(lang, 'wallpaper.transition.zoom_in')],
-                                ['zoom_out', t(lang, 'wallpaper.transition.zoom_out')],
-                                ['slide', t(lang, 'wallpaper.transition.slide')],
-                                ['none', t(lang, 'wallpaper.transition.none')],
-                            ]}
-                            value={wallpaperTransition}
-                            onChange={handleTransitionChange}
-                            accent={accent}
-                            accentColor={accentColor}
-                        />
-                    </SettingRow>
-
-                    {/* Efek Visual Wallpaper */}
-                    <SettingRow
-                        title={t(lang, 'wallpaper.effect.title')}
-                        description={t(lang, 'wallpaper.effect.desc')}
-                    >
-                        <SelectStub
-                            options={[
-                                ['none', t(lang, 'wallpaper.effect.none')],
-                                ['reactive_glow', t(lang, 'wallpaper.effect.reactive_glow')],
-                                ['subtle_pulse', t(lang, 'wallpaper.effect.subtle_pulse')],
-                                ['cinematic_vignette', t(lang, 'wallpaper.effect.cinematic_vignette')],
-                                ['grayscale', t(lang, 'wallpaper.effect.grayscale')],
-                                ['dimmed', t(lang, 'wallpaper.effect.dimmed')],
-                            ]}
-                            value={wallpaperEffect}
-                            onChange={handleEffectChange}
-                            accent={accent}
-                            accentColor={accentColor}
-                        />
-                    </SettingRow>
-
-                    {/* Ukuran & Penyesuaian Wallpaper */}
-                    <SettingRow
-                        title={t(lang, 'wallpaper.fit.title')}
-                        description={t(lang, 'wallpaper.fit.desc')}
-                    >
-                        <SelectStub
-                            options={[
-                                ['fill', t(lang, 'wallpaper.fit.fill')],
-                                ['fit', t(lang, 'wallpaper.fit.fit')],
-                                ['stretch', t(lang, 'wallpaper.fit.stretch')],
-                                ['center', t(lang, 'wallpaper.fit.center')],
-                                ['tile', t(lang, 'wallpaper.fit.tile')],
-                            ]}
-                            value={wallpaperFitMode === 'span' ? 'fill' : wallpaperFitMode}
-                            onChange={handleFitModeChange}
-                            accent={accent}
-                            accentColor={accentColor}
-                        />
-                    </SettingRow>
-
-                    {/* Intensitas Visual Shader */}
-                    {wallpaperEffect !== 'none' && (
+                        {/* Master Switch: Wallpaper Dinamis Aktif */}
                         <SettingRow
-                            title={t(lang, 'wallpaper.intensity.title')}
-                            description={t(lang, 'wallpaper.intensity.desc')}
+                            title={t(lang, 'wallpaper.liveWallpaper.title')}
+                            description={t(lang, 'wallpaper.liveWallpaper.desc')}
                         >
-                            <div className="flex items-center gap-3 min-w-48">
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="2"
-                                    step="0.1"
-                                    value={engineState.intensity ?? 1.0}
-                                    onChange={(e) => handleIntensityChange(parseFloat(e.target.value))}
-                                    style={{
-                                        accentColor: accent.hex500 || 'var(--accent-500)',
-                                    }}
-                                    className="w-32 h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
-                                />
-                                <span className="text-xs font-mono text-zinc-300 w-10 text-right">
-                                    {((engineState.intensity ?? 1.0) * 100).toFixed(0)}%
-                                </span>
-                            </div>
+                            <ToggleStub
+                                checked={isEngineRunning}
+                                onChange={handleToggleEngine}
+                                accent={accent}
+                            />
                         </SettingRow>
-                    )}
+
+                        {/* Transisi Pergantian Gambar */}
+                        <SettingRow
+                            title={t(lang, 'wallpaper.transition.title')}
+                            description={t(lang, 'wallpaper.transition.desc')}
+                        >
+                            <SelectStub
+                                options={[
+                                    ['fade', t(lang, 'wallpaper.transition.fade')],
+                                    ['zoom_in', t(lang, 'wallpaper.transition.zoom_in')],
+                                    ['zoom_out', t(lang, 'wallpaper.transition.zoom_out')],
+                                    ['slide', t(lang, 'wallpaper.transition.slide')],
+                                    ['none', t(lang, 'wallpaper.transition.none')],
+                                ]}
+                                value={wallpaperTransition}
+                                onChange={handleTransitionChange}
+                                accent={accent}
+                                accentColor={accentColor}
+                            />
+                        </SettingRow>
+
+                        {/* Efek Visual Wallpaper */}
+                        <SettingRow
+                            title={t(lang, 'wallpaper.effect.title')}
+                            description={t(lang, 'wallpaper.effect.desc')}
+                        >
+                            <SelectStub
+                                options={[
+                                    ['none', t(lang, 'wallpaper.effect.none')],
+                                    ['reactive_glow', t(lang, 'wallpaper.effect.reactive_glow')],
+                                    ['subtle_pulse', t(lang, 'wallpaper.effect.subtle_pulse')],
+                                    ['cinematic_vignette', t(lang, 'wallpaper.effect.cinematic_vignette')],
+                                    ['grayscale', t(lang, 'wallpaper.effect.grayscale')],
+                                    ['dimmed', t(lang, 'wallpaper.effect.dimmed')],
+                                ]}
+                                value={wallpaperEffect}
+                                onChange={handleEffectChange}
+                                accent={accent}
+                                accentColor={accentColor}
+                            />
+                        </SettingRow>
+
+                        {/* Ukuran & Penyesuaian Wallpaper */}
+                        <SettingRow
+                            title={t(lang, 'wallpaper.fit.title')}
+                            description={t(lang, 'wallpaper.fit.desc')}
+                        >
+                            <SelectStub
+                                options={[
+                                    ['fill', t(lang, 'wallpaper.fit.fill')],
+                                    ['fit', t(lang, 'wallpaper.fit.fit')],
+                                    ['stretch', t(lang, 'wallpaper.fit.stretch')],
+                                    ['center', t(lang, 'wallpaper.fit.center')],
+                                    ['tile', t(lang, 'wallpaper.fit.tile')],
+                                ]}
+                                value={wallpaperFitMode === 'span' ? 'fill' : wallpaperFitMode}
+                                onChange={handleFitModeChange}
+                                accent={accent}
+                                accentColor={accentColor}
+                            />
+                        </SettingRow>
+
+                        {/* Intensitas Visual Shader */}
+                        {wallpaperEffect !== 'none' && (
+                            <SettingRow
+                                title={t(lang, 'wallpaper.intensity.title')}
+                                description={t(lang, 'wallpaper.intensity.desc')}
+                            >
+                                <div className="flex items-center gap-3 min-w-48">
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="2"
+                                        step="0.1"
+                                        value={engineState.intensity ?? 1.0}
+                                        onChange={(e) => handleIntensityChange(parseFloat(e.target.value))}
+                                        style={{
+                                            accentColor: accent.hex500 || 'var(--accent-500)',
+                                        }}
+                                        className="w-32 h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                                    />
+                                    <span className="text-xs font-mono text-zinc-300 w-10 text-right">
+                                        {((engineState.intensity ?? 1.0) * 100).toFixed(0)}%
+                                    </span>
+                                </div>
+                            </SettingRow>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
+
+            {/* 3. Mode: Keduanya (Sistem & Direct) - Dibiarkan kosong sementara */}
+            {wallpaperMode === 'both' && (
+                <div className="rounded-xl bg-zinc-900/30 border border-dashed border-zinc-800/80 p-8 text-center animate-in fade-in duration-200">
+                    <div className="flex flex-col items-center justify-center gap-2 text-zinc-500">
+                        <span className="text-2xl">✨</span>
+                        <p className="text-xs text-zinc-400 font-medium">
+                            {t(lang, 'wallpaper.mode.bothPlaceholder')}
+                        </p>
+                    </div>
+                </div>
+            )}
 
             {/* Error message banner */}
             {errorMsg && (
