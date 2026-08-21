@@ -195,7 +195,7 @@ export default function SettingsModal({
                                 ×
                             </button>
                         </header>
-                        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 md:p-6 min-w-0">
+                        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 md:p-6 pb-20 md:pb-24 min-w-0">
                             {effectiveActiveSection === 'general' && (
                                 <GeneralSection
                                     lang={lang}

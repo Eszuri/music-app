@@ -20,6 +20,10 @@ const en: Record<string, string> = {
 
     'wallpaper.plugin.title': 'Live Wallpaper Engine',
     'wallpaper.plugin.desc': 'Direct3D 11 / HLSL dynamic live wallpaper engine rendered behind desktop icons with reactive cover art.',
+    'wallpaper.group.system': 'System Wallpaper',
+    'wallpaper.group.systemDesc': 'Desktop cover art sync, custom default wallpapers, and auto-reset behavior.',
+    'wallpaper.group.enhancement': 'Enhancement Wallpaper',
+    'wallpaper.group.enhancementDesc': 'Direct3D 11 hardware-accelerated dynamic shaders, audio visualizer, and smooth animations.',
     'wallpaper.group.controls': 'Live Wallpaper Controls',
     'wallpaper.liveWallpaper.title': 'Live Dynamic Wallpaper',
     'wallpaper.liveWallpaper.desc': 'Render audio-reactive dynamic shader behind desktop icons without interrupting desktop UI.',
@@ -900,6 +904,10 @@ const id: Record<string, string> = {
 
     'wallpaper.plugin.title': 'Live Wallpaper Engine',
     'wallpaper.plugin.desc': 'Engine wallpaper dinamis Direct3D 11 / HLSL yang dirender di belakang ikon desktop dan reaktif terhadap cover musik.',
+    'wallpaper.group.system': 'Wallpaper Sistem',
+    'wallpaper.group.systemDesc': 'Sinkronisasi cover art desktop, wallpaper default kustom, dan reset otomatis.',
+    'wallpaper.group.enhancement': 'Enhancement Wallpaper',
+    'wallpaper.group.enhancementDesc': 'Shader dinamis reaktif akselerasi hardware Direct3D 11, efek visual, dan transisi mulus.',
     'wallpaper.group.controls': 'Kontrol Live Wallpaper',
     'wallpaper.liveWallpaper.title': 'Wallpaper Dinamis Aktif',
     'wallpaper.liveWallpaper.desc': 'Render visual shader dinamis reaktif musik di belakang ikon desktop tanpa mengganggu interaksi desktop.',

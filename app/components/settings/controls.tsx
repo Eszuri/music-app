@@ -1,6 +1,7 @@
 'use client';
 
 import {useEffect, useRef, useState, type ReactNode} from 'react';
+import {createPortal} from 'react-dom';
 import {useHoverDescription} from '../../hooks/useHoverDescription';
 import {getAccent} from '../../lib/colors';
 
@@ -89,8 +90,22 @@ export function SelectStub({
     className?: string;
 }) {
     const [isOpen, setIsOpen] = useState(false);
+    const [mounted, setMounted] = useState(false);
     const [hoveredValue, setHoveredValue] = useState<string | null>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
+    const [coords, setCoords] = useState<{
+        left: number;
+        top?: number;
+        bottom?: number;
+        width: number;
+        openUpward: boolean;
+    }>({
+        left: 0,
+        width: 160,
+        openUpward: false,
+    });
+
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
     const activeAccent = accent || getAccent(accentColor);
     const accentBg = activeAccent.hex500 || 'var(--accent-500)';
 
@@ -98,10 +113,63 @@ export function SelectStub({
     const displayLabel = selectedOption ? selectedOption[1] : (value || '');
 
     useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    const updatePosition = () => {
+        if (!buttonRef.current) return;
+        const rect = buttonRef.current.getBoundingClientRect();
+
+        const targetWidth = fullWidth ? rect.width : Math.max(rect.width, 160);
+        let targetLeft = rect.left;
+        if (targetLeft + targetWidth > window.innerWidth - 12) {
+            targetLeft = Math.max(12, rect.right - targetWidth);
+        }
+
+        const totalHeight = options.length * 36 + 12;
+        const spaceBelow = window.innerHeight - rect.bottom - 12;
+        const spaceAbove = rect.top - 12;
+
+        const openUpward = spaceBelow < totalHeight && spaceAbove > spaceBelow;
+
+        if (openUpward) {
+            setCoords({
+                left: targetLeft,
+                bottom: window.innerHeight - rect.top + 6,
+                top: undefined,
+                width: targetWidth,
+                openUpward: true,
+            });
+        } else {
+            setCoords({
+                left: targetLeft,
+                top: rect.bottom + 6,
+                bottom: undefined,
+                width: targetWidth,
+                openUpward: false,
+            });
+        }
+    };
+
+    const handleToggle = () => {
+        if (disabled) return;
+        if (!isOpen) {
+            updatePosition();
+        }
+        setIsOpen((prev) => !prev);
+    };
+
+    useEffect(() => {
         if (!isOpen) return;
 
+        updatePosition();
+
         const handleClickOutside = (e: MouseEvent | TouchEvent) => {
-            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+            const target = e.target as Node;
+            if (
+                buttonRef.current && !buttonRef.current.contains(target) &&
+                menuRef.current && !menuRef.current.contains(target)
+            ) {
                 setIsOpen(false);
             }
         };
@@ -112,26 +180,35 @@ export function SelectStub({
             }
         };
 
+        const handleScrollOrResize = () => {
+            updatePosition();
+        };
+
         document.addEventListener('mousedown', handleClickOutside);
         document.addEventListener('touchstart', handleClickOutside);
         document.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('scroll', handleScrollOrResize, true);
+        window.addEventListener('resize', handleScrollOrResize);
 
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
             document.removeEventListener('touchstart', handleClickOutside);
             document.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('scroll', handleScrollOrResize, true);
+            window.removeEventListener('resize', handleScrollOrResize);
         };
-    }, [isOpen]);
+    }, [isOpen, options.length, fullWidth]);
 
     return (
-        <div ref={containerRef} className={`relative inline-block ${fullWidth ? 'w-full' : ''}`}>
+        <div className={`relative inline-block ${fullWidth ? 'w-full' : ''}`}>
             <button
+                ref={buttonRef}
                 type="button"
                 aria-label={ariaLabel}
                 aria-haspopup="listbox"
                 aria-expanded={isOpen}
                 disabled={disabled}
-                onClick={() => setIsOpen((prev) => !prev)}
+                onClick={handleToggle}
                 className={`min-h-9 px-3.5 py-1.5 rounded-lg border border-zinc-700/60 bg-zinc-800/80 text-xs text-zinc-200 flex items-center justify-between gap-2.5 outline-none transition-all hover:bg-zinc-700/70 hover:border-zinc-600 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-40 shadow-xs cursor-pointer ${
                     fullWidth ? 'w-full' : 'min-w-36'
                 } ${className}`}
@@ -147,18 +224,27 @@ export function SelectStub({
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className={`shrink-0 text-zinc-400 transition-transform duration-150 ${isOpen ? 'rotate-180 text-zinc-200' : ''}`}
+                    className={`shrink-0 text-zinc-400 transition-transform duration-150 ${
+                        isOpen ? (coords.openUpward ? 'text-zinc-200' : 'rotate-180 text-zinc-200') : (coords.openUpward ? 'rotate-180' : '')
+                    }`}
                 >
                     <polyline points="6 9 12 15 18 9" />
                 </svg>
             </button>
 
-            {isOpen && (
+            {isOpen && mounted && typeof document !== 'undefined' && createPortal(
                 <div
+                    ref={menuRef}
                     role="listbox"
-                    className={`absolute z-60 mt-1.5 py-1 rounded-lg border border-zinc-700/70 bg-zinc-900/98 backdrop-blur-md shadow-2xl shadow-black/80 max-h-60 overflow-y-auto overflow-x-hidden ${
-                        fullWidth ? 'w-full left-0 right-0' : 'min-w-full right-0'
-                    }`}
+                    style={{
+                        position: 'fixed',
+                        left: `${coords.left}px`,
+                        top: coords.top !== undefined ? `${coords.top}px` : undefined,
+                        bottom: coords.bottom !== undefined ? `${coords.bottom}px` : undefined,
+                        width: `${coords.width}px`,
+                        zIndex: 99999,
+                    }}
+                    className="py-1 rounded-xl border border-zinc-700/80 bg-zinc-900/98 backdrop-blur-md shadow-2xl shadow-black/90 select-none overflow-hidden"
                 >
                     {options.map(([optVal, optLabel, optDisabled]) => {
                         const isSelected = optVal === value;
@@ -217,7 +303,8 @@ export function SelectStub({
                             </button>
                         );
                     })}
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );
