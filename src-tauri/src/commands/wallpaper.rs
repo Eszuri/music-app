@@ -257,47 +257,60 @@ pub fn apply_wallpaper(_bmp_path: &Path) -> Result<(), String> {
 
 pub fn clear_wallpaper_internal() -> Result<(), String> {
     let guard = DEFAULT_WALLPAPER_PATH.lock().map_err(|e| e.to_string())?;
-    if let Some(img_path) = guard.as_ref() {
+    let temp_dir = std::env::temp_dir();
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+
+    let (bmp_path, res) = if let Some(img_path) = guard.as_ref() {
         let path = Path::new(img_path);
-        if !path.exists() {
-            return Err("Default wallpaper file not found".to_string());
+        if path.exists() {
+            let img = image::open(path).map_err(|e| format!("Failed to open image: {}", e))?;
+            let bmp_path = temp_dir.join(format!("mw-def-{}.bmp", timestamp));
+            img.save_with_format(&bmp_path, image::ImageFormat::Bmp)
+                .map_err(|e| format!("Failed to save BMP: {}", e))?;
+            let res = apply_wallpaper(&bmp_path);
+            (bmp_path, res)
+        } else {
+            // Fallback: Solid black wallpaper
+            let bmp_path = temp_dir.join(format!("mw-black-{}.bmp", timestamp));
+            let black_img = image::RgbImage::new(1920, 1080);
+            black_img.save_with_format(&bmp_path, image::ImageFormat::Bmp)
+                .map_err(|e| format!("Failed to save solid black BMP: {}", e))?;
+            let res = apply_wallpaper(&bmp_path);
+            (bmp_path, res)
         }
-        let img = image::open(path).map_err(|e| format!("Failed to open image: {}", e))?;
-        let temp_dir = std::env::temp_dir();
-        let timestamp = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_millis())
-            .unwrap_or(0);
-        let bmp_path = temp_dir.join(format!("mw-def-{}.bmp", timestamp));
-
-        img.save_with_format(&bmp_path, image::ImageFormat::Bmp)
-            .map_err(|e| format!("Failed to save BMP: {}", e))?;
-
+    } else {
+        // Fallback: Solid black wallpaper
+        let bmp_path = temp_dir.join(format!("mw-black-{}.bmp", timestamp));
+        let black_img = image::RgbImage::new(1920, 1080);
+        black_img.save_with_format(&bmp_path, image::ImageFormat::Bmp)
+            .map_err(|e| format!("Failed to save solid black BMP: {}", e))?;
         let res = apply_wallpaper(&bmp_path);
+        (bmp_path, res)
+    };
 
-        if let Ok(mut cur_guard) = CURRENT_WALLPAPER_BMP_PATH.lock() {
-            *cur_guard = Some(bmp_path.to_string_lossy().to_string());
-        }
+    if let Ok(mut cur_guard) = CURRENT_WALLPAPER_BMP_PATH.lock() {
+        *cur_guard = Some(bmp_path.to_string_lossy().to_string());
+    }
 
-        if crate::sidecar_wallpaper::is_running() {
-            let _ = crate::sidecar_wallpaper::set_texture(&bmp_path.to_string_lossy());
-        }
+    if crate::sidecar_wallpaper::is_running() {
+        let _ = crate::sidecar_wallpaper::set_texture(&bmp_path.to_string_lossy());
+    }
 
-        if let Ok(entries) = std::fs::read_dir(&temp_dir) {
-            for entry in entries.flatten() {
-                let p = entry.path();
-                if let Some(name) = p.file_name().and_then(|n| n.to_str()) {
-                    if (name.starts_with("mw-def-") || name == "mw-def.bmp") && name.ends_with(".bmp") && p != bmp_path {
-                        let _ = std::fs::remove_file(p);
-                    }
+    if let Ok(entries) = std::fs::read_dir(&temp_dir) {
+        for entry in entries.flatten() {
+            let p = entry.path();
+            if let Some(name) = p.file_name().and_then(|n| n.to_str()) {
+                if (name.starts_with("mw-def-") || name.starts_with("mw-black-") || name == "mw-def.bmp") && name.ends_with(".bmp") && p != bmp_path {
+                    let _ = std::fs::remove_file(p);
                 }
             }
         }
-
-        res
-    } else {
-        Ok(())
     }
+
+    res
 }
 
 #[tauri::command]

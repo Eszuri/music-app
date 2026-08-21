@@ -189,10 +189,10 @@ export default function GeneralSection({
                         description={t(lang, 'general.resetWallpaper.desc')}
                     >
                         <div className="flex flex-col items-end gap-1">
-                            <ToggleStub checked={resetOnClose} onChange={setResetOnClose} disabled={!defaultWallpaper} accent={accent} />
-                            {!defaultWallpaper && (
-                                <span className="text-[10px] text-zinc-600 whitespace-nowrap">{t(lang, 'general.resetWallpaper.hint')}</span>
-                            )}
+                            <ToggleStub checked={resetOnClose} onChange={setResetOnClose} accent={accent} />
+                            <span className="text-[10px] text-zinc-500 whitespace-nowrap">
+                                {defaultWallpaper ? t(lang, 'general.resetWallpaper.targetCustom') : t(lang, 'general.resetWallpaper.targetBlack')}
+                            </span>
                         </div>
                     </SettingRow>
                 </SettingGroup>

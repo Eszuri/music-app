@@ -1,6 +1,6 @@
 'use client';
 
-import {useState} from 'react';
+import {useState, useEffect} from 'react';
 import {motion, AnimatePresence} from 'framer-motion';
 import {SettingGroup, SettingRow, ToggleStub, SelectStub} from './controls';
 import {t, type Lang} from '../../lib/translations';
@@ -57,6 +57,29 @@ export default function WallpaperSection({
 
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [wallpaperMode, setWallpaperMode] = useState<'system' | 'direct3d'>('system');
+    const [wallpaperSrc, setWallpaperSrc] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!defaultWallpaper) {
+            setWallpaperSrc(null);
+            return;
+        }
+        let isMounted = true;
+        import('@tauri-apps/api/core')
+            .then(({convertFileSrc}) => {
+                if (isMounted) {
+                    setWallpaperSrc(convertFileSrc(defaultWallpaper));
+                }
+            })
+            .catch(() => {
+                if (isMounted) {
+                    setWallpaperSrc(null);
+                }
+            });
+        return () => {
+            isMounted = false;
+        };
+    }, [defaultWallpaper]);
 
     const handleToggleEngine = async (enabled: boolean) => {
         setErrorMsg(null);
@@ -281,75 +304,191 @@ export default function WallpaperSection({
                         transition={{duration: 0.2}}
                         className="space-y-4"
                     >
-                        <SettingGroup title={t(lang, 'wallpaper.group.system')}>
+                        {/* Auto Wallpaper Card */}
+                        <div className="rounded-2xl bg-zinc-900/70 border border-zinc-800 p-4 sm:p-5 flex items-center justify-between gap-4">
+                            <div className="space-y-1 flex-1 min-w-0">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700/60 flex items-center justify-center text-zinc-300 shrink-0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M9 18V5l12-2v13" />
+                                            <circle cx="6" cy="18" r="3" />
+                                            <circle cx="18" cy="16" r="3" />
+                                        </svg>
+                                    </div>
+                                    <div className="text-sm font-semibold text-zinc-100">
+                                        {t(lang, 'general.autoWallpaper.title')}
+                                    </div>
+                                </div>
+                                <p className="text-xs text-zinc-400 leading-relaxed pl-10.5">
+                                    {t(lang, 'general.autoWallpaper.desc')}
+                                </p>
+                            </div>
                             {setAutoWallpaper && (
-                                <SettingRow
-                                    title={t(lang, 'general.autoWallpaper.title')}
-                                    description={t(lang, 'general.autoWallpaper.desc')}
-                                >
+                                <div className="shrink-0">
                                     <ToggleStub checked={autoWallpaper} onChange={setAutoWallpaper} accent={accent} />
-                                </SettingRow>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Wallpaper Default & Reset Container Card */}
+                        <div className="rounded-2xl bg-zinc-900/60 border border-zinc-800 divide-y divide-zinc-800/50 overflow-hidden">
+                            {/* Reset Wallpaper saat Keluar Row */}
+                            {setResetOnClose && (
+                                <div className="p-4 sm:p-5 flex items-center justify-between gap-4 bg-transparent">
+                                    <div className={`space-y-1 flex-1 min-w-0 transition-all duration-200 ${resetOnClose ? 'opacity-100' : 'opacity-40'}`}>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <div className={`text-sm font-semibold transition-colors ${resetOnClose ? 'text-zinc-200' : 'text-zinc-400'}`}>
+                                                {t(lang, 'general.resetWallpaper.title')}
+                                            </div>
+                                            {defaultWallpaper ? (
+                                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                                                    resetOnClose
+                                                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/25'
+                                                        : 'bg-zinc-800/80 text-zinc-500 border border-zinc-700/40'
+                                                }`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${resetOnClose ? 'bg-emerald-400' : 'bg-zinc-500'}`} />
+                                                    {t(lang, 'general.resetWallpaper.hint')}
+                                                </span>
+                                            ) : (
+                                                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                                                    resetOnClose
+                                                        ? 'bg-zinc-800 text-zinc-300 border border-zinc-700/60'
+                                                        : 'bg-zinc-800/80 text-zinc-500 border border-zinc-700/40'
+                                                }`}>
+                                                    <span className="w-2 h-2 rounded-full bg-black border border-zinc-600" />
+                                                    {t(lang, 'general.resetWallpaper.hintBlack')}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className={`text-xs transition-colors leading-relaxed ${resetOnClose ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                                            {t(lang, 'general.resetWallpaper.desc')}
+                                        </p>
+                                    </div>
+
+                                    <div className="shrink-0">
+                                        <ToggleStub
+                                            checked={resetOnClose}
+                                            onChange={setResetOnClose}
+                                            accent={accent}
+                                        />
+                                    </div>
+                                </div>
                             )}
 
-                            {onPickWallpaper && (
-                                <SettingRow
-                                    title={t(lang, 'general.wallpaperDefault.title')}
-                                    description={t(lang, 'general.wallpaperDefault.desc')}
-                                >
-                                    <div className="flex items-center gap-2 max-w-72">
-                                        {defaultWallpaper ? (
-                                            <div
-                                                className="px-2.5 py-1 rounded-lg bg-zinc-800/80 border border-zinc-700/60 text-xs text-zinc-300 font-mono truncate flex-1 flex items-center gap-1.5"
-                                                title={defaultWallpaper}
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-zinc-400">
+                            {/* Wallpaper Default Header & Dropzone/Preview */}
+                            <div className="p-4 sm:p-5 space-y-3.5">
+                                <div>
+                                    <div className="text-xs font-semibold tracking-wider uppercase text-zinc-400">
+                                        {t(lang, 'general.wallpaperDefault.title')}
+                                    </div>
+                                    <p className="text-xs text-zinc-500 mt-0.5">
+                                        {t(lang, 'general.wallpaperDefault.desc')}
+                                    </p>
+                                </div>
+
+                                {/* Preview Card / Dropzone */}
+                                {defaultWallpaper ? (
+                                    <div className="p-3 rounded-xl bg-zinc-900/90 border border-zinc-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                                        {/* Left: Thumbnail & Path Info */}
+                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                            <div className="w-14 h-10 rounded-lg bg-zinc-800 border border-zinc-700/80 overflow-hidden shrink-0 flex items-center justify-center relative shadow-inner">
+                                                {wallpaperSrc ? (
+                                                    <img
+                                                        src={wallpaperSrc}
+                                                        alt="Default Wallpaper"
+                                                        className="w-full h-full object-cover"
+                                                        onError={() => setWallpaperSrc(null)}
+                                                    />
+                                                ) : (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">
+                                                        <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                                                        <circle cx="9" cy="9" r="2"/>
+                                                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                                                    </svg>
+                                                )}
+                                            </div>
+
+                                            <div className="min-w-0 flex-1 space-y-0.5">
+                                                <div className="text-xs font-semibold text-zinc-100 truncate" title={defaultWallpaper}>
+                                                    {defaultWallpaper.split('\\').pop()?.split('/').pop()}
+                                                </div>
+                                                <div className="text-[11px] font-mono text-zinc-500 truncate" title={defaultWallpaper}>
+                                                    {defaultWallpaper}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Right: Actions */}
+                                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                                            {onPickWallpaper && (
+                                                <button
+                                                    type="button"
+                                                    onClick={onPickWallpaper}
+                                                    className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-200 bg-zinc-800 hover:bg-zinc-700 hover:text-white border border-zinc-700/60 shadow-xs transition-all cursor-pointer active:scale-[0.98] flex items-center gap-1.5"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                                    </svg>
+                                                    <span>{t(lang, 'general.wallpaperDefault.changeBtn')}</span>
+                                                </button>
+                                            )}
+                                            {defaultWallpaper && onClearWallpaper && (
+                                                <button
+                                                    type="button"
+                                                    onClick={onClearWallpaper}
+                                                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 shadow-xs transition-all cursor-pointer active:scale-[0.98] flex items-center gap-1.5"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                        <polyline points="3 6 5 6 21 6" />
+                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                                    </svg>
+                                                    <span>{t(lang, 'general.wallpaperDefault.deleteBtn')}</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div
+                                        onClick={onPickWallpaper}
+                                        className="p-4 rounded-xl border border-dashed border-zinc-700/80 bg-zinc-900/40 hover:bg-zinc-900/80 hover:border-zinc-500 transition-all cursor-pointer flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left group"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-lg bg-zinc-800/80 border border-zinc-700/60 flex items-center justify-center text-zinc-400 group-hover:text-zinc-200 group-hover:border-zinc-600 transition-colors">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                                                     <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
                                                     <circle cx="9" cy="9" r="2"/>
                                                     <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
                                                 </svg>
-                                                <span className="truncate">
-                                                    {defaultWallpaper.split('\\').pop()?.split('/').pop()}
-                                                </span>
                                             </div>
-                                        ) : (
-                                            <div className="text-xs text-zinc-500 italic flex-1">
-                                                {lang === 'id' ? 'Belum ada wallpaper default' : 'No default wallpaper'}
+                                            <div>
+                                                <div className="text-xs font-semibold text-zinc-300 group-hover:text-white transition-colors">
+                                                    {lang === 'id' ? 'Pilih Berkas Wallpaper Default' : 'Select Default Wallpaper File'}
+                                                </div>
+                                                <div className="text-[11px] text-zinc-500">
+                                                    {lang === 'id' ? 'Format didukung: .jpg, .png, .webp' : 'Supported formats: .jpg, .png, .webp'}
+                                                </div>
                                             </div>
-                                        )}
+                                        </div>
+
                                         <button
                                             type="button"
-                                            onClick={onPickWallpaper}
-                                            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-200 bg-zinc-800 hover:bg-zinc-700 hover:text-white border border-zinc-700/60 shadow-xs transition-all cursor-pointer shrink-0 active:scale-[0.98]"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onPickWallpaper?.();
+                                            }}
+                                            className="px-4 py-2 rounded-lg text-xs font-semibold text-zinc-100 bg-zinc-800 hover:bg-zinc-700 border border-zinc-600/70 shadow-xs transition-all cursor-pointer shrink-0 active:scale-[0.98] flex items-center gap-1.5"
                                         >
-                                            {defaultWallpaper ? t(lang, 'general.wallpaperDefault.changeBtn') : t(lang, 'general.wallpaperDefault.setBtn')}
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                <line x1="12" y1="5" x2="12" y2="19"/>
+                                                <line x1="5" y1="12" x2="19" y2="12"/>
+                                            </svg>
+                                            <span>{t(lang, 'general.wallpaperDefault.setBtn')}</span>
                                         </button>
-                                        {defaultWallpaper && onClearWallpaper && (
-                                            <button
-                                                type="button"
-                                                onClick={onClearWallpaper}
-                                                className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 shadow-xs transition-all cursor-pointer shrink-0 active:scale-[0.98]"
-                                            >
-                                                {t(lang, 'general.wallpaperDefault.deleteBtn')}
-                                            </button>
-                                        )}
                                     </div>
-                                </SettingRow>
-                            )}
-
-                            {setResetOnClose && (
-                                <SettingRow
-                                    title={t(lang, 'general.resetWallpaper.title')}
-                                    description={t(lang, 'general.resetWallpaper.desc')}
-                                >
-                                    <div className="flex flex-col items-end gap-1">
-                                        <ToggleStub checked={resetOnClose} onChange={setResetOnClose} disabled={!defaultWallpaper} accent={accent} />
-                                        {!defaultWallpaper && (
-                                            <span className="text-[10px] text-zinc-600 whitespace-nowrap">{t(lang, 'general.resetWallpaper.hint')}</span>
-                                        )}
-                                    </div>
-                                </SettingRow>
-                            )}
-                        </SettingGroup>
+                                )}
+                            </div>
+                        </div>
                     </motion.div>
                 )}
 

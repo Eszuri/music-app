@@ -173,7 +173,10 @@ const en: Record<string, string> = {
 
     'general.resetWallpaper.title': 'Reset Wallpaper on Close',
     'general.resetWallpaper.desc': 'Restore default wallpaper when the app is closed',
-    'general.resetWallpaper.hint': 'Set default wallpaper first',
+    'general.resetWallpaper.hint': 'Custom image',
+    'general.resetWallpaper.hintBlack': 'Solid black (Default)',
+    'general.resetWallpaper.targetCustom': 'Reset target: Custom image',
+    'general.resetWallpaper.targetBlack': 'Reset target: Solid black color',
 
     'general.volumeMode.title': 'Volume Mode',
     'general.volumeMode.nativeDisabled': 'System volume is unavailable while native WASAPI output is active',
@@ -1065,7 +1068,7 @@ const id: Record<string, string> = {
     'general.autoWallpaper.desc': 'Gunakan cover art sebagai wallpaper desktop saat lagu diputar',
 
     'general.wallpaperDefault.title': 'Wallpaper Default',
-    'general.wallpaperDefault.desc': 'Gambar yang akan digunakan sebagai wallpaper saat reset atau tutup aplikasi',
+    'general.wallpaperDefault.desc': 'Gambar yang akan digunakan sebagai wallpaper saat menutup aplikasi',
     'general.wallpaperDefault.changeBtn': 'Ganti',
     'general.wallpaperDefault.setBtn': 'Set Wallpaper',
     'general.wallpaperDefault.deleteBtn': 'Hapus',
@@ -1081,7 +1084,10 @@ const id: Record<string, string> = {
 
     'general.resetWallpaper.title': 'Reset Wallpaper saat Keluar',
     'general.resetWallpaper.desc': 'Kembalikan wallpaper ke default saat aplikasi ditutup',
-    'general.resetWallpaper.hint': 'Atur wallpaper default terlebih dahulu',
+    'general.resetWallpaper.hint': 'Gambar kustom',
+    'general.resetWallpaper.hintBlack': 'Hitam solid (Default)',
+    'general.resetWallpaper.targetCustom': 'Tujuan reset: Gambar kustom',
+    'general.resetWallpaper.targetBlack': 'Tujuan reset: Warna hitam solid',
 
     'general.volumeMode.title': 'Mode Volume',
     'general.volumeMode.nativeDisabled': 'Volume sistem tidak tersedia saat output WASAPI native aktif',

@@ -355,13 +355,7 @@ pub fn run() {
             unified_engine_manager::cancel_download();
             ai_lyrics_plugin_manager::cancel_download();
             if commands::wallpaper::RESET_ON_CLOSE.load(Ordering::SeqCst) {
-                let has_default = commands::wallpaper::DEFAULT_WALLPAPER_PATH
-                    .lock()
-                    .map(|p| p.is_some())
-                    .unwrap_or(false);
-                if has_default {
-                    let _ = commands::wallpaper::clear_wallpaper_internal();
-                }
+                let _ = commands::wallpaper::clear_wallpaper_internal();
             }
         }
     });
