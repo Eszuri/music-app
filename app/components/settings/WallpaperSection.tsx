@@ -330,8 +330,40 @@ export default function WallpaperSection({
                             )}
                         </div>
 
-                        {/* Wallpaper Default & Reset Container Card */}
+                        {/* Wallpaper Default, Fit Mode & Reset Container Card */}
                         <div className="rounded-2xl bg-zinc-900/60 border border-zinc-800 divide-y divide-zinc-800/50 overflow-hidden">
+                            {/* Ukuran & Penyesuaian Wallpaper Row */}
+                            {setWallpaperFitMode && (
+                                <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-transparent">
+                                    <div className="space-y-1 flex-1 min-w-0">
+                                        <div className="text-sm font-semibold text-zinc-200">
+                                            {t(lang, 'general.wallpaperFit.title')}
+                                        </div>
+                                        <p className="text-xs text-zinc-400 leading-relaxed">
+                                            {t(lang, 'general.wallpaperFit.desc')}
+                                        </p>
+                                    </div>
+
+                                    <div className="shrink-0">
+                                        <SelectStub
+                                            options={[
+                                                ['fill', t(lang, 'general.wallpaperFit.fill')],
+                                                ['fit', t(lang, 'general.wallpaperFit.fit')],
+                                                ['stretch', t(lang, 'general.wallpaperFit.stretch')],
+                                                ['center', t(lang, 'general.wallpaperFit.center')],
+                                                ['tile', t(lang, 'general.wallpaperFit.tile')],
+                                                ['span', t(lang, 'general.wallpaperFit.span')],
+                                            ]}
+                                            value={wallpaperFitMode}
+                                            onChange={handleFitModeChange}
+                                            accent={accent}
+                                            accentColor={accentColor}
+                                            className="w-full sm:w-56"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Reset Wallpaper saat Keluar Row */}
                             {setResetOnClose && (
                                 <div className="p-4 sm:p-5 flex items-center justify-between gap-4 bg-transparent">
