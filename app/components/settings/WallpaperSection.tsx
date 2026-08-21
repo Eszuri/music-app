@@ -126,14 +126,12 @@ export default function WallpaperSection({
     const modeCards: Array<{
         id: 'system' | 'direct3d';
         title: string;
-        badge: string;
         desc: string;
         icon: (isSelected: boolean) => React.ReactNode;
     }> = [
         {
             id: 'system',
             title: t(lang, 'wallpaper.mode.system'),
-            badge: t(lang, 'wallpaper.mode.systemBadge') || 'Native WinAPI',
             desc: t(lang, 'wallpaper.mode.systemSummary') || 'Sinkronisasi cover art lagu ke desktop Windows secara native tanpa beban GPU.',
             icon: (isSelected: boolean) => (
                 <svg
@@ -157,7 +155,6 @@ export default function WallpaperSection({
         {
             id: 'direct3d',
             title: t(lang, 'wallpaper.mode.direct3d'),
-            badge: t(lang, 'wallpaper.mode.direct3dBadge') || 'GPU Accelerated',
             desc: t(lang, 'wallpaper.mode.direct3dSummary') || 'Shader dinamis bertenaga GPU di balik ikon desktop dengan animasi reaktif.',
             icon: (isSelected: boolean) => (
                 <svg
@@ -197,7 +194,6 @@ export default function WallpaperSection({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" role="radiogroup" aria-label={t(lang, 'wallpaper.mode.title')}>
                     {modeCards.map((card) => {
                         const isSelected = wallpaperMode === card.id;
-                        const isDirect3dRunning = card.id === 'direct3d' && isEngineRunning;
 
                         return (
                             <button
@@ -221,7 +217,7 @@ export default function WallpaperSection({
                                 }}
                                 className={`relative p-4 rounded-2xl border text-left flex flex-col justify-between transition-all duration-200 cursor-pointer select-none hover:border-zinc-500/80 hover:bg-zinc-900/80 group active:scale-[0.99] min-h-[135px]`}
                             >
-                                {/* Top row: Icon + Badges + Selection indicator */}
+                                {/* Top row: Icon */}
                                 <div className="flex items-start justify-between gap-2 w-full">
                                     <div
                                         className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all ${
@@ -232,55 +228,12 @@ export default function WallpaperSection({
                                     >
                                         {card.icon(isSelected)}
                                     </div>
-
-                                    <div className="flex items-center gap-1.5">
-                                        {card.id === 'direct3d' && (
-                                            <span
-                                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${
-                                                    isDirect3dRunning
-                                                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                                                        : 'bg-zinc-800 text-zinc-400 border-zinc-700/50'
-                                                }`}
-                                            >
-                                                <span
-                                                    className={`w-1.5 h-1.5 rounded-full ${
-                                                        isDirect3dRunning
-                                                            ? 'bg-emerald-400 shadow-xs shadow-emerald-400 animate-pulse'
-                                                            : 'bg-zinc-500'
-                                                    }`}
-                                                />
-                                                {isDirect3dRunning ? 'Active' : 'Standby'}
-                                            </span>
-                                        )}
-
-                                        <span
-                                            className={`px-2 py-0.5 rounded-md text-[10px] font-medium tracking-wide uppercase ${
-                                                isSelected
-                                                    ? 'bg-white/10 text-zinc-200 border border-white/15'
-                                                    : 'bg-zinc-800/80 text-zinc-500 border border-zinc-800'
-                                            }`}
-                                        >
-                                            {card.badge}
-                                        </span>
-                                    </div>
                                 </div>
 
                                 {/* Bottom info */}
                                 <div className="mt-3.5 space-y-1">
-                                    <div className="flex items-center justify-between">
-                                        <div className={`text-sm font-semibold transition-colors ${isSelected ? 'text-white' : 'text-zinc-200 group-hover:text-white'}`}>
-                                            {card.title}
-                                        </div>
-                                        {isSelected && (
-                                            <div
-                                                className="w-4 h-4 rounded-full flex items-center justify-center text-white"
-                                                style={{backgroundColor: accent.hex500 || '#38bdf8'}}
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                                    <polyline points="20 6 9 17 4 12" />
-                                                </svg>
-                                            </div>
-                                        )}
+                                    <div className={`text-sm font-semibold transition-colors ${isSelected ? 'text-white' : 'text-zinc-200 group-hover:text-white'}`}>
+                                        {card.title}
                                     </div>
                                     <p className="text-[11px] text-zinc-400 leading-relaxed line-clamp-2">
                                         {card.desc}
