@@ -304,35 +304,35 @@ export default function WallpaperSection({
                         transition={{duration: 0.2}}
                         className="space-y-4"
                     >
-                        {/* Auto Wallpaper Card */}
-                        <div className="rounded-2xl bg-zinc-900/70 border border-zinc-800 p-4 sm:p-5 flex items-center justify-between gap-4">
-                            <div className="space-y-1 flex-1 min-w-0">
-                                <div className="flex items-center gap-2.5">
-                                    <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700/60 flex items-center justify-center text-zinc-300 shrink-0">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <path d="M9 18V5l12-2v13" />
-                                            <circle cx="6" cy="18" r="3" />
-                                            <circle cx="18" cy="16" r="3" />
-                                        </svg>
-                                    </div>
-                                    <div className="text-sm font-semibold text-zinc-100">
-                                        {t(lang, 'general.autoWallpaper.title')}
-                                    </div>
-                                </div>
-                                <p className="text-xs text-zinc-400 leading-relaxed pl-10.5">
-                                    {t(lang, 'general.autoWallpaper.desc')}
-                                </p>
-                            </div>
+                        {/* 1. Card: Sinkronisasi & Tampilan Wallpaper */}
+                        <div className="rounded-2xl bg-zinc-900/60 border border-zinc-800 divide-y divide-zinc-800/50 overflow-hidden">
+                            {/* Auto Wallpaper */}
                             {setAutoWallpaper && (
-                                <div className="shrink-0">
-                                    <ToggleStub checked={autoWallpaper} onChange={setAutoWallpaper} accent={accent} />
+                                <div className="p-4 sm:p-5 flex items-center justify-between gap-4 bg-transparent">
+                                    <div className="space-y-1 flex-1 min-w-0">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700/60 flex items-center justify-center text-zinc-300 shrink-0">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M9 18V5l12-2v13" />
+                                                    <circle cx="6" cy="18" r="3" />
+                                                    <circle cx="18" cy="16" r="3" />
+                                                </svg>
+                                            </div>
+                                            <div className="text-sm font-semibold text-zinc-100">
+                                                {t(lang, 'general.autoWallpaper.title')}
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-zinc-400 leading-relaxed pl-10.5">
+                                            {t(lang, 'general.autoWallpaper.desc')}
+                                        </p>
+                                    </div>
+                                    <div className="shrink-0">
+                                        <ToggleStub checked={autoWallpaper} onChange={setAutoWallpaper} accent={accent} />
+                                    </div>
                                 </div>
                             )}
-                        </div>
 
-                        {/* Wallpaper Default, Fit Mode & Reset Container Card */}
-                        <div className="rounded-2xl bg-zinc-900/60 border border-zinc-800 divide-y divide-zinc-800/50 overflow-hidden">
-                            {/* Ukuran & Penyesuaian Wallpaper Row */}
+                            {/* Ukuran & Penyesuaian Wallpaper */}
                             {setWallpaperFitMode && (
                                 <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-transparent">
                                     <div className="space-y-1 flex-1 min-w-0">
@@ -363,8 +363,11 @@ export default function WallpaperSection({
                                     </div>
                                 </div>
                             )}
+                        </div>
 
-                            {/* Reset Wallpaper saat Keluar Row */}
+                        {/* 2. Card: Pengembalian Wallpaper & Berkas Default */}
+                        <div className="rounded-2xl bg-zinc-900/60 border border-zinc-800 divide-y divide-zinc-800/50 overflow-hidden">
+                            {/* Reset Wallpaper saat Keluar */}
                             {setResetOnClose && (
                                 <div className="p-4 sm:p-5 flex items-center justify-between gap-4 bg-transparent">
                                     <div className={`space-y-1 flex-1 min-w-0 transition-all duration-200 ${resetOnClose ? 'opacity-100' : 'opacity-40'}`}>
