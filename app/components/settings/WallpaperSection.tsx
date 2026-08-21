@@ -56,7 +56,7 @@ export default function WallpaperSection({
     } = useWallpaperPlugin();
 
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
-    const [wallpaperMode, setWallpaperMode] = useState<'system' | 'direct3d' | 'both'>('system');
+    const [wallpaperMode, setWallpaperMode] = useState<'system' | 'direct3d'>('system');
 
     const handleToggleEngine = async (enabled: boolean) => {
         setErrorMsg(null);
@@ -100,15 +100,8 @@ export default function WallpaperSection({
         await setIntensity(val);
     };
 
-    const handleEnableBoth = async () => {
-        setAutoWallpaper?.(true);
-        if (!isEngineRunning) {
-            await handleToggleEngine(true);
-        }
-    };
-
     const modeCards: Array<{
-        id: 'system' | 'direct3d' | 'both';
+        id: 'system' | 'direct3d';
         title: string;
         badge: string;
         desc: string;
@@ -160,30 +153,6 @@ export default function WallpaperSection({
                 </svg>
             ),
         },
-        {
-            id: 'both',
-            title: t(lang, 'wallpaper.mode.both'),
-            badge: t(lang, 'wallpaper.mode.bothBadge') || 'Dual Hybrid',
-            desc: t(lang, 'wallpaper.mode.bothSummary') || 'Kombinasi wallpaper native desktop dengan rendering dinamis Direct3D 11.',
-            icon: (isSelected: boolean) => (
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className={`transition-colors ${isSelected ? (accent.text400 || 'text-sky-400') : 'text-zinc-400'}`}
-                >
-                    <path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z" />
-                    <path d="m22 12.5-8.58 3.91a2 2 0 0 1-1.66 0L2 12.5" />
-                    <path d="m22 17.5-8.58 3.91a2 2 0 0 1-1.66 0L2 17.5" />
-                </svg>
-            ),
-        },
     ];
 
     return (
@@ -201,8 +170,8 @@ export default function WallpaperSection({
                     </div>
                 </div>
 
-                {/* 3-Column Interactive Visual Mode Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3" role="radiogroup" aria-label={t(lang, 'wallpaper.mode.title')}>
+                {/* 2-Column Interactive Visual Mode Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" role="radiogroup" aria-label={t(lang, 'wallpaper.mode.title')}>
                     {modeCards.map((card) => {
                         const isSelected = wallpaperMode === card.id;
                         const isDirect3dRunning = card.id === 'direct3d' && isEngineRunning;
@@ -562,87 +531,6 @@ export default function WallpaperSection({
                                     </SettingRow>
                                 )}
                             </SettingGroup>
-                        </div>
-                    </motion.div>
-                )}
-
-                {/* 3. Mode: Keduanya (Dual Engine Hybrid Dashboard) */}
-                {wallpaperMode === 'both' && (
-                    <motion.div
-                        key="mode-both"
-                        initial={{opacity: 0, y: 8}}
-                        animate={{opacity: 1, y: 0}}
-                        exit={{opacity: 0, y: -8}}
-                        transition={{duration: 0.2}}
-                        className="space-y-4"
-                    >
-                        {/* Dual Engine Architecture Overview */}
-                        <div className="rounded-2xl bg-zinc-900/60 border border-zinc-800 p-5 space-y-4">
-                            <div className="flex items-center justify-between flex-wrap gap-2">
-                                <div>
-                                    <div className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
-                                        <span>🔀</span>
-                                        <span>{t(lang, 'wallpaper.both.heroTitle') || 'Arsitektur Dual Engine'}</span>
-                                    </div>
-                                    <p className="text-xs text-zinc-400 mt-1 max-w-xl leading-relaxed">
-                                        {t(lang, 'wallpaper.both.heroDesc') || 'Jalankan wallpaper sistem bersamaan dengan shader Direct3D 11 untuk pengalaman desktop maksimal.'}
-                                    </p>
-                                </div>
-
-                                {(!autoWallpaper || !isEngineRunning) ? (
-                                    <button
-                                        type="button"
-                                        onClick={handleEnableBoth}
-                                        className="px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all shadow-md cursor-pointer hover:brightness-110 active:scale-[0.98]"
-                                        style={{
-                                            backgroundColor: accent.hex500 || '#0284c7',
-                                            boxShadow: accent.hex500 ? `0 4px 14px 0 ${accent.hex500}40` : undefined,
-                                        }}
-                                    >
-                                        ✨ {t(lang, 'wallpaper.both.enableBoth') || 'Aktifkan Kedua Engine'}
-                                    </button>
-                                ) : (
-                                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                                        <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400 animate-pulse" />
-                                        {t(lang, 'wallpaper.both.bothActive') || 'Kedua Engine Aktif'}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Dual Cards Breakdown */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                                <div className="p-3.5 rounded-xl bg-zinc-900/80 border border-zinc-800/80 space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <div className="text-xs font-semibold text-zinc-200 flex items-center gap-1.5">
-                                            <span className="w-2 h-2 rounded-full bg-sky-400" />
-                                            {t(lang, 'wallpaper.both.systemCardTitle') || '1. Wallpaper Dasar Native'}
-                                        </div>
-                                        {setAutoWallpaper && (
-                                            <ToggleStub checked={autoWallpaper} onChange={setAutoWallpaper} accent={accent} />
-                                        )}
-                                    </div>
-                                    <p className="text-[11px] text-zinc-400 leading-relaxed">
-                                        {t(lang, 'wallpaper.both.systemCardDesc') || 'Mengatur cover art lagu saat ini ke desktop OS Windows & lockscreen secara native.'}
-                                    </p>
-                                </div>
-
-                                <div className="p-3.5 rounded-xl bg-zinc-900/80 border border-zinc-800/80 space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <div className="text-xs font-semibold text-zinc-200 flex items-center gap-1.5">
-                                            <span className="w-2 h-2 rounded-full bg-indigo-400" />
-                                            {t(lang, 'wallpaper.both.directCardTitle') || '2. Layer Direct3D 11 Live'}
-                                        </div>
-                                        <ToggleStub
-                                            checked={isEngineRunning}
-                                            onChange={handleToggleEngine}
-                                            accent={accent}
-                                        />
-                                    </div>
-                                    <p className="text-[11px] text-zinc-400 leading-relaxed">
-                                        {t(lang, 'wallpaper.both.directCardDesc') || 'Memproyeksikan transisi 60 FPS mulus dan shader visualizer audio di atas layar desktop.'}
-                                    </p>
-                                </div>
-                            </div>
                         </div>
                     </motion.div>
                 )}
