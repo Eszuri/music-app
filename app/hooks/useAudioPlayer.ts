@@ -395,6 +395,32 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
         [applyWallpaper],
     );
 
+    // ─── Reactive wallpaper synchronization on autoWallpaper toggle ─────────────
+    const prevAutoWallpaperRef = useRef<boolean>(autoWallpaper);
+    useEffect(() => {
+        const prev = prevAutoWallpaperRef.current;
+        prevAutoWallpaperRef.current = autoWallpaper;
+        autoWallpaperRef.current = autoWallpaper;
+
+        if (prev !== autoWallpaper) {
+            if (!isBrowserTauri()) return;
+            if (autoWallpaper) {
+                // When toggled ON: immediately set wallpaper from current metadata if present,
+                // or load metadata for currently selected song.
+                if (metadataRef.current) {
+                    applyWallpaper(metadataRef.current).catch(() => {});
+                } else if (selectedSongRef.current) {
+                    loadMetadata(selectedSongRef.current.path, false).catch(() => {});
+                }
+            } else {
+                // When toggled OFF: immediately clear/restore default wallpaper
+                getTauri()
+                    .then((mod) => mod.invoke("clear_wallpaper"))
+                    .catch(() => {});
+            }
+        }
+    }, [autoWallpaper, applyWallpaper, loadMetadata]);
+
     const syncSongPlaylist = useCallback(async (filePath: string) => {
         const songParent = filePath.replace(/[/\\][^/\\]+$/, "");
         try {
