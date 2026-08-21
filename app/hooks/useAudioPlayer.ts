@@ -412,12 +412,8 @@ export function useAudioPlayer(options: UseAudioPlayerOptions) {
                 } else if (selectedSongRef.current) {
                     loadMetadata(selectedSongRef.current.path, false).catch(() => {});
                 }
-            } else {
-                // When toggled OFF: immediately clear/restore default wallpaper
-                getTauri()
-                    .then((mod) => mod.invoke("clear_wallpaper"))
-                    .catch(() => {});
             }
+            // When toggled OFF: do nothing, leave current wallpaper as is
         }
     }, [autoWallpaper, applyWallpaper, loadMetadata]);
 
