@@ -251,10 +251,20 @@ pub fn stop_engine() {
             let quit_cmd = json!({ "command": "quit" }).to_string();
             let _ = proc.send(&quit_cmd);
 
-            std::thread::sleep(std::time::Duration::from_millis(150));
+            std::thread::sleep(std::time::Duration::from_millis(100));
             let _ = proc.child.kill();
             let _ = proc.child.wait();
         }
+    }
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        let _ = Command::new("taskkill")
+            .args(["/F", "/IM", "symvonia-wallpaper.exe", "/T"])
+            .creation_flags(CREATE_NO_WINDOW)
+            .output();
     }
 
     if let Ok(mut state) = WALLPAPER_STATE.lock() {

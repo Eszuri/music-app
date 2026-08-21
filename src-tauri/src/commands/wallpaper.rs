@@ -413,6 +413,23 @@ pub fn start_wallpaper_engine(
 #[tauri::command]
 pub fn stop_wallpaper_engine() -> Result<(), String> {
     crate::sidecar_wallpaper::stop_engine();
+
+    // Reapply native wallpaper so WorkerW DirectX overlay is removed immediately
+    if let Ok(guard) = CURRENT_WALLPAPER_BMP_PATH.lock() {
+        if let Some(ref p) = *guard {
+            let path = Path::new(p);
+            if path.exists() {
+                let _ = apply_wallpaper(path);
+            } else {
+                let _ = clear_wallpaper_internal();
+            }
+        } else {
+            let _ = clear_wallpaper_internal();
+        }
+    } else {
+        let _ = clear_wallpaper_internal();
+    }
+
     Ok(())
 }
 

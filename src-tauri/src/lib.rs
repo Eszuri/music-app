@@ -352,8 +352,10 @@ pub fn run() {
             // Kill all sidecar engines and downloads so they never outlive the host app.
             let _ = sidecar::stop_engine();
             sidecar_lyrics::stop_engine();
+            sidecar_wallpaper::stop_engine();
             unified_engine_manager::cancel_download();
             ai_lyrics_plugin_manager::cancel_download();
+            wallpaper_plugin_manager::cancel_download();
             if commands::wallpaper::RESET_ON_CLOSE.load(Ordering::SeqCst) {
                 let _ = commands::wallpaper::clear_wallpaper_internal();
             }
